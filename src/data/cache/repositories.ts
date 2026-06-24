@@ -1,0 +1,48 @@
+import { getDb, type FavoriteRecord, type HistoryRecord, type WatchlistRecord } from './db';
+
+// ---- Favorites ----
+export async function listFavorites(): Promise<FavoriteRecord[]> {
+  const db = await getDb();
+  return (await db.getAll('favorites')).sort((a, b) => b.addedAt - a.addedAt);
+}
+export async function addFavorite(record: FavoriteRecord): Promise<void> {
+  const db = await getDb();
+  await db.put('favorites', record);
+}
+export async function removeFavorite(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('favorites', id);
+}
+export async function isFavorite(id: string): Promise<boolean> {
+  const db = await getDb();
+  return Boolean(await db.get('favorites', id));
+}
+
+// ---- Watchlist ----
+export async function listWatchlist(): Promise<WatchlistRecord[]> {
+  const db = await getDb();
+  return (await db.getAll('watchlist')).sort((a, b) => b.addedAt - a.addedAt);
+}
+export async function addWatchlist(record: WatchlistRecord): Promise<void> {
+  const db = await getDb();
+  await db.put('watchlist', record);
+}
+export async function removeWatchlist(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('watchlist', id);
+}
+
+// ---- History ----
+export async function listHistory(limit = 500): Promise<HistoryRecord[]> {
+  const db = await getDb();
+  const all = await db.getAllFromIndex('history', 'createdAt');
+  return all.reverse().slice(0, limit);
+}
+export async function addHistory(record: HistoryRecord): Promise<void> {
+  const db = await getDb();
+  await db.put('history', record);
+}
+export async function clearHistory(): Promise<void> {
+  const db = await getDb();
+  await db.clear('history');
+}
