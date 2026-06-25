@@ -21,6 +21,8 @@ interface SettingsState {
   notifyEnabled: boolean;
   notifyGoals: boolean;
   notifyWatchlistBtts: boolean;
+  notifyPregame: boolean;
+  notifyPregameMinutes: number;
   setProvider: (id: string) => void;
   setApiKey: (providerId: string, key: string) => void;
   setCorsProxy: (value: string) => void;
@@ -34,6 +36,8 @@ interface SettingsState {
     notifyEnabled?: boolean;
     notifyGoals?: boolean;
     notifyWatchlistBtts?: boolean;
+    notifyPregame?: boolean;
+    notifyPregameMinutes?: number;
   }) => void;
 }
 
@@ -51,6 +55,8 @@ export const useSettings = create<SettingsState>()(
       notifyEnabled: false,
       notifyGoals: true,
       notifyWatchlistBtts: true,
+      notifyPregame: true,
+      notifyPregameMinutes: 30,
       setProvider: (id) => set({ providerId: id }),
       setApiKey: (providerId, key) =>
         set((s) => ({ apiKeys: { ...s.apiKeys, [providerId]: sanitizeApiKey(key) } })),
@@ -66,6 +72,11 @@ export const useSettings = create<SettingsState>()(
           notifyEnabled: patch.notifyEnabled ?? s.notifyEnabled,
           notifyGoals: patch.notifyGoals ?? s.notifyGoals,
           notifyWatchlistBtts: patch.notifyWatchlistBtts ?? s.notifyWatchlistBtts,
+          notifyPregame: patch.notifyPregame ?? s.notifyPregame,
+          notifyPregameMinutes:
+            patch.notifyPregameMinutes != null
+              ? Math.min(180, Math.max(5, patch.notifyPregameMinutes))
+              : s.notifyPregameMinutes,
         })),
     }),
     { name: 'btts:settings' },

@@ -2,6 +2,7 @@ import type { AnalysisBundle, DashboardRow, Fixture } from '@/domain/types';
 import { DataService } from '@/data/DataService';
 import { computeHeadToHead, computeTeamStats } from '@/core/statistics/statistics';
 import { predict } from '@/core/prediction/engine';
+import { predictMarkets } from '@/core/prediction/markets';
 import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
 import { applyPlatt, IDENTITY_PLATT, type PlattParams } from '@/core/backtest/backtest';
 import { tierForProbability } from '@/core/classification/classification';
@@ -65,6 +66,7 @@ export async function buildAnalysis(
     options.oddsCalibration ?? 0,
   );
   const prediction = applyRecalibration(calibrated, options.recalibration);
+  const markets = predictMarkets(homeStats, awayStats);
 
   return {
     fixture,
@@ -72,6 +74,7 @@ export async function buildAnalysis(
     awayStats,
     h2h,
     prediction,
+    markets,
     generatedAt: new Date().toISOString(),
   };
 }

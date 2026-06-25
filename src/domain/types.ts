@@ -136,6 +136,17 @@ export interface BttsPrediction {
   recalibrated?: boolean;
 }
 
+/** Other markets derived from the same expected-goals model. */
+export interface MarketPrediction {
+  lambdaHome: number;
+  lambdaAway: number;
+  over25: number;
+  under25: number;
+  homeWin: number;
+  draw: number;
+  awayWin: number;
+}
+
 /** Everything the analysis page needs for a single fixture. */
 export interface AnalysisBundle {
   fixture: Fixture;
@@ -143,6 +154,7 @@ export interface AnalysisBundle {
   awayStats: TeamStats;
   h2h: HeadToHead;
   prediction: BttsPrediction;
+  markets: MarketPrediction;
   generatedAt: string;
 }
 

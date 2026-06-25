@@ -24,6 +24,7 @@ import {
 } from '@/components/common/PredictionWidgets';
 import { FactorBreakdown } from '@/components/analysis/FactorBreakdown';
 import { TeamStatsCard, HeadToHeadCard } from '@/components/analysis/StatsPanels';
+import { MarketsCard, ValueCard } from '@/components/analysis/ExtraCards';
 import { AnalysisCharts } from '@/components/analysis/AnalysisCharts';
 import { cn } from '@/lib/utils';
 
@@ -200,6 +201,8 @@ export function AnalysisPage() {
             <TeamStatsCard stats={bundle.awayStats} title={`${fixture.away.name} (Fora)`} />
           </div>
           <HeadToHeadCard h2h={bundle.h2h} />
+          <ValueCard prediction={prediction} fixture={fixture} />
+          <MarketsCard markets={bundle.markets} fixture={fixture} />
         </TabsContent>
 
         <TabsContent value="charts">

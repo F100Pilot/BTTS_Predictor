@@ -1,5 +1,14 @@
-import { useState } from 'react';
-import { ExternalLink, RotateCcw, Trash2, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import {
+  ExternalLink,
+  RotateCcw,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Download,
+  Upload,
+} from 'lucide-react';
 import { useSettings } from '@/store/settingsStore';
 import { PROVIDERS } from '@/data/providers/registry';
 import { FACTOR_LABELS, normalizeWeights, type FactorKey } from '@/core/prediction/weights';
@@ -11,6 +20,7 @@ import {
   requestNotificationPermission,
   showNotification,
 } from '@/services/notifications';
+import { exportProfile, importProfile } from '@/services/backupService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +42,18 @@ export function SettingsPage() {
   const [testing, setTesting] = useState(false);
   const [checks, setChecks] = useState<DiagCheck[] | null>(null);
   const [perm, setPerm] = useState<NotificationPermission>(notificationPermission());
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const handleImport = async (file: File): Promise<void> => {
+    try {
+      await importProfile(file);
+      setImportMsg('Perfil importado. A recarregar...');
+      setTimeout(() => window.location.reload(), 1200);
+    } catch {
+      setImportMsg('Ficheiro inválido.');
+    }
+  };
 
   const handleEnableNotifications = async (enabled: boolean): Promise<void> => {
     if (enabled) {
@@ -338,6 +360,36 @@ export function SettingsPage() {
                     />
                     BTTS concretizado (jogos da Watchlist)
                   </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={settings.notifyPregame}
+                      onChange={(e) => settings.setNotify({ notifyPregame: e.target.checked })}
+                      className="h-4 w-4 accent-[hsl(var(--primary))]"
+                    />
+                    Lembrete antes do jogo (Watchlist/Favoritos)
+                  </label>
+                  {settings.notifyPregame && (
+                    <div className="flex items-center gap-2 pl-6 text-sm">
+                      <span className="text-muted-foreground">Minutos antes:</span>
+                      <Input
+                        type="number"
+                        min={5}
+                        max={180}
+                        value={settings.notifyPregameMinutes}
+                        onChange={(e) =>
+                          settings.setNotify({
+                            notifyPregameMinutes: sanitizeNumber(e.target.value, {
+                              min: 5,
+                              max: 180,
+                              fallback: 30,
+                            }),
+                          })
+                        }
+                        className="h-8 w-20"
+                      />
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -366,11 +418,35 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Dados & Cache</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={handleClearCache}>
-            <Trash2 /> Limpar cache
-          </Button>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" size="sm" onClick={handleClearCache}>
+              <Trash2 /> Limpar cache
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void exportProfile()}>
+              <Download /> Exportar perfil
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
+              <Upload /> Importar perfil
+            </Button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleImport(file);
+                e.target.value = '';
+              }}
+            />
+          </div>
           {cacheCleared && <span className="text-sm text-primary">Cache limpa.</span>}
+          {importMsg && <span className="text-sm text-primary">{importMsg}</span>}
+          <p className="text-xs text-muted-foreground">
+            O perfil inclui definições, favoritos, watchlist, histórico e apostas. Útil para backup
+            ou mudar de dispositivo. Importar substitui os dados atuais.
+          </p>
         </CardContent>
       </Card>
     </div>
