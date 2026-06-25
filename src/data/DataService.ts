@@ -8,6 +8,30 @@ import { createLogger } from '@/services/logger';
 const log = createLogger('DataService');
 const mock = new MockProvider();
 
+/** Split an inclusive ISO date range into windows of at most `maxDays` days. */
+export function chunkDateRange(
+  from: string,
+  to: string,
+  maxDays: number,
+): Array<{ from: string; to: string }> {
+  const windows: Array<{ from: string; to: string }> = [];
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    const windowStart = new Date(cursor);
+    const windowEnd = new Date(cursor);
+    windowEnd.setUTCDate(windowEnd.getUTCDate() + maxDays - 1);
+    if (windowEnd > end) windowEnd.setTime(end.getTime());
+    windows.push({
+      from: windowStart.toISOString().slice(0, 10),
+      to: windowEnd.toISOString().slice(0, 10),
+    });
+    cursor.setUTCDate(cursor.getUTCDate() + maxDays);
+  }
+  return windows;
+}
+
 export interface DataServiceConfig {
   providerId: string;
   apiKey?: string;
@@ -63,6 +87,34 @@ export class DataService {
       [],
       () => mock.getFixturesByDate(date),
     );
+  }
+
+  /** Fixtures across a date range, chunked into ≤10-day windows (free-tier safe). */
+  async getFixturesByRange(from: string, to: string): Promise<Fixture[]> {
+    const windows = chunkDateRange(from, to, 10);
+    const chunks = await Promise.all(
+      windows.map((w) =>
+        this.withFallback(
+          `range:${w.from}:${w.to}`,
+          TTL.fixtures,
+          (ctx) => {
+            const provider = getProvider(this.providerId);
+            return provider.getFixturesByRange
+              ? provider.getFixturesByRange(w.from, w.to, ctx)
+              : Promise.resolve<Fixture[]>([]);
+          },
+          [] as Fixture[],
+          () => mock.getFixturesByRange(w.from, w.to),
+        ),
+      ),
+    );
+    return chunks.flat();
+  }
+
+  /** Distinct ISO dates (yyyy-MM-dd) that have at least one fixture in the range. */
+  async getFixtureDatesInRange(from: string, to: string): Promise<string[]> {
+    const fixtures = await this.getFixturesByRange(from, to);
+    return Array.from(new Set(fixtures.map((f) => f.date.slice(0, 10))));
   }
 
   getTeamRecentMatches(teamId: string, limit = 10): Promise<MatchResult[]> {

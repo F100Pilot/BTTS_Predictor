@@ -34,6 +34,8 @@ export interface DataProvider {
   isConfigured(ctx: ProviderContext): boolean;
 
   getFixturesByDate(date: string, ctx: ProviderContext): Promise<Fixture[]>;
+  /** Optional: fetch fixtures across a date range (inclusive, ISO yyyy-MM-dd). */
+  getFixturesByRange?(from: string, to: string, ctx: ProviderContext): Promise<Fixture[]>;
   getTeamRecentMatches(teamId: string, limit: number, ctx: ProviderContext): Promise<MatchResult[]>;
   getHeadToHead(
     homeId: string,

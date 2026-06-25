@@ -68,6 +68,14 @@ export class FootballDataProvider implements DataProvider {
     return (data.matches ?? []).map(normalizeFixture);
   }
 
+  async getFixturesByRange(from: string, to: string, ctx: ProviderContext): Promise<Fixture[]> {
+    const data = await this.request<{ matches: FdMatch[] }>(
+      `/matches?dateFrom=${from}&dateTo=${to}`,
+      ctx,
+    );
+    return (data.matches ?? []).map(normalizeFixture);
+  }
+
   async getTeamRecentMatches(
     teamId: string,
     limit: number,

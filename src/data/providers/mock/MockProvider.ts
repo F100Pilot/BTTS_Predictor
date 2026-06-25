@@ -96,6 +96,17 @@ export class MockProvider implements DataProvider {
     });
   }
 
+  async getFixturesByRange(from: string, to: string): Promise<Fixture[]> {
+    const out: Fixture[] = [];
+    const start = new Date(`${from}T12:00:00Z`);
+    const end = new Date(`${to}T12:00:00Z`);
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+      const iso = d.toISOString().slice(0, 10);
+      out.push(...(await this.getFixturesByDate(iso)));
+    }
+    return out;
+  }
+
   async getTeamRecentMatches(teamId: string, limit: number): Promise<MatchResult[]> {
     const team = getMockTeam(teamId);
     const comp = competitionOf(teamId);

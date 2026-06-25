@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { FixtureCalendar } from './FixtureCalendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatDate } from '@/lib/format';
 import { sanitizeNumber } from '@/services/sanitize';
@@ -41,12 +41,10 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
             </Button>
           </PopoverTrigger>
           <PopoverContent>
-            <Calendar
-              mode="single"
+            <FixtureCalendar
               selected={selected}
-              defaultMonth={selected}
               onSelect={(d) => {
-                if (d) set({ date: format(d, 'yyyy-MM-dd') });
+                set({ date: format(d, 'yyyy-MM-dd') });
                 setOpen(false);
               }}
             />
