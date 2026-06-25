@@ -12,6 +12,7 @@ interface SettingsState {
   corsProxy: string; // optional CORS proxy for providers without CORS headers
   fallbackToMock: boolean;
   theme: ThemeMode;
+  favoriteCompetition: string; // pinned league name ('' = none)
   weights: Record<FactorKey, number>;
   /** Market-odds calibration weight (0 = pure model, 1 = pure market). */
   oddsCalibration: number;
@@ -28,6 +29,7 @@ interface SettingsState {
   setCorsProxy: (value: string) => void;
   setFallbackToMock: (value: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
+  setFavoriteCompetition: (name: string) => void;
   setWeights: (weights: Record<FactorKey, number>) => void;
   resetWeights: () => void;
   setOddsCalibration: (value: number) => void;
@@ -49,6 +51,7 @@ export const useSettings = create<SettingsState>()(
       corsProxy: '',
       fallbackToMock: true,
       theme: 'system',
+      favoriteCompetition: '',
       weights: { ...DEFAULT_WEIGHTS },
       oddsCalibration: 0,
       autoCalibrate: false,
@@ -63,6 +66,7 @@ export const useSettings = create<SettingsState>()(
       setCorsProxy: (value) => set({ corsProxy: value.trim() }),
       setFallbackToMock: (value) => set({ fallbackToMock: value }),
       setTheme: (theme) => set({ theme }),
+      setFavoriteCompetition: (name) => set({ favoriteCompetition: name }),
       setWeights: (weights) => set({ weights }),
       resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS } }),
       setOddsCalibration: (value) => set({ oddsCalibration: Math.min(1, Math.max(0, value)) }),

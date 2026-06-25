@@ -16,6 +16,7 @@ import { FixtureCalendar } from './FixtureCalendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatDate } from '@/lib/format';
 import { sanitizeNumber } from '@/services/sanitize';
+import { useSettings } from '@/store/settingsStore';
 
 interface Props {
   value: DashboardFilterState;
@@ -28,106 +29,147 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
   const set = (patch: Partial<DashboardFilterState>): void => onChange({ ...value, ...patch });
   const [open, setOpen] = useState(false);
   const selected = isValid(parseISO(value.date)) ? parseISO(value.date) : undefined;
+  const favoriteCompetition = useSettings((s) => s.favoriteCompetition);
+  const setFavoriteCompetition = useSettings((s) => s.setFavoriteCompetition);
 
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
-      <div className="space-y-1.5">
-        <Label>Data</Label>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="w-full justify-start font-normal">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {formatDate(value.date)}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent>
-            <FixtureCalendar
-              selected={selected}
-              onSelect={(d) => {
-                set({ date: format(d, 'yyyy-MM-dd') });
-                setOpen(false);
-              }}
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>Campeonato</Label>
-        <Select value={value.competition} onValueChange={(v) => set({ competition: v })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {competitions.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>País</Label>
-        <Select value={value.country} onValueChange={(v) => set({ country: v })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {countries.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="f-btts">BTTS mínimo (%)</Label>
+    <div className="space-y-3 rounded-lg border bg-card p-4">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <Input
-          id="f-btts"
-          type="number"
-          min={0}
-          max={100}
-          value={value.minBtts}
-          onChange={(e) =>
-            set({ minBtts: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
-          }
+          placeholder="Pesquisar equipa ou competição..."
+          value={value.search}
+          onChange={(e) => set({ search: e.target.value })}
+          className="sm:max-w-xs"
         />
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={value.onlyValue}
+            onChange={(e) => set({ onlyValue: e.target.checked })}
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
+          />
+          Só jogos com valor (edge &gt; 0)
+        </label>
+        <div className="flex items-center gap-2 text-sm sm:ml-auto">
+          <span className="text-muted-foreground">⭐ Liga favorita</span>
+          <Select
+            value={favoriteCompetition || 'none'}
+            onValueChange={(v) => setFavoriteCompetition(v === 'none' ? '' : v)}
+          >
+            <SelectTrigger className="h-9 w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhuma</SelectItem>
+              {competitions.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="f-odds-min">Odds mín.</Label>
-        <Input
-          id="f-odds-min"
-          type="number"
-          min={0}
-          step="0.01"
-          value={value.minOdds || ''}
-          placeholder="—"
-          onChange={(e) =>
-            set({ minOdds: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
-          }
-        />
-      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="space-y-1.5">
+          <Label>Data</Label>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-start font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formatDate(value.date)}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <FixtureCalendar
+                selected={selected}
+                onSelect={(d) => {
+                  set({ date: format(d, 'yyyy-MM-dd') });
+                  setOpen(false);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="f-odds-max">Odds máx.</Label>
-        <Input
-          id="f-odds-max"
-          type="number"
-          min={0}
-          step="0.01"
-          value={value.maxOdds || ''}
-          placeholder="—"
-          onChange={(e) =>
-            set({ maxOdds: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
-          }
-        />
+        <div className="space-y-1.5">
+          <Label>Campeonato</Label>
+          <Select value={value.competition} onValueChange={(v) => set({ competition: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {competitions.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>País</Label>
+          <Select value={value.country} onValueChange={(v) => set({ country: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {countries.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="f-btts">BTTS mínimo (%)</Label>
+          <Input
+            id="f-btts"
+            type="number"
+            min={0}
+            max={100}
+            value={value.minBtts}
+            onChange={(e) =>
+              set({ minBtts: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
+            }
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="f-odds-min">Odds mín.</Label>
+          <Input
+            id="f-odds-min"
+            type="number"
+            min={0}
+            step="0.01"
+            value={value.minOdds || ''}
+            placeholder="—"
+            onChange={(e) =>
+              set({ minOdds: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
+            }
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="f-odds-max">Odds máx.</Label>
+          <Input
+            id="f-odds-max"
+            type="number"
+            min={0}
+            step="0.01"
+            value={value.maxOdds || ''}
+            placeholder="—"
+            onChange={(e) =>
+              set({ maxOdds: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
+            }
+          />
+        </div>
       </div>
     </div>
   );

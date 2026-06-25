@@ -12,6 +12,8 @@ import { format, parseISO } from 'date-fns';
 import type { Bet, PredictionTier } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
 import { listHistory, clearHistory, setHistoryResult, listBets } from '@/data/cache/repositories';
+import { useMartingale } from '@/store/martingaleStore';
+import { FinancialDashboard } from '@/components/history/FinancialDashboard';
 import { EmptyState, Spinner } from '@/components/common/States';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -68,6 +70,7 @@ export function HistoryPage() {
   const data = useDataService();
   const refreshCalibration = useCalibration((s) => s.refresh);
   const autoCalibrate = useSettings((s) => s.autoCalibrate);
+  const initialBankroll = useMartingale((s) => s.initialBankroll);
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<string | null>(null);
@@ -192,8 +195,6 @@ export function HistoryPage() {
 
   const betProfit = (b: Bet): number =>
     b.result === 'won' ? winProfit(b.stake, b.odds) : b.result === 'lost' ? -b.stake : 0;
-  const betsProfit = bets.reduce((s, b) => s + betProfit(b), 0);
-  const betsStaked = bets.filter((b) => b.result !== 'pending').reduce((s, b) => s + b.stake, 0);
 
   if (loading) return <Spinner />;
 
@@ -488,40 +489,7 @@ export function HistoryPage() {
             />
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground">Apostas</p>
-                    <p className="text-xl font-bold">{bets.length}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground">Lucro</p>
-                    <p
-                      className={`text-xl font-bold ${betsProfit >= 0 ? 'text-success' : 'text-destructive'}`}
-                    >
-                      {EUR(betsProfit)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground">Total apostado</p>
-                    <p className="text-xl font-bold">{EUR(betsStaked)}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground">G / P / Pend</p>
-                    <p className="text-xl font-bold">
-                      {bets.filter((b) => b.result === 'won').length} /{' '}
-                      {bets.filter((b) => b.result === 'lost').length} /{' '}
-                      {bets.filter((b) => b.result === 'pending').length}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+              <FinancialDashboard bets={bets} initialBankroll={initialBankroll} />
               <div className="rounded-lg border bg-card">
                 <Table>
                   <TableHeader>

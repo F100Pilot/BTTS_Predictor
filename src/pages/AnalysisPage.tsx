@@ -88,6 +88,7 @@ export function AnalysisPage() {
           confidence: result.prediction.confidence,
           tier: result.prediction.tier,
           createdAt: Date.now(),
+          factorScores: Object.fromEntries(result.prediction.factors.map((f) => [f.key, f.score])),
         }).catch((err) => log.warn('history save failed', err));
       } catch (err) {
         log.error('analysis failed', err);

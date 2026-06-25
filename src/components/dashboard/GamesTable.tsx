@@ -12,8 +12,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { TierBadge, ConfidenceMeter } from '@/components/common/PredictionWidgets';
 import { formatTime } from '@/lib/format';
-import { toPercent } from '@/lib/math';
+import { toPercent, round } from '@/lib/math';
 import { useCollections } from '@/store/collectionsStore';
+import { rowEdge } from '@/components/dashboard/filters';
 import { cn } from '@/lib/utils';
 
 export function GamesTable({ rows }: { rows: DashboardRow[] }) {
@@ -30,6 +31,7 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
           <TableHead className="w-28">BTTS</TableHead>
           <TableHead className="hidden md:table-cell">Classificação</TableHead>
           <TableHead className="hidden lg:table-cell">Confiança</TableHead>
+          <TableHead className="hidden sm:table-cell">Valor</TableHead>
           <TableHead className="w-20 text-right">Ações</TableHead>
         </TableRow>
       </TableHeader>
@@ -76,6 +78,20 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}
+              </TableCell>
+              <TableCell className="hidden sm:table-cell">
+                {(() => {
+                  const edge = rowEdge(row);
+                  if (edge == null) return <span className="text-muted-foreground">—</span>;
+                  return (
+                    <span
+                      className={edge > 0 ? 'font-semibold text-success' : 'text-muted-foreground'}
+                    >
+                      {edge > 0 ? '+' : ''}
+                      {round(edge * 100, 1)}%
+                    </span>
+                  );
+                })()}
               </TableCell>
               <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-end gap-1">

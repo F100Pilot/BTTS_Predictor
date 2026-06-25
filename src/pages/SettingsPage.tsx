@@ -12,6 +12,8 @@ import {
 import { useSettings } from '@/store/settingsStore';
 import { PROVIDERS } from '@/data/providers/registry';
 import { FACTOR_LABELS, normalizeWeights, type FactorKey } from '@/core/prediction/weights';
+import { tuneWeights, type TuneResult, type TuneSample } from '@/core/backtest/tuneWeights';
+import { listHistory } from '@/data/cache/repositories';
 import { clearCache } from '@/data/cache/cache';
 import { runFootballDataDiagnostics, type DiagCheck } from '@/services/diagnostics';
 import {
@@ -86,6 +88,28 @@ export function SettingsPage() {
 
   const updateWeight = (key: FactorKey, value: number): void => {
     settings.setWeights({ ...settings.weights, [key]: value });
+  };
+
+  const [tuneResult, setTuneResult] = useState<TuneResult | null>(null);
+  const [tuneMsg, setTuneMsg] = useState<string | null>(null);
+
+  const handleTune = async (): Promise<void> => {
+    setTuneMsg(null);
+    setTuneResult(null);
+    const records = await listHistory(2000);
+    const samples: TuneSample[] = records
+      .filter((r) => (r.actual === 'yes' || r.actual === 'no') && r.factorScores)
+      .map((r) => ({
+        scores: r.factorScores as TuneSample['scores'],
+        outcome: r.actual === 'yes' ? 1 : 0,
+      }));
+    if (samples.length < 20) {
+      setTuneMsg(
+        `Precisas de pelo menos 20 jogos com resultado real e fatores registados (tens ${samples.length}).`,
+      );
+      return;
+    }
+    setTuneResult(tuneWeights(samples, settings.weights));
   };
 
   const handleClearCache = async (): Promise<void> => {
@@ -259,9 +283,41 @@ export function SettingsPage() {
               />
             </div>
           ))}
-          <Button variant="outline" size="sm" onClick={settings.resetWeights}>
-            <RotateCcw /> Repor pesos por defeito
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={settings.resetWeights}>
+              <RotateCcw /> Repor pesos por defeito
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void handleTune()}>
+              Otimizar pesos com resultados
+            </Button>
+          </div>
+          {tuneMsg && <p className="text-xs text-muted-foreground">{tuneMsg}</p>}
+          {tuneResult && (
+            <div className="space-y-2 rounded-md border p-3 text-sm">
+              <p>
+                Brier: <strong>{tuneResult.brierBefore}</strong> →{' '}
+                <strong className="text-success">{tuneResult.brierAfter}</strong>{' '}
+                <span className="text-xs text-muted-foreground">({tuneResult.n} jogos)</span>
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+                {(Object.keys(FACTOR_LABELS) as FactorKey[]).map((k) => (
+                  <span key={k}>
+                    {FACTOR_LABELS[k]}: <strong>{Math.round(tuneResult.weights[k] * 100)}%</strong>
+                  </span>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  settings.setWeights(tuneResult.weights);
+                  setTuneResult(null);
+                  setTuneMsg('Pesos otimizados aplicados.');
+                }}
+              >
+                Aplicar pesos otimizados
+              </Button>
+            </div>
+          )}
 
           <div className="space-y-1 border-t pt-4">
             <div className="flex justify-between text-sm">

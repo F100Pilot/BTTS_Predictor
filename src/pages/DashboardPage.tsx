@@ -10,6 +10,7 @@ import { createLogger } from '@/services/logger';
 import {
   applyFilters,
   defaultFilters,
+  sortByFavourite,
   uniqueCompetitions,
   uniqueCountries,
   type DashboardFilterState,
@@ -98,7 +99,11 @@ export function DashboardPage() {
     };
   }, [data, filters.date, weights, oddsCalibration, recalibration, cacheFixtures]);
 
-  const filtered = useMemo(() => applyFilters(rows, filters), [rows, filters]);
+  const favoriteCompetition = useSettings((s) => s.favoriteCompetition);
+  const filtered = useMemo(
+    () => sortByFavourite(applyFilters(rows, filters), favoriteCompetition),
+    [rows, filters, favoriteCompetition],
+  );
   const competitions = useMemo(() => uniqueCompetitions(rows), [rows]);
   const countries = useMemo(() => uniqueCountries(rows), [rows]);
 
