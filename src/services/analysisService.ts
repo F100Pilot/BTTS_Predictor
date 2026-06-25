@@ -2,6 +2,7 @@ import type { AnalysisBundle, DashboardRow, Fixture } from '@/domain/types';
 import { DataService } from '@/data/DataService';
 import { computeHeadToHead, computeTeamStats } from '@/core/statistics/statistics';
 import { predict } from '@/core/prediction/engine';
+import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
 import type { FactorKey } from '@/core/prediction/weights';
 import { createLogger } from '@/services/logger';
 
@@ -9,6 +10,8 @@ const log = createLogger('analysisService');
 
 export interface AnalysisOptions {
   weights?: Record<FactorKey, number>;
+  /** Market-odds calibration weight (0..1); 0 = pure model. */
+  oddsCalibration?: number;
 }
 
 /** Build the full analysis bundle for a single fixture. */
@@ -26,7 +29,17 @@ export async function buildAnalysis(
   const homeStats = computeTeamStats(fixture.home, homeMatches);
   const awayStats = computeTeamStats(fixture.away, awayMatches);
   const h2h = computeHeadToHead(fixture.home.id, fixture.away.id, h2hMatches);
-  const prediction = predict({ home: homeStats, away: awayStats, h2h, weights: options.weights });
+  const modelPrediction = predict({
+    home: homeStats,
+    away: awayStats,
+    h2h,
+    weights: options.weights,
+  });
+  const prediction = calibrate(
+    modelPrediction,
+    impliedBttsYes(fixture.odds?.bttsYes, fixture.odds?.bttsNo),
+    options.oddsCalibration ?? 0,
+  );
 
   return {
     fixture,

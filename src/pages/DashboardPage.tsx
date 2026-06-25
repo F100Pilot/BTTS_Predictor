@@ -26,6 +26,7 @@ const log = createLogger('DashboardPage');
 export function DashboardPage() {
   const data = useDataService();
   const weights = useSettings((s) => s.weights);
+  const oddsCalibration = useSettings((s) => s.oddsCalibration);
   const cacheFixtures = useFixtureCache((s) => s.put);
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
   const [rows, setRows] = useState<DashboardRow[]>([]);
@@ -63,7 +64,7 @@ export function DashboardPage() {
       setRows(fixtures.map((fixture) => ({ fixture })));
       setLoading(false);
       for (const fixture of fixtures) {
-        const row = await buildDashboardRow(data, fixture, { weights });
+        const row = await buildDashboardRow(data, fixture, { weights, oddsCalibration });
         if (cancelled) return;
         setRows((prev) =>
           sortDashboardRows(prev.map((r) => (r.fixture.id === fixture.id ? row : r))),
@@ -79,7 +80,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [data, filters.date, weights, cacheFixtures]);
+  }, [data, filters.date, weights, oddsCalibration, cacheFixtures]);
 
   const filtered = useMemo(() => applyFilters(rows, filters), [rows, filters]);
   const competitions = useMemo(() => uniqueCompetitions(rows), [rows]);

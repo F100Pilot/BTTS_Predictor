@@ -1,11 +1,6 @@
-import type {
-  BttsPrediction,
-  HeadToHead,
-  PredictionFactor,
-  PredictionTier,
-  TeamStats,
-} from '@/domain/types';
+import type { BttsPrediction, HeadToHead, PredictionFactor, TeamStats } from '@/domain/types';
 import { clamp, average, stdDev, round } from '@/lib/math';
+import { tierForProbability } from '@/core/classification/classification';
 import { DEFAULT_WEIGHTS, FACTOR_LABELS, normalizeWeights, type FactorKey } from './weights';
 
 export interface PredictInput {
@@ -60,13 +55,6 @@ function venueScore(home: TeamStats, away: TeamStats): number {
   if (away.away.played > 0) parts.push(away.away.bttsPct);
   if (parts.length === 0) return 0.5;
   return clamp(average(parts));
-}
-
-function tierFor(dominantProbability: number): PredictionTier {
-  if (dominantProbability >= 0.8) return 'very-strong';
-  if (dominantProbability >= 0.7) return 'strong';
-  if (dominantProbability >= 0.6) return 'medium';
-  return 'weak';
 }
 
 /**
@@ -136,7 +124,8 @@ export function predict(input: PredictInput): BttsPrediction {
     probYes,
     probNo,
     confidence: computeConfidence(factors, probYes, home, away, h2h),
-    tier: tierFor(dominant),
+    tier: tierForProbability(dominant),
     factors,
+    modelProbYes: probYes,
   };
 }

@@ -34,6 +34,7 @@ export function AnalysisPage() {
   const navigate = useNavigate();
   const data = useDataService();
   const weights = useSettings((s) => s.weights);
+  const oddsCalibration = useSettings((s) => s.oddsCalibration);
   const getCached = useFixtureCache((s) => s.get);
   const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
 
@@ -62,7 +63,7 @@ export function AnalysisPage() {
           if (!cancelled) setBundle(null);
           return;
         }
-        const result = await buildAnalysis(data, fixture, { weights });
+        const result = await buildAnalysis(data, fixture, { weights, oddsCalibration });
         if (cancelled) return;
         setBundle(result);
         // Record the prediction in history (best-effort).
@@ -88,7 +89,7 @@ export function AnalysisPage() {
     return () => {
       cancelled = true;
     };
-  }, [resolveFixture, data, weights]);
+  }, [resolveFixture, data, weights, oddsCalibration]);
 
   if (loading) return <Spinner label="A analisar o jogo..." />;
   if (!bundle)

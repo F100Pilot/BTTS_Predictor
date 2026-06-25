@@ -221,6 +221,34 @@ export function SettingsPage() {
           <Button variant="outline" size="sm" onClick={settings.resetWeights}>
             <RotateCcw /> Repor pesos por defeito
           </Button>
+
+          <div className="space-y-1 border-t pt-4">
+            <div className="flex justify-between text-sm">
+              <Label htmlFor="odds-cal">Calibração com odds de mercado</Label>
+              <span className="tabular-nums text-muted-foreground">
+                {round(settings.oddsCalibration * 100)}%
+              </span>
+            </div>
+            <input
+              id="odds-cal"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={settings.oddsCalibration}
+              onChange={(e) =>
+                settings.setOddsCalibration(
+                  sanitizeNumber(e.target.value, { min: 0, max: 1, fallback: 0 }),
+                )
+              }
+              className="w-full accent-[hsl(var(--primary))]"
+            />
+            <p className="text-xs text-muted-foreground">
+              Mistura a probabilidade do modelo com a probabilidade implícita nas odds (sem margem
+              da casa). 0% = modelo puro; valores baixos (ex.: 20-30%) aproximam-no do mercado sem o
+              copiar. Requer odds disponíveis no jogo.
+            </p>
+          </div>
         </CardContent>
       </Card>
 

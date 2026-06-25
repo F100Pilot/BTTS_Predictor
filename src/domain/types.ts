@@ -112,6 +112,12 @@ export interface BttsPrediction {
   confidence: number; // 0..10
   tier: PredictionTier;
   factors: PredictionFactor[];
+  /** Market-implied BTTS=YES probability (de-vigged), when odds are available. */
+  marketImpliedYes?: number;
+  /** Calibration weight actually applied to the market probability (0..1). */
+  calibrationApplied?: number;
+  /** Model probability before any market calibration. */
+  modelProbYes?: number;
 }
 
 /** Everything the analysis page needs for a single fixture. */

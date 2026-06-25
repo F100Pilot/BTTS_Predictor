@@ -39,6 +39,14 @@ export function tierMeta(tier: PredictionTier): TierMeta {
   return TIERS[tier];
 }
 
+/** Map a dominant probability (0..1) to its classification tier. */
+export function tierForProbability(probability: number): PredictionTier {
+  if (probability >= 0.8) return 'very-strong';
+  if (probability >= 0.7) return 'strong';
+  if (probability >= 0.6) return 'medium';
+  return 'weak';
+}
+
 /** Human label for the dominant BTTS side. */
 export function bttsVerdict(probYes: number): { side: 'SIM' | 'NÃO'; probability: number } {
   return probYes >= 0.5
