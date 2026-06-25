@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { Check, X, RotateCcw, Trash2, Plus, Download, Clock, AlertTriangle } from 'lucide-react';
 import { useMartingale } from '@/store/martingaleStore';
-import { activeSeries, computeStats } from '@/core/martingale/martingale';
+import { activeSeries, computeStats, projectSeries } from '@/core/martingale/martingale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -100,6 +100,17 @@ export function MartingalePage() {
   const stakeExceedsLimit = previewStake > stakeLimit;
   const stepBrakeHit = maxStep > 0 && series.step > maxStep;
   const stakeOverBankroll = previewStake > stats.bankroll && stats.bankroll > 0;
+
+  // Risk projection: next stakes if the series keeps losing at the current odds.
+  const projOdds = oddsVal > 1 ? oddsVal : 2;
+  const projCount = maxStep > 0 ? Math.max(1, maxStep - series.step + 1) : 5;
+  const projection = projectSeries(
+    series.currentLoss,
+    baseProfit,
+    projOdds,
+    series.step,
+    projCount,
+  );
 
   const handleAdd = async (): Promise<void> => {
     if (!(oddsVal > 1) || !matchLabel.trim() || stepBrakeHit) return;
@@ -352,6 +363,49 @@ export function MartingalePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Risk projection */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Projeção de risco</CardTitle>
+          <CardDescription>
+            Se perderes consecutivamente à odd {projOdds.toFixed(2)}, a stake cresce assim a partir
+            do step atual:
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Step</TableHead>
+                <TableHead>Stake</TableHead>
+                <TableHead>Perda acum. se perder</TableHead>
+                <TableHead className="hidden sm:table-cell">% da banca</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {projection.map((p) => {
+                const pct = stats.bankroll > 0 ? (p.stake / stats.bankroll) * 100 : 0;
+                const over = maxStakePct > 0 && pct > maxStakePct;
+                return (
+                  <TableRow key={p.step}>
+                    <TableCell>{p.step}</TableCell>
+                    <TableCell className={over ? 'font-semibold text-destructive' : ''}>
+                      {EUR(p.stake)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{EUR(p.cumulativeLoss)}</TableCell>
+                    <TableCell
+                      className={`hidden sm:table-cell ${over ? 'text-destructive' : 'text-muted-foreground'}`}
+                    >
+                      {pct.toFixed(0)}%
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Charts */}
       {stats.equity.length > 0 && (

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateStake, winProfit, activeSeries, computeStats } from './martingale';
+import { calculateStake, winProfit, activeSeries, computeStats, projectSeries } from './martingale';
 import type { Bet } from '@/domain/types';
 
 function bet(partial: Partial<Bet>): Bet {
@@ -58,6 +58,23 @@ describe('activeSeries', () => {
       bet({ id: '2', createdAt: 5, settledAt: 5, result: 'lost', stake: 20 }),
     ];
     expect(activeSeries(bets, 3)).toEqual({ currentLoss: 20, step: 2 });
+  });
+});
+
+describe('projectSeries', () => {
+  it('grows the stake as losses accumulate at fixed odds', () => {
+    const proj = projectSeries(0, 10, 2, 1, 3);
+    // step1: stake 10 -> loss 10; step2: (10+10)/1 = 20 -> loss 30; step3: (30+10)/1 = 40 -> 70
+    expect(proj).toEqual([
+      { step: 1, stake: 10, cumulativeLoss: 10 },
+      { step: 2, stake: 20, cumulativeLoss: 30 },
+      { step: 3, stake: 40, cumulativeLoss: 70 },
+    ]);
+  });
+
+  it('starts from the provided accumulated loss and step', () => {
+    const proj = projectSeries(30, 10, 2, 3, 1);
+    expect(proj[0]).toEqual({ step: 3, stake: 40, cumulativeLoss: 70 });
   });
 });
 

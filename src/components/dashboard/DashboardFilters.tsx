@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { format, parseISO, isValid } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import type { DashboardFilterState } from './filters';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { formatDate } from '@/lib/format';
 import { sanitizeNumber } from '@/services/sanitize';
 
 interface Props {
@@ -19,17 +26,32 @@ interface Props {
 
 export function DashboardFilters({ value, competitions, countries, onChange }: Props) {
   const set = (patch: Partial<DashboardFilterState>): void => onChange({ ...value, ...patch });
+  const [open, setOpen] = useState(false);
+  const selected = isValid(parseISO(value.date)) ? parseISO(value.date) : undefined;
 
   return (
     <div className="grid grid-cols-1 gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
       <div className="space-y-1.5">
-        <Label htmlFor="f-date">Data</Label>
-        <Input
-          id="f-date"
-          type="date"
-          value={value.date}
-          onChange={(e) => set({ date: e.target.value })}
-        />
+        <Label>Data</Label>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-full justify-start font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {formatDate(value.date)}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent>
+            <Calendar
+              mode="single"
+              selected={selected}
+              defaultMonth={selected}
+              onSelect={(d) => {
+                if (d) set({ date: format(d, 'yyyy-MM-dd') });
+                setOpen(false);
+              }}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-1.5">

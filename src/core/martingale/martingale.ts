@@ -45,6 +45,35 @@ export function activeSeries(
   return { currentLoss, step };
 }
 
+export interface ProjectionStep {
+  step: number;
+  stake: number;
+  /** Total accumulated loss if this step also loses. */
+  cumulativeLoss: number;
+}
+
+/**
+ * Project the next `steps` stakes assuming consecutive losses at fixed odds,
+ * starting from the current series state. Lets the user see the risk grow
+ * before committing to a bet.
+ */
+export function projectSeries(
+  currentLoss: number,
+  baseProfit: number,
+  odds: number,
+  fromStep: number,
+  steps: number,
+): ProjectionStep[] {
+  const out: ProjectionStep[] = [];
+  let loss = currentLoss;
+  for (let i = 0; i < steps; i++) {
+    const stake = calculateStake(loss, baseProfit, odds);
+    loss = round(loss + stake, 2);
+    out.push({ step: fromStep + i, stake, cumulativeLoss: loss });
+  }
+  return out;
+}
+
 /** Aggregate statistics + equity curve from a list of bets.
  * `initialBankroll` is the starting balance; current bankroll = start + profit. */
 export function computeStats(bets: Bet[], initialBankroll: number): MartingaleStats {
