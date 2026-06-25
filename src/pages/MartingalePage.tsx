@@ -12,7 +12,7 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
-import { Check, X, RotateCcw, Trash2, Plus, Download, Clock } from 'lucide-react';
+import { Check, X, RotateCcw, Trash2, Plus, Download, Clock, AlertTriangle } from 'lucide-react';
 import { useMartingale } from '@/store/martingaleStore';
 import { activeSeries, computeStats } from '@/core/martingale/martingale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -66,6 +66,8 @@ export function MartingalePage() {
   const {
     initialBankroll,
     baseProfit,
+    maxStakePct,
+    maxStep,
     seriesResetAt,
     bets,
     refresh,
@@ -93,8 +95,14 @@ export function MartingalePage() {
   const oddsVal = Number(odds);
   const previewStake = oddsVal > 1 ? nextStake(oddsVal) : 0;
 
+  // Safety guards
+  const stakeLimit = maxStakePct > 0 ? (stats.bankroll * maxStakePct) / 100 : Infinity;
+  const stakeExceedsLimit = previewStake > stakeLimit;
+  const stepBrakeHit = maxStep > 0 && series.step > maxStep;
+  const stakeOverBankroll = previewStake > stats.bankroll && stats.bankroll > 0;
+
   const handleAdd = async (): Promise<void> => {
-    if (!(oddsVal > 1) || !matchLabel.trim()) return;
+    if (!(oddsVal > 1) || !matchLabel.trim() || stepBrakeHit) return;
     await addBet({
       matchLabel: sanitizeText(matchLabel, 80),
       market: sanitizeText(market, 24) || 'BTTS',
@@ -213,6 +221,44 @@ export function MartingalePage() {
                 }
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="maxstakepct">Limite de stake (% banca)</Label>
+              <Input
+                id="maxstakepct"
+                type="number"
+                min={0}
+                max={100}
+                value={maxStakePct}
+                onChange={(e) =>
+                  setSettings({
+                    maxStakePct: sanitizeNumber(e.target.value, {
+                      min: 0,
+                      max: 100,
+                      fallback: maxStakePct,
+                    }),
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="maxstep">Step máximo (travão)</Label>
+              <Input
+                id="maxstep"
+                type="number"
+                min={0}
+                max={50}
+                value={maxStep}
+                onChange={(e) =>
+                  setSettings({
+                    maxStep: sanitizeNumber(e.target.value, { min: 0, max: 50, fallback: maxStep }),
+                  })
+                }
+              />
+            </div>
+            <p className="col-span-2 text-xs text-muted-foreground">
+              0 = sem limite. O limite de stake apenas alerta; o step máximo bloqueia novas apostas
+              até reiniciar a série.
+            </p>
             <div className="col-span-2 flex flex-wrap gap-2 pt-1">
               <Button variant="outline" size="sm" onClick={resetSeries}>
                 <RotateCcw /> Reiniciar série
@@ -279,7 +325,28 @@ export function MartingalePage() {
                 />
               </div>
             </div>
-            <Button onClick={handleAdd} disabled={!(oddsVal > 1) || !matchLabel.trim()}>
+            {stepBrakeHit && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Travão de segurança: a série atingiu o step {series.step} (máximo {maxStep}).
+                  Reinicie a série para continuar.
+                </span>
+              </div>
+            )}
+            {!stepBrakeHit && stakeExceedsLimit && (
+              <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                <span>
+                  Atenção: a stake ({EUR(previewStake)}) excede {maxStakePct}% da banca (
+                  {EUR(stakeLimit)}).{stakeOverBankroll ? ' É superior à própria banca!' : ''}
+                </span>
+              </div>
+            )}
+            <Button
+              onClick={handleAdd}
+              disabled={!(oddsVal > 1) || !matchLabel.trim() || stepBrakeHit}
+            >
               <Plus /> Adicionar aposta ({EUR(previewStake)})
             </Button>
           </CardContent>

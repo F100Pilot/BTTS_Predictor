@@ -17,13 +17,20 @@ interface MartingaleState {
   // Persisted settings
   initialBankroll: number;
   baseProfit: number;
+  maxStakePct: number; // % of current bankroll above which the stake is flagged (0 = off)
+  maxStep: number; // safety brake: block new bets once the series reaches this step (0 = off)
   seriesResetAt: number;
   // Runtime
   bets: Bet[];
   loaded: boolean;
 
   refresh: () => Promise<void>;
-  setSettings: (patch: { initialBankroll?: number; baseProfit?: number }) => void;
+  setSettings: (patch: {
+    initialBankroll?: number;
+    baseProfit?: number;
+    maxStakePct?: number;
+    maxStep?: number;
+  }) => void;
   nextStake: (odds: number) => number;
   addBet: (input: NewBetInput) => Promise<void>;
   setResult: (id: string, result: BetResult) => Promise<void>;
@@ -42,6 +49,8 @@ export const useMartingale = create<MartingaleState>()(
     (set, get) => ({
       initialBankroll: 100,
       baseProfit: 10,
+      maxStakePct: 25,
+      maxStep: 6,
       seriesResetAt: 0,
       bets: [],
       loaded: false,
@@ -65,6 +74,14 @@ export const useMartingale = create<MartingaleState>()(
             patch.baseProfit != null
               ? sanitizeNumber(patch.baseProfit, { min: 0, max: 1e9, fallback: s.baseProfit })
               : s.baseProfit,
+          maxStakePct:
+            patch.maxStakePct != null
+              ? sanitizeNumber(patch.maxStakePct, { min: 0, max: 100, fallback: s.maxStakePct })
+              : s.maxStakePct,
+          maxStep:
+            patch.maxStep != null
+              ? sanitizeNumber(patch.maxStep, { min: 0, max: 50, fallback: s.maxStep })
+              : s.maxStep,
         })),
 
       nextStake: (odds) => {
@@ -119,6 +136,8 @@ export const useMartingale = create<MartingaleState>()(
       partialize: (s) => ({
         initialBankroll: s.initialBankroll,
         baseProfit: s.baseProfit,
+        maxStakePct: s.maxStakePct,
+        maxStep: s.maxStep,
         seriesResetAt: s.seriesResetAt,
       }),
     },
