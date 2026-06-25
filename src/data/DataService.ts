@@ -61,10 +61,11 @@ export class DataService {
     run: (ctx: ProviderContext) => Promise<T>,
     emptyValue: T,
     mockRun: () => Promise<T>,
+    allowMock = this.config.fallbackToMock,
   ): Promise<T> {
     const provider = getProvider(this.providerId);
     if (!provider.isConfigured(this.ctx)) {
-      if (this.config.fallbackToMock) {
+      if (allowMock) {
         log.info('provider not configured, using mock', { provider: provider.id });
         return cached(`mock:${cacheKey}`, ttl, mockRun);
       }
@@ -74,7 +75,7 @@ export class DataService {
       return await cached(`${provider.id}:${cacheKey}`, ttl, () => run(this.ctx));
     } catch (err) {
       log.error('provider failed', err);
-      if (this.config.fallbackToMock) return cached(`mock:${cacheKey}`, ttl, mockRun);
+      if (allowMock) return cached(`mock:${cacheKey}`, ttl, mockRun);
       throw err;
     }
   }
@@ -89,8 +90,13 @@ export class DataService {
     );
   }
 
-  /** Fixtures across a date range, chunked into ≤10-day windows (free-tier safe). */
-  async getFixturesByRange(from: string, to: string): Promise<Fixture[]> {
+  /**
+   * Fixtures across a date range, chunked into ≤10-day windows (free-tier safe).
+   * `allowMock` defaults to false here: the calendar must reflect the real source
+   * only — otherwise a single rate-limited window would mark every day with
+   * synthetic fixtures.
+   */
+  async getFixturesByRange(from: string, to: string, allowMock = false): Promise<Fixture[]> {
     const windows = chunkDateRange(from, to, 10);
     const chunks = await Promise.all(
       windows.map((w) =>
@@ -105,15 +111,17 @@ export class DataService {
           },
           [] as Fixture[],
           () => mock.getFixturesByRange(w.from, w.to),
+          allowMock,
         ),
       ),
     );
     return chunks.flat();
   }
 
-  /** Distinct ISO dates (yyyy-MM-dd) that have at least one fixture in the range. */
+  /** Distinct ISO dates (yyyy-MM-dd) that have at least one fixture in the range.
+   * Does NOT fall back to mock — marks reflect the real source only. */
   async getFixtureDatesInRange(from: string, to: string): Promise<string[]> {
-    const fixtures = await this.getFixturesByRange(from, to);
+    const fixtures = await this.getFixturesByRange(from, to, false);
     return Array.from(new Set(fixtures.map((f) => f.date.slice(0, 10))));
   }
 
