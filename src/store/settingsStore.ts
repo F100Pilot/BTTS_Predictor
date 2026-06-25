@@ -17,6 +17,10 @@ interface SettingsState {
   oddsCalibration: number;
   /** Auto-calibrate predictions from settled history (Platt recalibration). */
   autoCalibrate: boolean;
+  /** Live notifications master switch + per-type toggles. */
+  notifyEnabled: boolean;
+  notifyGoals: boolean;
+  notifyWatchlistBtts: boolean;
   setProvider: (id: string) => void;
   setApiKey: (providerId: string, key: string) => void;
   setCorsProxy: (value: string) => void;
@@ -26,6 +30,11 @@ interface SettingsState {
   resetWeights: () => void;
   setOddsCalibration: (value: number) => void;
   setAutoCalibrate: (value: boolean) => void;
+  setNotify: (patch: {
+    notifyEnabled?: boolean;
+    notifyGoals?: boolean;
+    notifyWatchlistBtts?: boolean;
+  }) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -39,6 +48,9 @@ export const useSettings = create<SettingsState>()(
       weights: { ...DEFAULT_WEIGHTS },
       oddsCalibration: 0,
       autoCalibrate: false,
+      notifyEnabled: false,
+      notifyGoals: true,
+      notifyWatchlistBtts: true,
       setProvider: (id) => set({ providerId: id }),
       setApiKey: (providerId, key) =>
         set((s) => ({ apiKeys: { ...s.apiKeys, [providerId]: sanitizeApiKey(key) } })),
@@ -49,6 +61,12 @@ export const useSettings = create<SettingsState>()(
       resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS } }),
       setOddsCalibration: (value) => set({ oddsCalibration: Math.min(1, Math.max(0, value)) }),
       setAutoCalibrate: (value) => set({ autoCalibrate: value }),
+      setNotify: (patch) =>
+        set((s) => ({
+          notifyEnabled: patch.notifyEnabled ?? s.notifyEnabled,
+          notifyGoals: patch.notifyGoals ?? s.notifyGoals,
+          notifyWatchlistBtts: patch.notifyWatchlistBtts ?? s.notifyWatchlistBtts,
+        })),
     }),
     { name: 'btts:settings' },
   ),

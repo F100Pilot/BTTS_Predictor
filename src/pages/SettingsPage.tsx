@@ -5,6 +5,12 @@ import { PROVIDERS } from '@/data/providers/registry';
 import { FACTOR_LABELS, normalizeWeights, type FactorKey } from '@/core/prediction/weights';
 import { clearCache } from '@/data/cache/cache';
 import { runFootballDataDiagnostics, type DiagCheck } from '@/services/diagnostics';
+import {
+  notificationsSupported,
+  notificationPermission,
+  requestNotificationPermission,
+  showNotification,
+} from '@/services/notifications';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +31,19 @@ export function SettingsPage() {
 
   const [testing, setTesting] = useState(false);
   const [checks, setChecks] = useState<DiagCheck[] | null>(null);
+  const [perm, setPerm] = useState<NotificationPermission>(notificationPermission());
+
+  const handleEnableNotifications = async (enabled: boolean): Promise<void> => {
+    if (enabled) {
+      const result = await requestNotificationPermission();
+      setPerm(result);
+      if (result !== 'granted') {
+        settings.setNotify({ notifyEnabled: false });
+        return;
+      }
+    }
+    settings.setNotify({ notifyEnabled: enabled });
+  };
 
   const activeProvider = PROVIDERS.find((p) => p.id === settings.providerId) ?? PROVIDERS[0]!;
   const normalized = normalizeWeights(settings.weights);
@@ -266,6 +285,80 @@ export function SettingsPage() {
               </span>
             </span>
           </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Notificações ao vivo</CardTitle>
+          <CardDescription>
+            Avisos enquanto a app está aberta (em primeiro plano ou instalada como PWA).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!notificationsSupported() ? (
+            <p className="text-sm text-muted-foreground">
+              Este dispositivo/navegador não suporta notificações.
+            </p>
+          ) : (
+            <>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={settings.notifyEnabled}
+                  onChange={(e) => void handleEnableNotifications(e.target.checked)}
+                  className="h-4 w-4 accent-[hsl(var(--primary))]"
+                />
+                Ativar notificações
+              </label>
+              {perm === 'denied' && (
+                <p className="text-xs text-destructive">
+                  Permissão negada no navegador. Autorize as notificações nas definições do site.
+                </p>
+              )}
+              {settings.notifyEnabled && (
+                <div className="space-y-2 border-l-2 pl-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={settings.notifyGoals}
+                      onChange={(e) => settings.setNotify({ notifyGoals: e.target.checked })}
+                      className="h-4 w-4 accent-[hsl(var(--primary))]"
+                    />
+                    Golos em jogos ao vivo
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={settings.notifyWatchlistBtts}
+                      onChange={(e) =>
+                        settings.setNotify({ notifyWatchlistBtts: e.target.checked })
+                      }
+                      className="h-4 w-4 accent-[hsl(var(--primary))]"
+                    />
+                    BTTS concretizado (jogos da Watchlist)
+                  </label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      void showNotification('BTTS Analytics Pro', {
+                        body: 'Notificação de teste — está tudo a funcionar! ✅',
+                        tag: 'test',
+                      })
+                    }
+                  >
+                    Enviar notificação de teste
+                  </Button>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                As notificações funcionam com a app aberta. Avisos com a app totalmente fechada
+                exigiriam um servidor de push (não disponível neste alojamento estático, e
+                indisponível no iOS sem isso).
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
 

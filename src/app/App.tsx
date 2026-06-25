@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Spinner } from '@/components/common/States';
 import { PwaUpdatePrompt } from '@/components/common/PwaUpdatePrompt';
 import { useThemeEffect } from '@/hooks/useThemeEffect';
+import { useLiveNotifications } from '@/hooks/useLiveNotifications';
 import { useCollections } from '@/store/collectionsStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { purgeExpired } from '@/data/cache/cache';
@@ -39,6 +40,7 @@ const NotFoundPage = lazy(() =>
 
 export function App() {
   useThemeEffect();
+  useLiveNotifications();
   const refreshCollections = useCollections((s) => s.refresh);
   const refreshCalibration = useCalibration((s) => s.refresh);
 
