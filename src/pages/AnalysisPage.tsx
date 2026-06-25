@@ -144,7 +144,7 @@ export function AnalysisPage() {
         )}
       >
         <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-3">
             <div>
               <p className="text-sm text-muted-foreground">
                 {fixture.competition.name} · {formatDateTime(fixture.date)}
@@ -154,7 +154,7 @@ export function AnalysisPage() {
                 {fixture.away.name}
               </CardTitle>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={isFavorite(fixture.id) ? 'default' : 'outline'}
                 size="sm"
