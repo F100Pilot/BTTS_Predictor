@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import type { BttsPrediction, Fixture, MarketPrediction } from '@/domain/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { computeValue } from '@/core/value/value';
 import { toPercent, round } from '@/lib/math';
 
@@ -41,8 +44,16 @@ export function ValueCard({
   prediction: BttsPrediction;
   fixture: Fixture;
 }) {
-  const value = computeValue(prediction.probYes, fixture.odds);
-  if (!value.yes && !value.no) return null;
+  // Source odds as defaults; the user can type their bookmaker's odds (the free
+  // Football-Data.org plan does not provide odds, so the card is always usable).
+  const [yesOdd, setYesOdd] = useState(fixture.odds?.bttsYes ? String(fixture.odds.bttsYes) : '');
+  const [noOdd, setNoOdd] = useState(fixture.odds?.bttsNo ? String(fixture.odds.bttsNo) : '');
+
+  const odds = {
+    bttsYes: Number(yesOdd) > 1 ? Number(yesOdd) : undefined,
+    bttsNo: Number(noOdd) > 1 ? Number(noOdd) : undefined,
+  };
+  const value = computeValue(prediction.probYes, odds);
 
   const Row = ({ side, label }: { side: 'yes' | 'no'; label: string }) => {
     const v = value[side];
@@ -78,9 +89,47 @@ export function ValueCard({
           Edge = probabilidade do modelo × odd − 1. Positivo (verde) = valor esperado a favor.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Row side="yes" label="BTTS SIM" />
-        <Row side="no" label="BTTS NÃO" />
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="odd-yes" className="text-xs">
+              Odd BTTS SIM
+            </Label>
+            <Input
+              id="odd-yes"
+              type="number"
+              step="0.01"
+              min={1.01}
+              placeholder="ex.: 1.90"
+              value={yesOdd}
+              onChange={(e) => setYesOdd(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="odd-no" className="text-xs">
+              Odd BTTS NÃO
+            </Label>
+            <Input
+              id="odd-no"
+              type="number"
+              step="0.01"
+              min={1.01}
+              placeholder="ex.: 1.90"
+              value={noOdd}
+              onChange={(e) => setNoOdd(e.target.value)}
+            />
+          </div>
+        </div>
+        {!value.yes && !value.no ? (
+          <p className="text-sm text-muted-foreground">
+            Introduza as odds da sua casa de apostas para calcular o valor.
+          </p>
+        ) : (
+          <div>
+            <Row side="yes" label="BTTS SIM" />
+            <Row side="no" label="BTTS NÃO" />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
