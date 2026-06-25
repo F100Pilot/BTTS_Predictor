@@ -1,4 +1,10 @@
-import { getDb, type FavoriteRecord, type HistoryRecord, type WatchlistRecord } from './db';
+import {
+  getDb,
+  type BetRecord,
+  type FavoriteRecord,
+  type HistoryRecord,
+  type WatchlistRecord,
+} from './db';
 
 // ---- Favorites ----
 export async function listFavorites(): Promise<FavoriteRecord[]> {
@@ -45,4 +51,22 @@ export async function addHistory(record: HistoryRecord): Promise<void> {
 export async function clearHistory(): Promise<void> {
   const db = await getDb();
   await db.clear('history');
+}
+
+// ---- Bets (Martingale) ----
+export async function listBets(): Promise<BetRecord[]> {
+  const db = await getDb();
+  return (await db.getAllFromIndex('bets', 'createdAt')).reverse();
+}
+export async function putBet(record: BetRecord): Promise<void> {
+  const db = await getDb();
+  await db.put('bets', record);
+}
+export async function removeBet(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('bets', id);
+}
+export async function clearBets(): Promise<void> {
+  const db = await getDb();
+  await db.clear('bets');
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Eye } from 'lucide-react';
+import { ArrowLeft, Star, Eye, Coins } from 'lucide-react';
 import type { AnalysisBundle, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
@@ -108,6 +108,19 @@ export function AnalysisPage() {
   const row = { fixture, prediction };
   const tier = tierMeta(prediction.tier);
 
+  const goToMartingale = (): void => {
+    const selection = prediction.probYes >= 0.5 ? 'SIM' : 'NÃO';
+    const odds = selection === 'SIM' ? fixture.odds?.bttsYes : fixture.odds?.bttsNo;
+    navigate('/martingale', {
+      state: {
+        matchLabel: `${fixture.home.name} vs ${fixture.away.name}`,
+        selection,
+        odds,
+        fixtureId: fixture.id,
+      },
+    });
+  };
+
   return (
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -145,6 +158,9 @@ export function AnalysisPage() {
                 onClick={() => toggleWatchlist(row)}
               >
                 <Eye className="h-4 w-4" /> Watchlist
+              </Button>
+              <Button variant="outline" size="sm" onClick={goToMartingale}>
+                <Coins className="h-4 w-4" /> Martingale
               </Button>
             </div>
           </div>

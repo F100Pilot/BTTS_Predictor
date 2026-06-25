@@ -124,6 +124,47 @@ export interface AnalysisBundle {
   generatedAt: string;
 }
 
+// ---- Martingale staking system ----
+
+export type BetResult = 'pending' | 'won' | 'lost';
+
+/** A single bet tracked under the Martingale staking system. */
+export interface Bet {
+  id: string;
+  createdAt: number;
+  settledAt?: number;
+  fixtureId?: string;
+  matchLabel: string;
+  market: string; // e.g. "BTTS"
+  selection: string; // e.g. "SIM" / "NÃO"
+  odds: number;
+  stake: number; // computed at creation time
+  step: number; // martingale step at creation time
+  result: BetResult;
+}
+
+export interface MartingaleSettings {
+  bankroll: number; // live balance
+  baseProfit: number; // target profit per winning bet
+  currentLoss: number; // accumulated loss in the active series
+  martingaleStep: number; // current progression level (1 = fresh series)
+}
+
+export interface MartingaleStats {
+  bankroll: number;
+  totalStaked: number;
+  totalProfit: number;
+  roi: number; // percentage
+  wins: number;
+  losses: number;
+  pending: number;
+  winrate: number; // percentage over settled bets
+  maxLossStreak: number;
+  maxStake: number;
+  /** Equity curve (cumulative profit) over settled bets, oldest → newest. */
+  equity: Array<{ index: number; profit: number; label: string }>;
+}
+
 /** A row in the dashboard table. `prediction` may be pending (still loading)
  * or absent (computation failed, e.g. API rate limit) — the fixture is shown
  * regardless so the user always sees the games. */

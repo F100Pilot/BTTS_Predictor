@@ -26,6 +26,9 @@ const HistoryPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
+const MartingalePage = lazy(() =>
+  import('@/pages/MartingalePage').then((m) => ({ default: m.MartingalePage })),
+);
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
@@ -49,6 +52,7 @@ export function App() {
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/watchlist" element={<WatchlistPage />} />
             <Route path="/history" element={<HistoryPage />} />
+            <Route path="/martingale" element={<MartingalePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

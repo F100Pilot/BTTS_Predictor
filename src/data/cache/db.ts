@@ -1,4 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import type { Bet } from '@/domain/types';
+
+/** Persisted bet record (Martingale system). */
+export type BetRecord = Bet;
 
 export interface CacheRecord {
   key: string;
@@ -51,10 +55,15 @@ interface BttsDB extends DBSchema {
     value: HistoryRecord;
     indexes: { createdAt: number };
   };
+  bets: {
+    key: string;
+    value: BetRecord;
+    indexes: { createdAt: number };
+  };
 }
 
 const DB_NAME = 'btts-analytics-pro';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<BttsDB>> | null = null;
 
@@ -75,6 +84,10 @@ export function getDb(): Promise<IDBPDatabase<BttsDB>> {
         if (!db.objectStoreNames.contains('history')) {
           const history = db.createObjectStore('history', { keyPath: 'id' });
           history.createIndex('createdAt', 'createdAt');
+        }
+        if (!db.objectStoreNames.contains('bets')) {
+          const bets = db.createObjectStore('bets', { keyPath: 'id' });
+          bets.createIndex('createdAt', 'createdAt');
         }
       },
     });
