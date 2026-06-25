@@ -3,7 +3,7 @@ import { CalendarX, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
-import { buildDashboardRows } from '@/services/analysisService';
+import { buildDashboardRow, sortDashboardRows } from '@/services/analysisService';
 import { todayIso } from '@/lib/format';
 import { createLogger } from '@/services/logger';
 import {
@@ -33,19 +33,29 @@ export function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setRows([]);
     (async () => {
-      try {
-        const fixtures = await data.getFixturesByDate(filters.date);
-        cacheFixtures(fixtures);
-        const built = await buildDashboardRows(data, fixtures, { weights });
-        if (!cancelled) setRows(built);
-      } catch (err) {
-        log.error('failed to load dashboard', err);
-        if (!cancelled) setRows([]);
-      } finally {
-        if (!cancelled) setLoading(false);
+      const fixtures = await data.getFixturesByDate(filters.date);
+      if (cancelled) return;
+      cacheFixtures(fixtures);
+      // Show the fixtures immediately; predictions fill in progressively so the
+      // table is never empty while waiting on (rate-limited) API calls.
+      setRows(fixtures.map((fixture) => ({ fixture })));
+      setLoading(false);
+      for (const fixture of fixtures) {
+        const row = await buildDashboardRow(data, fixture, { weights });
+        if (cancelled) return;
+        setRows((prev) =>
+          sortDashboardRows(prev.map((r) => (r.fixture.id === fixture.id ? row : r))),
+        );
       }
-    })();
+    })().catch((err) => {
+      log.error('failed to load dashboard', err);
+      if (!cancelled) {
+        setRows([]);
+        setLoading(false);
+      }
+    });
     return () => {
       cancelled = true;
     };

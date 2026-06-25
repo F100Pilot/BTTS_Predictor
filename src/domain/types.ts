@@ -124,8 +124,11 @@ export interface AnalysisBundle {
   generatedAt: string;
 }
 
-/** A row in the dashboard table. */
+/** A row in the dashboard table. `prediction` may be pending (still loading)
+ * or absent (computation failed, e.g. API rate limit) — the fixture is shown
+ * regardless so the user always sees the games. */
 export interface DashboardRow {
   fixture: Fixture;
-  prediction: BttsPrediction;
+  prediction?: BttsPrediction;
+  predictionError?: boolean;
 }

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ExternalLink, RotateCcw, Trash2 } from 'lucide-react';
+import { ExternalLink, RotateCcw, Trash2, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useSettings } from '@/store/settingsStore';
 import { PROVIDERS } from '@/data/providers/registry';
 import { FACTOR_LABELS, normalizeWeights, type FactorKey } from '@/core/prediction/weights';
 import { clearCache } from '@/data/cache/cache';
+import { runFootballDataDiagnostics, type DiagCheck } from '@/services/diagnostics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +23,25 @@ export function SettingsPage() {
   const settings = useSettings();
   const [cacheCleared, setCacheCleared] = useState(false);
 
+  const [testing, setTesting] = useState(false);
+  const [checks, setChecks] = useState<DiagCheck[] | null>(null);
+
   const activeProvider = PROVIDERS.find((p) => p.id === settings.providerId) ?? PROVIDERS[0]!;
   const normalized = normalizeWeights(settings.weights);
+
+  const handleTest = async (): Promise<void> => {
+    setTesting(true);
+    setChecks(null);
+    try {
+      const result = await runFootballDataDiagnostics({
+        apiKey: settings.apiKeys[settings.providerId],
+        corsProxy: settings.corsProxy,
+      });
+      setChecks(result);
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const updateWeight = (key: FactorKey, value: number): void => {
     settings.setWeights({ ...settings.weights, [key]: value });
@@ -120,6 +138,32 @@ export function SettingsPage() {
             />
             Usar dados de demonstração quando a fonte falhar
           </label>
+
+          {!activeProvider.capabilities.worksOffline && (
+            <div className="space-y-3 border-t pt-4">
+              <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+                {testing ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
+                Testar ligação
+              </Button>
+              {checks && (
+                <ul className="space-y-1.5">
+                  {checks.map((c) => (
+                    <li key={c.label} className="flex items-start gap-2 text-sm">
+                      {c.ok ? (
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      ) : (
+                        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                      )}
+                      <span>
+                        <span className="font-medium">{c.label}:</span>{' '}
+                        <span className="text-muted-foreground">{c.detail}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

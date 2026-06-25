@@ -57,15 +57,25 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
                 </div>
               </TableCell>
               <TableCell>
-                <span className="font-semibold text-primary">
-                  {toPercent(row.prediction.probYes)}
-                </span>
+                {row.prediction ? (
+                  <span className="font-semibold text-primary">
+                    {toPercent(row.prediction.probYes)}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    {row.predictionError ? 'indisp.' : '…'}
+                  </span>
+                )}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <TierBadge tier={row.prediction.tier} />
+                {row.prediction ? <TierBadge tier={row.prediction.tier} /> : <span>—</span>}
               </TableCell>
               <TableCell className="hidden lg:table-cell">
-                <ConfidenceMeter confidence={row.prediction.confidence} />
+                {row.prediction ? (
+                  <ConfidenceMeter confidence={row.prediction.confidence} />
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </TableCell>
               <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-end gap-1">

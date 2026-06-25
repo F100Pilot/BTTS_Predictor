@@ -16,7 +16,7 @@ function toRecord(row: DashboardRow): FavoriteRecord {
     fixtureName: `${row.fixture.home.name} vs ${row.fixture.away.name}`,
     competition: row.fixture.competition.name,
     date: row.fixture.date,
-    probYes: row.prediction.probYes,
+    probYes: row.prediction?.probYes ?? 0,
     addedAt: Date.now(),
   };
 }

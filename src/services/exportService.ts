@@ -21,10 +21,10 @@ function toExportRows(rows: DashboardRow[]): ExportRow[] {
     Data: formatDateTime(r.fixture.date),
     Competicao: r.fixture.competition.name,
     Jogo: `${r.fixture.home.name} vs ${r.fixture.away.name}`,
-    'BTTS Sim %': round(r.prediction.probYes * 100, 1),
-    'BTTS Nao %': round(r.prediction.probNo * 100, 1),
-    Confianca: r.prediction.confidence,
-    Classificacao: tierMeta(r.prediction.tier).label,
+    'BTTS Sim %': r.prediction ? round(r.prediction.probYes * 100, 1) : 0,
+    'BTTS Nao %': r.prediction ? round(r.prediction.probNo * 100, 1) : 0,
+    Confianca: r.prediction ? r.prediction.confidence : 0,
+    Classificacao: r.prediction ? tierMeta(r.prediction.tier).label : 'N/D',
   }));
 }
 

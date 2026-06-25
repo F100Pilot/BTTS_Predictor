@@ -38,6 +38,28 @@ export async function buildAnalysis(
   };
 }
 
+/** Compute the prediction for a single fixture, returning a dashboard row.
+ * Never throws — on failure the row carries `predictionError` and no prediction
+ * so the fixture still appears in the dashboard. */
+export async function buildDashboardRow(
+  data: DataService,
+  fixture: Fixture,
+  options: AnalysisOptions = {},
+): Promise<DashboardRow> {
+  try {
+    const bundle = await buildAnalysis(data, fixture, options);
+    return { fixture, prediction: bundle.prediction };
+  } catch (err) {
+    log.warn('failed to build row', { fixture: fixture.id, err });
+    return { fixture, predictionError: true };
+  }
+}
+
+/** Sort rows by BTTS=YES probability (rows without a prediction go last). */
+export function sortDashboardRows(rows: DashboardRow[]): DashboardRow[] {
+  return [...rows].sort((a, b) => (b.prediction?.probYes ?? -1) - (a.prediction?.probYes ?? -1));
+}
+
 /** Build dashboard rows (fixture + prediction) for a list of fixtures. */
 export async function buildDashboardRows(
   data: DataService,
@@ -45,17 +67,7 @@ export async function buildDashboardRows(
   options: AnalysisOptions = {},
 ): Promise<DashboardRow[]> {
   const rows = await Promise.all(
-    fixtures.map(async (fixture) => {
-      try {
-        const bundle = await buildAnalysis(data, fixture, options);
-        return { fixture, prediction: bundle.prediction } satisfies DashboardRow;
-      } catch (err) {
-        log.warn('failed to build row', { fixture: fixture.id, err });
-        return null;
-      }
-    }),
+    fixtures.map((fixture) => buildDashboardRow(data, fixture, options)),
   );
-  return rows
-    .filter((r): r is DashboardRow => r !== null)
-    .sort((a, b) => b.prediction.probYes - a.prediction.probYes);
+  return sortDashboardRows(rows);
 }

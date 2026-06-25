@@ -17,7 +17,8 @@ export function applyFilters(rows: DashboardRow[], f: DashboardFilterState): Das
   return rows.filter(({ fixture, prediction }) => {
     if (f.competition !== 'all' && fixture.competition.name !== f.competition) return false;
     if (f.country !== 'all' && fixture.competition.country !== f.country) return false;
-    if (prediction.probYes * 100 < f.minBtts) return false;
+    // Rows without a prediction yet are only filtered out when a BTTS minimum is set.
+    if (f.minBtts > 0 && (!prediction || prediction.probYes * 100 < f.minBtts)) return false;
     const odds = fixture.odds?.bttsYes;
     if (f.minOdds > 0 && (odds == null || odds < f.minOdds)) return false;
     if (f.maxOdds > 0 && (odds == null || odds > f.maxOdds)) return false;
