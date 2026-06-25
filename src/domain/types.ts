@@ -47,6 +47,20 @@ export interface Fixture {
   };
 }
 
+/** A match currently in play (live score). */
+export interface LiveMatch {
+  id: string;
+  competition: Competition;
+  home: Team;
+  away: Team;
+  homeGoals: number;
+  awayGoals: number;
+  /** Raw status (e.g. IN_PLAY, PAUSED). */
+  status: string;
+  /** Elapsed minute when available. */
+  minute?: number;
+}
+
 /** Aggregated statistics over a window of matches for a single team. */
 export interface WindowStats {
   played: number;

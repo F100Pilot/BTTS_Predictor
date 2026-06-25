@@ -1,4 +1,4 @@
-import type { Competition, Fixture, MatchResult, Team } from '@/domain/types';
+import type { Competition, Fixture, LiveMatch, MatchResult, Team } from '@/domain/types';
 import { sanitizeText } from '@/services/sanitize';
 
 /** Subset of the Football-Data.org v4 match shape we rely on. */
@@ -6,10 +6,26 @@ export interface FdMatch {
   id: number;
   utcDate: string;
   status: string;
+  minute?: number;
   competition?: { id: number; name: string; emblem?: string; area?: { name?: string } };
   homeTeam: { id: number; name: string; shortName?: string; crest?: string };
   awayTeam: { id: number; name: string; shortName?: string; crest?: string };
   score?: { fullTime?: { home: number | null; away: number | null } };
+}
+
+/** Map an in-play match; current goals live in score.fullTime during the game. */
+export function normalizeLive(m: FdMatch): LiveMatch {
+  const country = m.competition?.area?.name;
+  return {
+    id: String(m.id),
+    competition: toCompetition(m.competition),
+    home: toTeam(m.homeTeam, country),
+    away: toTeam(m.awayTeam, country),
+    homeGoals: m.score?.fullTime?.home ?? 0,
+    awayGoals: m.score?.fullTime?.away ?? 0,
+    status: m.status,
+    minute: typeof m.minute === 'number' ? m.minute : undefined,
+  };
 }
 
 function toTeam(t: FdMatch['homeTeam'], country?: string): Team {

@@ -1,4 +1,4 @@
-import type { Fixture, MatchResult } from '@/domain/types';
+import type { Fixture, LiveMatch, MatchResult } from '@/domain/types';
 
 export interface ProviderCapabilities {
   fixtures: boolean;
@@ -38,6 +38,8 @@ export interface DataProvider {
   getFixturesByRange?(from: string, to: string, ctx: ProviderContext): Promise<Fixture[]>;
   /** Optional: fetch a single finished match result by id (for backtesting). */
   getMatchResultById?(matchId: string, ctx: ProviderContext): Promise<MatchResult | null>;
+  /** Optional: fetch matches currently in play (live scores). */
+  getLiveMatches?(ctx: ProviderContext): Promise<LiveMatch[]>;
   getTeamRecentMatches(teamId: string, limit: number, ctx: ProviderContext): Promise<MatchResult[]>;
   getHeadToHead(
     homeId: string,

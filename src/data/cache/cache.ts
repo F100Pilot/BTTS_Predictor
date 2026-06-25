@@ -8,6 +8,7 @@ export const TTL = {
   fixtures: 1000 * 60 * 30, // 30 min — schedules change rarely intraday
   teamHistory: 1000 * 60 * 60 * 12, // 12h — past results are stable
   h2h: 1000 * 60 * 60 * 24, // 24h
+  live: 1000 * 15, // 15s — live scores must stay fresh
 } as const;
 
 /** In-flight request de-duplication: same key resolves to the same promise. */

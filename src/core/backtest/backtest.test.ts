@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { brier, evaluate, fitPlatt, applyPlatt, IDENTITY_PLATT, type Sample } from './backtest';
+import {
+  brier,
+  evaluate,
+  fitPlatt,
+  applyPlatt,
+  reliabilityCurve,
+  IDENTITY_PLATT,
+  type Sample,
+} from './backtest';
 
 describe('brier', () => {
   it('is squared error of probability vs outcome', () => {
@@ -25,6 +33,24 @@ describe('evaluate', () => {
     expect(byTier.find((t) => t.tier === 'very-strong')?.n).toBe(2);
     expect(byTier.find((t) => t.tier === 'very-strong')?.accuracy).toBe(100);
     expect(byTier.some((t) => t.tier === 'medium')).toBe(false); // no medium samples
+  });
+});
+
+describe('reliabilityCurve', () => {
+  it('buckets predictions and compares predicted vs observed', () => {
+    const samples: Sample[] = [
+      { probYes: 0.05, tier: 'weak', outcome: 0 },
+      { probYes: 0.15, tier: 'weak', outcome: 0 },
+      { probYes: 0.85, tier: 'very-strong', outcome: 1 },
+      { probYes: 0.95, tier: 'very-strong', outcome: 1 },
+    ];
+    const curve = reliabilityCurve(samples, 5);
+    expect(curve).toHaveLength(5);
+    expect(curve[0]!.n).toBe(2); // 0-20% bucket
+    expect(curve[0]!.actual).toBe(0);
+    expect(curve[4]!.n).toBe(2); // 80-100% bucket
+    expect(curve[4]!.actual).toBe(100);
+    expect(curve[2]!.actual).toBeNull(); // empty middle bucket
   });
 });
 

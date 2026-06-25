@@ -1,4 +1,4 @@
-import type { Fixture, MatchResult } from '@/domain/types';
+import type { Fixture, LiveMatch, MatchResult } from '@/domain/types';
 import {
   ProviderError,
   type DataProvider,
@@ -7,7 +7,7 @@ import {
 } from '../types';
 import { bucketFor, fetchWithBackoff } from '@/data/rateLimit/rateLimiter';
 import { createLogger } from '@/services/logger';
-import { normalizeFixture, normalizeResult, type FdMatch } from './normalize';
+import { normalizeFixture, normalizeLive, normalizeResult, type FdMatch } from './normalize';
 
 const log = createLogger('provider:football-data');
 const ORIGIN = 'https://api.football-data.org';
@@ -79,6 +79,11 @@ export class FootballDataProvider implements DataProvider {
   async getMatchResultById(matchId: string, ctx: ProviderContext): Promise<MatchResult | null> {
     const match = await this.request<FdMatch>(`/matches/${matchId}`, ctx);
     return normalizeResult(match);
+  }
+
+  async getLiveMatches(ctx: ProviderContext): Promise<LiveMatch[]> {
+    const data = await this.request<{ matches: FdMatch[] }>(`/matches?status=LIVE`, ctx);
+    return (data.matches ?? []).map(normalizeLive);
   }
 
   async getTeamRecentMatches(

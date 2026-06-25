@@ -57,6 +57,37 @@ export function evaluate(samples: Sample[]): { overall: TierEval; byTier: TierEv
   };
 }
 
+export interface ReliabilityBin {
+  /** Bin center as a percentage (x-axis). */
+  predicted: number;
+  /** Observed BTTS=YES rate in this bin, as a percentage (y-axis), or null if empty. */
+  actual: number | null;
+  n: number;
+}
+
+/**
+ * Reliability (calibration) curve: bucket predictions by predicted probability
+ * and compare the bucket's mean predicted prob with the observed outcome rate.
+ * A well-calibrated model sits near the diagonal (predicted ≈ actual).
+ */
+export function reliabilityCurve(samples: Sample[], bins = 5): ReliabilityBin[] {
+  const buckets: Sample[][] = Array.from({ length: bins }, () => []);
+  for (const s of samples) {
+    const idx = Math.min(bins - 1, Math.floor(clamp(s.probYes) * bins));
+    buckets[idx]!.push(s);
+  }
+  return buckets.map((bucket, i) => {
+    const center = ((i + 0.5) / bins) * 100;
+    if (bucket.length === 0) return { predicted: round(center, 0), actual: null, n: 0 };
+    const yes = bucket.filter((s) => s.outcome === 1).length;
+    return {
+      predicted: round(center, 0),
+      actual: round((yes / bucket.length) * 100, 1),
+      n: bucket.length,
+    };
+  });
+}
+
 // ---- Platt scaling (logistic recalibration) ----
 
 export interface PlattParams {

@@ -1,4 +1,4 @@
-import type { Fixture, MatchResult } from '@/domain/types';
+import type { Fixture, LiveMatch, MatchResult } from '@/domain/types';
 import { cached, TTL } from './cache/cache';
 import { getProvider, DEFAULT_PROVIDER_ID } from './providers/registry';
 import { MockProvider } from './providers/mock/MockProvider';
@@ -115,6 +115,22 @@ export class DataService {
   async getFixtureDatesInRange(from: string, to: string): Promise<string[]> {
     const fixtures = await this.getFixturesByRange(from, to);
     return Array.from(new Set(fixtures.map((f) => f.date.slice(0, 10))));
+  }
+
+  /** Matches currently in play (live scores), with mock fallback. */
+  getLiveMatches(): Promise<LiveMatch[]> {
+    return this.withFallback(
+      'live',
+      TTL.live,
+      (ctx) => {
+        const provider = getProvider(this.providerId);
+        return provider.getLiveMatches
+          ? provider.getLiveMatches(ctx)
+          : Promise.resolve<LiveMatch[]>([]);
+      },
+      [] as LiveMatch[],
+      () => mock.getLiveMatches(),
+    );
   }
 
   /** Fetch a single finished match result by id (for backtesting). Null if unavailable. */

@@ -26,7 +26,16 @@ import {
 } from '@/components/ui/table';
 import { TierBadge } from '@/components/common/PredictionWidgets';
 import type { PredictionTier } from '@/domain/types';
-import { evaluate, type Sample } from '@/core/backtest/backtest';
+import {
+  Line,
+  LineChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip as RTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { evaluate, reliabilityCurve, type Sample } from '@/core/backtest/backtest';
 import { useDataService } from '@/hooks/useDataService';
 import { useCalibration, MIN_CALIBRATION_SAMPLES } from '@/store/calibrationStore';
 import { useSettings } from '@/store/settingsStore';
@@ -65,14 +74,26 @@ export function HistoryPage() {
     () => records.filter((r) => r.actual === 'yes' || r.actual === 'no'),
     [records],
   );
-  const evaluation = useMemo(() => {
-    const samples: Sample[] = settled.map((r) => ({
-      probYes: r.probYes,
-      tier: r.tier as PredictionTier,
-      outcome: r.actual === 'yes' ? 1 : 0,
-    }));
-    return evaluate(samples);
-  }, [settled]);
+  const samples = useMemo<Sample[]>(
+    () =>
+      settled.map((r) => ({
+        probYes: r.probYes,
+        tier: r.tier as PredictionTier,
+        outcome: r.actual === 'yes' ? 1 : 0,
+      })),
+    [settled],
+  );
+  const evaluation = useMemo(() => evaluate(samples), [samples]);
+  const reliability = useMemo(
+    () =>
+      reliabilityCurve(samples, 5).map((b) => ({
+        predicted: b.predicted,
+        actual: b.actual,
+        ideal: b.predicted,
+        n: b.n,
+      })),
+    [samples],
+  );
 
   const setResult = async (id: string, actual: 'yes' | 'no' | undefined): Promise<void> => {
     await setHistoryResult(id, actual);
@@ -267,9 +288,52 @@ export function HistoryPage() {
                 </TableBody>
               </Table>
             </div>
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                Curva de fiabilidade (previsto vs real)
+              </p>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={reliability}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis
+                    dataKey="predicted"
+                    type="number"
+                    domain={[0, 100]}
+                    ticks={[0, 25, 50, 75, 100]}
+                    fontSize={11}
+                    unit="%"
+                  />
+                  <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} fontSize={11} unit="%" />
+                  <RTooltip
+                    formatter={(value, name) => {
+                      const v = value as number | null;
+                      const label = name === 'actual' ? 'Real' : 'Ideal';
+                      return [v == null ? '—' : `${v}%`, label];
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="ideal"
+                    name="Ideal"
+                    stroke="#94a3b8"
+                    strokeDasharray="4 4"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="actual"
+                    name="Real"
+                    stroke="#10b981"
+                    connectNulls
+                    dot={{ r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
             <p className="text-xs text-muted-foreground">
-              "Previsto méd." vs "Real" mostra a calibração: quanto mais próximos, melhor. Marque o
-              resultado real dos jogos (abaixo) ou use "Atualizar resultados".
+              Na curva de fiabilidade, quanto mais a linha "Real" colar à diagonal "Ideal", melhor
+              calibrado está o modelo. Marque o resultado real dos jogos (abaixo) ou use "Atualizar
+              resultados".
             </p>
           </CardContent>
         </Card>

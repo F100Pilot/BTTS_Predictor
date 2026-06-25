@@ -1,4 +1,4 @@
-import type { Competition, Fixture, MatchResult, Team } from '@/domain/types';
+import type { Competition, Fixture, LiveMatch, MatchResult, Team } from '@/domain/types';
 import type { DataProvider, ProviderCapabilities } from '../types';
 import { hashString, poisson, seeded } from './random';
 import {
@@ -105,6 +105,29 @@ export class MockProvider implements DataProvider {
       out.push(...(await this.getFixturesByDate(iso)));
     }
     return out;
+  }
+
+  async getLiveMatches(): Promise<LiveMatch[]> {
+    const today = new Date().toISOString().slice(0, 10);
+    const fixtures = await this.getFixturesByDate(today);
+    const now = new Date();
+    const bucket = Math.floor(now.getTime() / (5 * 60 * 1000)); // changes every 5 min
+    return fixtures.slice(0, 3).map((f, i) => {
+      const minute = 5 + ((now.getUTCMinutes() + i * 25) % 88);
+      const rng = seeded(hashString(`live:${f.id}:${bucket}`));
+      const hg = Math.min(5, poisson((minute / 90) * 1.6, rng));
+      const ag = Math.min(5, poisson((minute / 90) * 1.4, rng));
+      return {
+        id: f.id,
+        competition: f.competition,
+        home: f.home,
+        away: f.away,
+        homeGoals: hg,
+        awayGoals: ag,
+        status: minute >= 45 && minute <= 48 ? 'PAUSED' : 'IN_PLAY',
+        minute,
+      } satisfies LiveMatch;
+    });
   }
 
   async getTeamRecentMatches(teamId: string, limit: number): Promise<MatchResult[]> {

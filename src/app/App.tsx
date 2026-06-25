@@ -30,6 +30,9 @@ const SettingsPage = lazy(() =>
 const MartingalePage = lazy(() =>
   import('@/pages/MartingalePage').then((m) => ({ default: m.MartingalePage })),
 );
+const LiveScorePage = lazy(() =>
+  import('@/pages/LiveScorePage').then((m) => ({ default: m.LiveScorePage })),
+);
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
@@ -56,6 +59,7 @@ export function App() {
             <Route path="/watchlist" element={<WatchlistPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/martingale" element={<MartingalePage />} />
+            <Route path="/live" element={<LiveScorePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
