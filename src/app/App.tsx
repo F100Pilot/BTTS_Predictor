@@ -9,6 +9,9 @@ import { useLiveNotifications } from '@/hooks/useLiveNotifications';
 import { usePregameReminders } from '@/hooks/usePregameReminders';
 import { useCollections } from '@/store/collectionsStore';
 import { useCalibration } from '@/store/calibrationStore';
+import { useSettings } from '@/store/settingsStore';
+import { DEFAULT_PROVIDER_ID } from '@/data/providers/registry';
+import { purgeMockData } from '@/data/cache/repositories';
 import { purgeExpired } from '@/data/cache/cache';
 
 const DashboardPage = lazy(() =>
@@ -45,12 +48,20 @@ export function App() {
   usePregameReminders();
   const refreshCollections = useCollections((s) => s.refresh);
   const refreshCalibration = useCalibration((s) => s.refresh);
+  const providerId = useSettings((s) => s.providerId);
 
   useEffect(() => {
-    void refreshCollections();
-    void refreshCalibration();
-    void purgeExpired();
-  }, [refreshCollections, refreshCalibration]);
+    (async () => {
+      // With a real provider active, purge any demo-origin (mock) records that a
+      // previous fallback/demo session may have stored, then load.
+      if (providerId !== DEFAULT_PROVIDER_ID) {
+        await purgeMockData().catch(() => 0);
+      }
+      await refreshCollections();
+      await refreshCalibration();
+      await purgeExpired();
+    })();
+  }, [refreshCollections, refreshCalibration, providerId]);
 
   return (
     <AppShell>

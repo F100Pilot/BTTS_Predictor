@@ -73,6 +73,26 @@ export async function setHistoryResult(
   await db.put('history', { ...record, actual });
 }
 
+/**
+ * Remove demo-origin records (ids starting with "mock") from history, favorites
+ * and watchlist. Used when a real provider is active to purge fake games that a
+ * previous demo/fallback session may have stored.
+ */
+export async function purgeMockData(): Promise<number> {
+  const db = await getDb();
+  let removed = 0;
+  for (const store of ['history', 'favorites', 'watchlist'] as const) {
+    const all = await db.getAll(store);
+    for (const rec of all as Array<{ id: string }>) {
+      if (typeof rec.id === 'string' && rec.id.startsWith('mock')) {
+        await db.delete(store, rec.id);
+        removed += 1;
+      }
+    }
+  }
+  return removed;
+}
+
 // ---- Bets (Martingale) ----
 export async function listBets(): Promise<BetRecord[]> {
   const db = await getDb();

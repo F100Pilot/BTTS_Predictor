@@ -74,9 +74,11 @@ export class DataService {
     try {
       return await cached(`${provider.id}:${cacheKey}`, ttl, () => run(this.ctx));
     } catch (err) {
-      log.error('provider failed', err);
-      if (allowMock) return cached(`mock:${cacheKey}`, ttl, mockRun);
-      throw err;
+      // A configured real provider failed (e.g. 429). NEVER fabricate demo data
+      // here — that would inject fake games (e.g. into the dashboard/history).
+      // Demo data is only used when no real provider is configured.
+      log.error('provider failed — returning empty (no mock substitution)', err);
+      return emptyValue;
     }
   }
 
