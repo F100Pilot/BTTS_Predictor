@@ -8,7 +8,7 @@ import { useCollections } from '@/store/collectionsStore';
 import { useFixtureCache, dateFromMockId } from '@/store/fixtureCacheStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { buildAnalysis } from '@/services/analysisService';
-import { addHistory } from '@/data/cache/repositories';
+import { upsertHistory } from '@/data/cache/repositories';
 import { todayIso, formatDateTime } from '@/lib/format';
 import { tierMeta } from '@/core/classification/classification';
 import { createLogger } from '@/services/logger';
@@ -76,9 +76,9 @@ export function AnalysisPage() {
         });
         if (cancelled) return;
         setBundle(result);
-        // Record the prediction in history (best-effort).
-        addHistory({
-          id: `${fixture.id}-${Date.now()}`,
+        // Record the prediction in history (one record per fixture, best-effort).
+        upsertHistory({
+          id: fixture.id,
           fixtureId: fixture.id,
           fixtureName: `${fixture.home.name} vs ${fixture.away.name}`,
           competition: fixture.competition.name,

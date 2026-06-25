@@ -48,6 +48,16 @@ export async function addHistory(record: HistoryRecord): Promise<void> {
   const db = await getDb();
   await db.put('history', record);
 }
+/** One record per fixture: updates prediction fields but keeps the existing
+ * real result (`actual`) and original creation time. */
+export async function upsertHistory(record: HistoryRecord): Promise<void> {
+  const db = await getDb();
+  const existing = await db.get('history', record.id);
+  await db.put(
+    'history',
+    existing ? { ...record, actual: existing.actual, createdAt: existing.createdAt } : record,
+  );
+}
 export async function clearHistory(): Promise<void> {
   const db = await getDb();
   await db.clear('history');
