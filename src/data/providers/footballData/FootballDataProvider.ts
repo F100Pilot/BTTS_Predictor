@@ -10,7 +10,19 @@ import { createLogger } from '@/services/logger';
 import { normalizeFixture, normalizeResult, type FdMatch } from './normalize';
 
 const log = createLogger('provider:football-data');
-const BASE = 'https://api.football-data.org/v4';
+const ORIGIN = 'https://api.football-data.org';
+const BASE = `${ORIGIN}/v4`;
+
+/**
+ * Route a target URL through an optional CORS proxy.
+ *  - "...{url}"        → the encoded target replaces the placeholder
+ *  - origin prefix     → the path+query is appended to the proxy origin
+ */
+export function applyCorsProxy(target: string, proxy?: string): string {
+  if (!proxy) return target;
+  if (proxy.includes('{url}')) return proxy.replace('{url}', encodeURIComponent(target));
+  return proxy.replace(/\/$/, '') + target.slice(ORIGIN.length);
+}
 
 /**
  * Football-Data.org (v4) provider. Requires a free API key (set in Settings).
@@ -37,7 +49,8 @@ export class FootballDataProvider implements DataProvider {
   private async request<T>(path: string, ctx: ProviderContext): Promise<T> {
     if (!ctx.apiKey) throw new ProviderError('Chave de API em falta', this.id);
     await bucketFor(this.id).acquire();
-    const res = await fetchWithBackoff(`${BASE}${path}`, {
+    const url = applyCorsProxy(`${BASE}${path}`, ctx.corsProxy);
+    const res = await fetchWithBackoff(url, {
       headers: { 'X-Auth-Token': ctx.apiKey },
     });
     if (!res.ok) {

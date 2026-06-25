@@ -11,6 +11,12 @@ export interface ProviderCapabilities {
 export interface ProviderContext {
   /** API key supplied by the user (from settings), if any. */
   apiKey?: string;
+  /**
+   * Optional CORS proxy. Two forms are supported:
+   *  - placeholder: "https://corsproxy.io/?url={url}" ({url} = encoded target)
+   *  - origin prefix: "https://my-worker.workers.dev" (path is appended)
+   */
+  corsProxy?: string;
 }
 
 /**

@@ -87,6 +87,7 @@ A app define uma interface `DataProvider` (Strategy Pattern). Estão incluídos:
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — arquitetura completa, problemas técnicos e soluções.
 - [`docs/INSTALLATION.md`](./docs/INSTALLATION.md) — guia de instalação detalhado.
 - [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — deploy no GitHub Pages.
+- [`docs/CORS-PROXY.md`](./docs/CORS-PROXY.md) — resolver o CORS da Football-Data.org (proxy / Cloudflare Worker).
 - [`docs/APK.md`](./docs/APK.md) — conversão para APK/IPA com Capacitor.
 - [`docs/ROADMAP.md`](./docs/ROADMAP.md) — plano de evolução futura.
 

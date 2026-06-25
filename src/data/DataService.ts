@@ -11,6 +11,7 @@ const mock = new MockProvider();
 export interface DataServiceConfig {
   providerId: string;
   apiKey?: string;
+  corsProxy?: string;
   /** Fall back to mock data when the active provider fails / is unconfigured. */
   fallbackToMock: boolean;
 }
@@ -23,7 +24,7 @@ export class DataService {
   constructor(private readonly config: DataServiceConfig) {}
 
   private get ctx(): ProviderContext {
-    return { apiKey: this.config.apiKey };
+    return { apiKey: this.config.apiKey, corsProxy: this.config.corsProxy };
   }
 
   private get providerId(): string {

@@ -90,6 +90,27 @@ export function SettingsPage() {
             </div>
           )}
 
+          {!activeProvider.capabilities.worksOffline && (
+            <div className="space-y-1.5">
+              <Label htmlFor="corsproxy">Proxy CORS (opcional)</Label>
+              <Input
+                id="corsproxy"
+                type="text"
+                autoComplete="off"
+                placeholder="https://o-meu-worker.workers.dev"
+                value={settings.corsProxy}
+                onChange={(e) => settings.setCorsProxy(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                A Football-Data.org não envia cabeçalhos CORS, por isso o browser bloqueia o pedido
+                direto. Indique aqui um proxy. Formatos aceites: prefixo de origem (ex.:{' '}
+                <code>https://o-meu-worker.workers.dev</code>) ou com marcador{' '}
+                <code>{'https://corsproxy.io/?url={url}'}</code>. Veja{' '}
+                <code>docs/CORS-PROXY.md</code> para um Cloudflare Worker gratuito.
+              </p>
+            </div>
+          )}
+
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

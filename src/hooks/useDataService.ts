@@ -6,6 +6,7 @@ import { useSettings } from '@/store/settingsStore';
 export function useDataService(): DataService {
   const providerId = useSettings((s) => s.providerId);
   const apiKeys = useSettings((s) => s.apiKeys);
+  const corsProxy = useSettings((s) => s.corsProxy);
   const fallbackToMock = useSettings((s) => s.fallbackToMock);
 
   return useMemo(
@@ -13,8 +14,9 @@ export function useDataService(): DataService {
       new DataService({
         providerId,
         apiKey: apiKeys[providerId],
+        corsProxy,
         fallbackToMock,
       }),
-    [providerId, apiKeys, fallbackToMock],
+    [providerId, apiKeys, corsProxy, fallbackToMock],
   );
 }
