@@ -62,6 +62,7 @@ export class DataService {
     emptyValue: T,
     mockRun: () => Promise<T>,
     allowMock = this.config.fallbackToMock,
+    throwOnError = false,
   ): Promise<T> {
     const provider = getProvider(this.providerId);
     if (!provider.isConfigured(this.ctx)) {
@@ -78,6 +79,7 @@ export class DataService {
       // here — that would inject fake games (e.g. into the dashboard/history).
       // Demo data is only used when no real provider is configured.
       log.error('provider failed — returning empty (no mock substitution)', err);
+      if (throwOnError) throw err;
       return emptyValue;
     }
   }
@@ -89,6 +91,8 @@ export class DataService {
       (ctx) => getProvider(this.providerId).getFixturesByDate(date, ctx),
       [],
       () => mock.getFixturesByDate(date),
+      this.config.fallbackToMock,
+      true, // surface provider errors so the dashboard can show a notice
     );
   }
 

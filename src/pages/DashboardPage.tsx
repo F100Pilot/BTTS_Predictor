@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { addDays, format } from 'date-fns';
-import { CalendarX, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { CalendarX, Download, FileSpreadsheet, FileText, AlertTriangle } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
@@ -36,6 +36,7 @@ export function DashboardPage() {
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
   const [rows, setRows] = useState<DashboardRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   // Auto-jump to the next day with games only once, on the initial load.
   const autoJumpDone = useRef(false);
 
@@ -43,6 +44,7 @@ export function DashboardPage() {
     let cancelled = false;
     setLoading(true);
     setRows([]);
+    setLoadError(null);
     (async () => {
       const fixtures = await data.getFixturesByDate(filters.date);
       if (cancelled) return;
@@ -79,12 +81,17 @@ export function DashboardPage() {
           sortDashboardRows(prev.map((r) => (r.fixture.id === fixture.id ? row : r))),
         );
       }
-    })().catch((err) => {
+    })().catch((err: unknown) => {
       log.error('failed to load dashboard', err);
-      if (!cancelled) {
-        setRows([]);
-        setLoading(false);
-      }
+      if (cancelled) return;
+      const status = (err as { status?: number })?.status;
+      setLoadError(
+        status === 429
+          ? 'Limite de pedidos atingido na fonte de dados. Aguarda ~1 minuto e tenta de novo.'
+          : 'Não foi possível obter os jogos da fonte de dados. Verifica a ligação em Definições → Testar ligação.',
+      );
+      setRows([]);
+      setLoading(false);
     });
     return () => {
       cancelled = true;
@@ -154,13 +161,24 @@ export function DashboardPage() {
         onChange={setFilters}
       />
 
+      {loadError && (
+        <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <span>{loadError}</span>
+        </div>
+      )}
+
       {loading ? (
         <Spinner label="A calcular previsões..." />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<CalendarX className="h-8 w-8 text-muted-foreground" />}
-          title="Sem jogos para os filtros selecionados"
-          description="Experimente outra data ou reduza os filtros aplicados."
+          title={loadError ? 'Não foi possível carregar' : 'Sem jogos para os filtros selecionados'}
+          description={
+            loadError
+              ? 'A fonte de dados não respondeu. Tenta novamente daqui a pouco.'
+              : 'Experimente outra data ou reduza os filtros aplicados.'
+          }
         />
       ) : (
         <div className="rounded-lg border bg-card">
