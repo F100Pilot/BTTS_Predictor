@@ -1,36 +1,39 @@
+import { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { Button } from '@/components/ui/button';
+import { createLogger } from '@/services/logger';
 
-/** Non-intrusive prompt shown when a new service-worker version is available. */
+const log = createLogger('pwa');
+
+// How often to check the server for a newer service worker (long-open sessions).
+const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000; // 1h
+
+/**
+ * Registers the service worker in auto-update mode: when a new version is
+ * detected it is applied and the page reloads automatically — no user prompt.
+ */
 export function PwaUpdatePrompt() {
   const {
-    offlineReady: [offlineReady, setOfflineReady],
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh],
     updateServiceWorker,
-  } = useRegisterSW();
+  } = useRegisterSW({
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return;
+      // Periodically poll for a newer SW so long-lived tabs/PWAs self-update.
+      setInterval(() => {
+        registration.update().catch((err) => log.warn('SW update check failed', err));
+      }, UPDATE_CHECK_INTERVAL);
+    },
+    onRegisterError(err) {
+      log.error('SW registration failed', err);
+    },
+  });
 
-  if (!offlineReady && !needRefresh) return null;
+  useEffect(() => {
+    if (needRefresh) {
+      log.info('new version detected — applying and reloading');
+      void updateServiceWorker(true); // activate new SW and reload
+    }
+  }, [needRefresh, updateServiceWorker]);
 
-  const close = (): void => {
-    setOfflineReady(false);
-    setNeedRefresh(false);
-  };
-
-  return (
-    <div className="fixed bottom-20 left-1/2 z-50 w-[92%] max-w-sm -translate-x-1/2 rounded-lg border bg-card p-4 shadow-lg md:bottom-6">
-      <p className="mb-3 text-sm">
-        {needRefresh ? 'Nova versão disponível.' : 'Aplicação pronta para funcionar offline.'}
-      </p>
-      <div className="flex justify-end gap-2">
-        {needRefresh && (
-          <Button size="sm" onClick={() => updateServiceWorker(true)}>
-            Atualizar
-          </Button>
-        )}
-        <Button size="sm" variant="outline" onClick={close}>
-          Fechar
-        </Button>
-      </div>
-    </div>
-  );
+  return null;
 }
