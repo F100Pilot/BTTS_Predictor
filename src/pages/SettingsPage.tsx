@@ -249,6 +249,23 @@ export function SettingsPage() {
               copiar. Requer odds disponíveis no jogo.
             </p>
           </div>
+
+          <label className="flex items-start gap-2 border-t pt-4 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.autoCalibrate}
+              onChange={(e) => settings.setAutoCalibrate(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
+            />
+            <span>
+              Auto-calibração pelos resultados
+              <span className="block text-xs font-normal text-muted-foreground">
+                A app aprende com os resultados que registar no Histórico e corrige o
+                excesso/defeito de confiança das previsões (recalibração estatística). Precisa de
+                pelo menos ~15 jogos com resultado real.
+              </span>
+            </span>
+          </label>
         </CardContent>
       </Card>
 

@@ -17,6 +17,7 @@ import {
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { GamesTable } from '@/components/dashboard/GamesTable';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
+import { useCalibration } from '@/store/calibrationStore';
 import { Spinner, EmptyState } from '@/components/common/States';
 import { Button } from '@/components/ui/button';
 import { exportCsv, exportPdf, exportXlsx } from '@/services/exportService';
@@ -27,6 +28,10 @@ export function DashboardPage() {
   const data = useDataService();
   const weights = useSettings((s) => s.weights);
   const oddsCalibration = useSettings((s) => s.oddsCalibration);
+  const autoCalibrate = useSettings((s) => s.autoCalibrate);
+  const platt = useCalibration((s) => s.platt);
+  const calibrationReady = useCalibration((s) => s.ready);
+  const recalibration = autoCalibrate && calibrationReady ? platt : undefined;
   const cacheFixtures = useFixtureCache((s) => s.put);
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
   const [rows, setRows] = useState<DashboardRow[]>([]);
@@ -64,7 +69,11 @@ export function DashboardPage() {
       setRows(fixtures.map((fixture) => ({ fixture })));
       setLoading(false);
       for (const fixture of fixtures) {
-        const row = await buildDashboardRow(data, fixture, { weights, oddsCalibration });
+        const row = await buildDashboardRow(data, fixture, {
+          weights,
+          oddsCalibration,
+          recalibration,
+        });
         if (cancelled) return;
         setRows((prev) =>
           sortDashboardRows(prev.map((r) => (r.fixture.id === fixture.id ? row : r))),
@@ -80,7 +89,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [data, filters.date, weights, oddsCalibration, cacheFixtures]);
+  }, [data, filters.date, weights, oddsCalibration, recalibration, cacheFixtures]);
 
   const filtered = useMemo(() => applyFilters(rows, filters), [rows, filters]);
   const competitions = useMemo(() => uniqueCompetitions(rows), [rows]);

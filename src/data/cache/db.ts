@@ -34,6 +34,8 @@ export interface HistoryRecord {
   confidence: number;
   tier: string;
   createdAt: number;
+  /** Real BTTS outcome once known (for backtesting & auto-calibration). */
+  actual?: 'yes' | 'no';
 }
 
 interface BttsDB extends DBSchema {

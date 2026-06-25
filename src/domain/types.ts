@@ -118,6 +118,8 @@ export interface BttsPrediction {
   calibrationApplied?: number;
   /** Model probability before any market calibration. */
   modelProbYes?: number;
+  /** True when auto-calibration (Platt) adjusted the final probability. */
+  recalibrated?: boolean;
 }
 
 /** Everything the analysis page needs for a single fixture. */

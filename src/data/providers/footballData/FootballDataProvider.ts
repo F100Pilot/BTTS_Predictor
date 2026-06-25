@@ -76,6 +76,11 @@ export class FootballDataProvider implements DataProvider {
     return (data.matches ?? []).map(normalizeFixture);
   }
 
+  async getMatchResultById(matchId: string, ctx: ProviderContext): Promise<MatchResult | null> {
+    const match = await this.request<FdMatch>(`/matches/${matchId}`, ctx);
+    return normalizeResult(match);
+  }
+
   async getTeamRecentMatches(
     teamId: string,
     limit: number,

@@ -6,6 +6,7 @@ import { Spinner } from '@/components/common/States';
 import { PwaUpdatePrompt } from '@/components/common/PwaUpdatePrompt';
 import { useThemeEffect } from '@/hooks/useThemeEffect';
 import { useCollections } from '@/store/collectionsStore';
+import { useCalibration } from '@/store/calibrationStore';
 import { purgeExpired } from '@/data/cache/cache';
 
 const DashboardPage = lazy(() =>
@@ -36,11 +37,13 @@ const NotFoundPage = lazy(() =>
 export function App() {
   useThemeEffect();
   const refreshCollections = useCollections((s) => s.refresh);
+  const refreshCalibration = useCalibration((s) => s.refresh);
 
   useEffect(() => {
     void refreshCollections();
+    void refreshCalibration();
     void purgeExpired();
-  }, [refreshCollections]);
+  }, [refreshCollections, refreshCalibration]);
 
   return (
     <AppShell>

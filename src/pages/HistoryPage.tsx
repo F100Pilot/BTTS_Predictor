@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { History, Trash2, Download, Calendar as CalendarIcon, X } from 'lucide-react';
+import {
+  History,
+  Trash2,
+  Download,
+  Calendar as CalendarIcon,
+  X,
+  Check,
+  RefreshCw,
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { HistoryRecord } from '@/data/cache/db';
-import { listHistory, clearHistory } from '@/data/cache/repositories';
+import { listHistory, clearHistory, setHistoryResult } from '@/data/cache/repositories';
 import { EmptyState, Spinner } from '@/components/common/States';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -17,7 +26,11 @@ import {
 } from '@/components/ui/table';
 import { TierBadge } from '@/components/common/PredictionWidgets';
 import type { PredictionTier } from '@/domain/types';
-import { formatDateTime } from '@/lib/format';
+import { evaluate, type Sample } from '@/core/backtest/backtest';
+import { useDataService } from '@/hooks/useDataService';
+import { useCalibration, MIN_CALIBRATION_SAMPLES } from '@/store/calibrationStore';
+import { useSettings } from '@/store/settingsStore';
+import { todayIso, formatDateTime } from '@/lib/format';
 import { toPercent } from '@/lib/math';
 import { exportCsv } from '@/services/exportService';
 import { createLogger } from '@/services/logger';
@@ -25,12 +38,18 @@ import { createLogger } from '@/services/logger';
 const log = createLogger('HistoryPage');
 
 const dayKey = (ms: number): string => format(new Date(ms), 'yyyy-MM-dd');
+const predictedSide = (probYes: number): 'yes' | 'no' => (probYes >= 0.5 ? 'yes' : 'no');
 
 export function HistoryPage() {
+  const data = useDataService();
+  const refreshCalibration = useCalibration((s) => s.refresh);
+  const autoCalibrate = useSettings((s) => s.autoCalibrate);
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [calOpen, setCalOpen] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [fetchMsg, setFetchMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,6 +60,56 @@ export function HistoryPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const settled = useMemo(
+    () => records.filter((r) => r.actual === 'yes' || r.actual === 'no'),
+    [records],
+  );
+  const evaluation = useMemo(() => {
+    const samples: Sample[] = settled.map((r) => ({
+      probYes: r.probYes,
+      tier: r.tier as PredictionTier,
+      outcome: r.actual === 'yes' ? 1 : 0,
+    }));
+    return evaluate(samples);
+  }, [settled]);
+
+  const setResult = async (id: string, actual: 'yes' | 'no' | undefined): Promise<void> => {
+    await setHistoryResult(id, actual);
+    await load();
+    await refreshCalibration();
+  };
+
+  const handleFetchResults = async (): Promise<void> => {
+    setFetching(true);
+    setFetchMsg(null);
+    try {
+      const today = todayIso();
+      const pending = records.filter(
+        (r) => !r.actual && r.fixtureId && r.date.slice(0, 10) <= today,
+      );
+      let updated = 0;
+      for (const r of pending) {
+        const result = await data.getMatchResultById(r.fixtureId);
+        if (!result) continue;
+        const btts = result.homeGoals > 0 && result.awayGoals > 0 ? 'yes' : 'no';
+        await setHistoryResult(r.id, btts);
+        updated += 1;
+      }
+      await load();
+      await refreshCalibration();
+      setFetchMsg(
+        updated > 0
+          ? `${updated} resultado(s) atualizado(s).`
+          : 'Sem novos resultados disponíveis (fonte/plano podem não os fornecer).',
+      );
+    } catch (err) {
+      log.error('fetch results failed', err);
+      setFetchMsg('Falha ao buscar resultados.');
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const markedDays = useMemo(
     () => Array.from(new Set(records.map((r) => dayKey(r.createdAt)))).map((d) => parseISO(d)),
@@ -127,6 +196,9 @@ export function HistoryPage() {
               <X /> Todas
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={handleFetchResults} disabled={fetching}>
+            <RefreshCw className={fetching ? 'animate-spin' : ''} /> Atualizar resultados
+          </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download /> CSV
           </Button>
@@ -135,6 +207,74 @@ export function HistoryPage() {
           </Button>
         </div>
       </div>
+
+      {fetchMsg && <p className="text-sm text-muted-foreground">{fetchMsg}</p>}
+
+      {/* Backtesting / desempenho */}
+      {evaluation.overall.n > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Desempenho do modelo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+              <div>
+                <span className="text-xs text-muted-foreground">Acerto</span>
+                <p className="text-lg font-bold">{evaluation.overall.accuracy}%</p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">Brier (↓ melhor)</span>
+                <p className="text-lg font-bold">{evaluation.overall.brier}</p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">Amostras</span>
+                <p className="text-lg font-bold">{evaluation.overall.n}</p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">Auto-calibração</span>
+                <p className="text-sm font-medium">
+                  {!autoCalibrate
+                    ? 'desligada'
+                    : evaluation.overall.n >= MIN_CALIBRATION_SAMPLES
+                      ? 'ativa ✓'
+                      : `aguarda dados (${evaluation.overall.n}/${MIN_CALIBRATION_SAMPLES})`}
+                </p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Classificação</TableHead>
+                    <TableHead>Amostras</TableHead>
+                    <TableHead>Acerto</TableHead>
+                    <TableHead>Previsto méd.</TableHead>
+                    <TableHead>Real (BTTS)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {evaluation.byTier.map((t) => (
+                    <TableRow key={t.tier}>
+                      <TableCell>
+                        <TierBadge tier={t.tier as PredictionTier} />
+                      </TableCell>
+                      <TableCell>{t.n}</TableCell>
+                      <TableCell className="font-semibold">{t.accuracy}%</TableCell>
+                      <TableCell className="text-muted-foreground">{t.avgPredicted}%</TableCell>
+                      <TableCell className="text-muted-foreground">{t.actualRate}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              "Previsto méd." vs "Real" mostra a calibração: quanto mais próximos, melhor. Marque o
+              resultado real dos jogos (abaixo) ou use "Atualizar resultados".
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           title="Sem registos nesta data"
@@ -150,6 +290,7 @@ export function HistoryPage() {
                 <TableHead>BTTS</TableHead>
                 <TableHead className="hidden sm:table-cell">Confiança</TableHead>
                 <TableHead className="hidden md:table-cell">Classificação</TableHead>
+                <TableHead>Resultado real</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -165,6 +306,49 @@ export function HistoryPage() {
                   <TableCell className="hidden sm:table-cell">{r.confidence}/10</TableCell>
                   <TableCell className="hidden md:table-cell">
                     <TierBadge tier={r.tier as PredictionTier} />
+                  </TableCell>
+                  <TableCell>
+                    {r.actual ? (
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={
+                            r.actual === predictedSide(r.probYes)
+                              ? 'font-semibold text-success'
+                              : 'font-semibold text-destructive'
+                          }
+                        >
+                          BTTS {r.actual === 'yes' ? 'SIM' : 'NÃO'}
+                          {r.actual === predictedSide(r.probYes) ? ' ✓' : ' ✗'}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Limpar resultado"
+                          onClick={() => void setResult(r.id, undefined)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => void setResult(r.id, 'yes')}
+                        >
+                          <Check className="h-3.5 w-3.5" /> SIM
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => void setResult(r.id, 'no')}
+                        >
+                          <X className="h-3.5 w-3.5" /> NÃO
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

@@ -117,6 +117,20 @@ export class DataService {
     return Array.from(new Set(fixtures.map((f) => f.date.slice(0, 10))));
   }
 
+  /** Fetch a single finished match result by id (for backtesting). Null if unavailable. */
+  async getMatchResultById(matchId: string): Promise<MatchResult | null> {
+    const provider = getProvider(this.providerId);
+    if (!provider.getMatchResultById || !provider.isConfigured(this.ctx)) return null;
+    try {
+      return await cached(`${provider.id}:result:${matchId}`, TTL.teamHistory, () =>
+        provider.getMatchResultById!(matchId, this.ctx),
+      );
+    } catch (err) {
+      log.warn('getMatchResultById failed', err);
+      return null;
+    }
+  }
+
   getTeamRecentMatches(teamId: string, limit = 10): Promise<MatchResult[]> {
     return this.withFallback(
       `team:${teamId}:${limit}`,

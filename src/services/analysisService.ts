@@ -3,6 +3,9 @@ import { DataService } from '@/data/DataService';
 import { computeHeadToHead, computeTeamStats } from '@/core/statistics/statistics';
 import { predict } from '@/core/prediction/engine';
 import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
+import { applyPlatt, IDENTITY_PLATT, type PlattParams } from '@/core/backtest/backtest';
+import { tierForProbability } from '@/core/classification/classification';
+import { clamp } from '@/lib/math';
 import type { FactorKey } from '@/core/prediction/weights';
 import { createLogger } from '@/services/logger';
 
@@ -12,6 +15,27 @@ export interface AnalysisOptions {
   weights?: Record<FactorKey, number>;
   /** Market-odds calibration weight (0..1); 0 = pure model. */
   oddsCalibration?: number;
+  /** Auto-calibration mapping learned from settled history (Platt). */
+  recalibration?: PlattParams;
+}
+
+/** Apply a learned Platt recalibration to the final probability (no-op for identity). */
+function applyRecalibration(
+  prediction: ReturnType<typeof calibrate>,
+  params?: PlattParams,
+): ReturnType<typeof calibrate> {
+  if (!params || (params.a === IDENTITY_PLATT.a && params.b === IDENTITY_PLATT.b)) {
+    return prediction;
+  }
+  const probYes = clamp(applyPlatt(prediction.probYes, params));
+  const probNo = clamp(1 - probYes);
+  return {
+    ...prediction,
+    probYes,
+    probNo,
+    tier: tierForProbability(Math.max(probYes, probNo)),
+    recalibrated: true,
+  };
 }
 
 /** Build the full analysis bundle for a single fixture. */
@@ -35,11 +59,12 @@ export async function buildAnalysis(
     h2h,
     weights: options.weights,
   });
-  const prediction = calibrate(
+  const calibrated = calibrate(
     modelPrediction,
     impliedBttsYes(fixture.odds?.bttsYes, fixture.odds?.bttsNo),
     options.oddsCalibration ?? 0,
   );
+  const prediction = applyRecalibration(calibrated, options.recalibration);
 
   return {
     fixture,

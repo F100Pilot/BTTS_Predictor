@@ -47,6 +47,12 @@ export function FactorBreakdown({ prediction }: { prediction: BttsPrediction }) 
             </div>
           </div>
         )}
+
+        {prediction.recalibrated && (
+          <p className="border-t pt-3 text-xs text-primary">
+            ✓ Probabilidade ajustada por auto-calibração (aprendida dos resultados do histórico).
+          </p>
+        )}
       </CardContent>
     </Card>
   );

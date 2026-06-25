@@ -52,6 +52,16 @@ export async function clearHistory(): Promise<void> {
   const db = await getDb();
   await db.clear('history');
 }
+/** Set (or clear) the real BTTS outcome on a history record. */
+export async function setHistoryResult(
+  id: string,
+  actual: 'yes' | 'no' | undefined,
+): Promise<void> {
+  const db = await getDb();
+  const record = await db.get('history', id);
+  if (!record) return;
+  await db.put('history', { ...record, actual });
+}
 
 // ---- Bets (Martingale) ----
 export async function listBets(): Promise<BetRecord[]> {

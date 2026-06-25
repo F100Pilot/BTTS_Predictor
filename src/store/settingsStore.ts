@@ -15,6 +15,8 @@ interface SettingsState {
   weights: Record<FactorKey, number>;
   /** Market-odds calibration weight (0 = pure model, 1 = pure market). */
   oddsCalibration: number;
+  /** Auto-calibrate predictions from settled history (Platt recalibration). */
+  autoCalibrate: boolean;
   setProvider: (id: string) => void;
   setApiKey: (providerId: string, key: string) => void;
   setCorsProxy: (value: string) => void;
@@ -23,6 +25,7 @@ interface SettingsState {
   setWeights: (weights: Record<FactorKey, number>) => void;
   resetWeights: () => void;
   setOddsCalibration: (value: number) => void;
+  setAutoCalibrate: (value: boolean) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -35,6 +38,7 @@ export const useSettings = create<SettingsState>()(
       theme: 'system',
       weights: { ...DEFAULT_WEIGHTS },
       oddsCalibration: 0,
+      autoCalibrate: false,
       setProvider: (id) => set({ providerId: id }),
       setApiKey: (providerId, key) =>
         set((s) => ({ apiKeys: { ...s.apiKeys, [providerId]: sanitizeApiKey(key) } })),
@@ -44,6 +48,7 @@ export const useSettings = create<SettingsState>()(
       setWeights: (weights) => set({ weights }),
       resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS } }),
       setOddsCalibration: (value) => set({ oddsCalibration: Math.min(1, Math.max(0, value)) }),
+      setAutoCalibrate: (value) => set({ autoCalibrate: value }),
     }),
     { name: 'btts:settings' },
   ),
