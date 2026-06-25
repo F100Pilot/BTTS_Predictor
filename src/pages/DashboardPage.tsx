@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { addDays, format } from 'date-fns';
 import { CalendarX, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
 import { buildDashboardRow, sortDashboardRows } from '@/services/analysisService';
-import { todayIso } from '@/lib/format';
+import { todayIso, formatDate } from '@/lib/format';
 import { createLogger } from '@/services/logger';
 import {
   applyFilters,
@@ -29,6 +30,8 @@ export function DashboardPage() {
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
   const [rows, setRows] = useState<DashboardRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // Auto-jump to the next day with games only once, on the initial load.
+  const autoJumpDone = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +40,23 @@ export function DashboardPage() {
     (async () => {
       const fixtures = await data.getFixturesByDate(filters.date);
       if (cancelled) return;
+
+      // On first load, if the selected day has no games, jump to the next day
+      // within the next 21 days that does (keeps the user from landing on empty).
+      if (fixtures.length === 0 && !autoJumpDone.current) {
+        autoJumpDone.current = true;
+        const from = filters.date;
+        const to = format(addDays(new Date(`${from}T12:00:00Z`), 21), 'yyyy-MM-dd');
+        const dates = (await data.getFixtureDatesInRange(from, to)).filter((d) => d >= from).sort();
+        if (cancelled) return;
+        const next = dates[0];
+        if (next && next !== filters.date) {
+          setFilters((f) => ({ ...f, date: next })); // re-runs this effect for the new date
+          return;
+        }
+      }
+      autoJumpDone.current = true;
+
       cacheFixtures(fixtures);
       // Show the fixtures immediately; predictions fill in progressively so the
       // table is never empty while waiting on (rate-limited) API calls.
@@ -82,9 +102,11 @@ export function DashboardPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Jogos de Hoje</h1>
+          <h1 className="text-2xl font-bold">
+            {filters.date === todayIso() ? 'Jogos de Hoje' : 'Jogos'}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Ordenados por probabilidade de BTTS=SIM. {filtered.length} jogo(s).
+            {formatDate(filters.date)} · {filtered.length} jogo(s) · ordenados por BTTS=SIM
           </p>
         </div>
         <div className="flex gap-2">
