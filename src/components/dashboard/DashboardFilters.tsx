@@ -57,7 +57,7 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
             onChange={(e) => set({ hideNoData: e.target.checked })}
             className="h-4 w-4 accent-[hsl(var(--primary))]"
           />
-          Esconder jogos sem dados
+          Mostrar só jogos analisados
         </label>
         <div className="flex items-center gap-2 text-sm sm:ml-auto">
           <span className="text-muted-foreground">⭐ Liga favorita</span>

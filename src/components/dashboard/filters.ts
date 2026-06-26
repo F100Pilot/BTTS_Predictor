@@ -11,7 +11,7 @@ export interface DashboardFilterState {
   maxOdds: number; // 0 = no limit
   search: string; // team/competition text filter
   onlyValue: boolean; // keep only rows with positive edge vs odds
-  hideNoData: boolean; // drop games without enough history to compute a prediction
+  hideNoData: boolean; // drop games not yet analysed or without enough history
 }
 
 export function defaultFilters(date: string): DashboardFilterState {
@@ -40,9 +40,9 @@ export function applyFilters(rows: DashboardRow[], f: DashboardFilterState): Das
   const search = f.search.trim().toLowerCase();
   return rows.filter((row) => {
     const { fixture, prediction } = row;
-    // Drop games the model can't actually compute (no team history). Rows still
-    // loading (no prediction yet) are kept until their prediction arrives.
-    if (f.hideNoData && prediction?.insufficientData) return false;
+    // Show only games that have actually been analysed: hide rows still loading
+    // (no prediction yet) and rows the model can't compute (no team history).
+    if (f.hideNoData && (!prediction || prediction.insufficientData)) return false;
     if (f.competition !== 'all' && fixture.competition.name !== f.competition) return false;
     if (f.country !== 'all' && fixture.competition.country !== f.country) return false;
     if (f.minBtts > 0 && (!prediction || prediction.probYes * 100 < f.minBtts)) return false;

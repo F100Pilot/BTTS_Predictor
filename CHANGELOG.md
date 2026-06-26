@@ -20,6 +20,12 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.3.1
+
+- O painel mostra apenas jogos **já analisados**: as linhas com "..." (ainda por
+  analisar) deixam de aparecer (filtro "Mostrar só jogos analisados", por defeito).
+- Indicador de progresso "a analisar X/Y" enquanto as previsões são calculadas.
+
 ## 0.2.3.0
 
 - **Ao Vivo** mostra apenas os jogos que estás a acompanhar (no histórico de

@@ -106,6 +106,8 @@ export function DashboardPage() {
   );
   const competitions = useMemo(() => uniqueCompetitions(rows), [rows]);
   const countries = useMemo(() => uniqueCountries(rows), [rows]);
+  const analyzedCount = useMemo(() => rows.filter((r) => r.prediction).length, [rows]);
+  const analyzing = rows.length > 0 && analyzedCount < rows.length;
 
   const handleExport = useCallback(
     async (kind: 'csv' | 'xlsx' | 'pdf') => {
@@ -129,6 +131,7 @@ export function DashboardPage() {
           </h1>
           <p className="text-sm text-muted-foreground">
             {formatDate(filters.date)} · {filtered.length} jogo(s) · ordenados por BTTS=SIM
+            {analyzing && ` · a analisar ${analyzedCount}/${rows.length}…`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -175,6 +178,8 @@ export function DashboardPage() {
 
       {loading ? (
         <Spinner label="A calcular previsões..." />
+      ) : filtered.length === 0 && analyzing ? (
+        <Spinner label={`A analisar previsões... (${analyzedCount}/${rows.length})`} />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<CalendarX className="h-8 w-8 text-muted-foreground" />}
