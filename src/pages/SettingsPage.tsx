@@ -15,7 +15,11 @@ import { FACTOR_LABELS, normalizeWeights, type FactorKey } from '@/core/predicti
 import { tuneWeights, type TuneResult, type TuneSample } from '@/core/backtest/tuneWeights';
 import { listHistory } from '@/data/cache/repositories';
 import { clearCache } from '@/data/cache/cache';
-import { runFootballDataDiagnostics, type DiagCheck } from '@/services/diagnostics';
+import {
+  runFootballDataDiagnostics,
+  runProviderTest,
+  type DiagCheck,
+} from '@/services/diagnostics';
 import {
   notificationsSupported,
   notificationPermission,
@@ -76,10 +80,14 @@ export function SettingsPage() {
     setTesting(true);
     setChecks(null);
     try {
-      const result = await runFootballDataDiagnostics({
+      const ctx = {
         apiKey: settings.apiKeys[settings.providerId],
         corsProxy: settings.corsProxy,
-      });
+      };
+      const result =
+        settings.providerId === 'football-data'
+          ? await runFootballDataDiagnostics(ctx)
+          : await runProviderTest(settings.providerId, ctx);
       setChecks(result);
     } finally {
       setTesting(false);
@@ -197,11 +205,25 @@ export function SettingsPage() {
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
+              checked={settings.autoFallback}
+              onChange={(e) => settings.setAutoFallback(e.target.checked)}
+              className="h-4 w-4 accent-[hsl(var(--primary))]"
+            />
+            Usar outra fonte automaticamente quando a principal falhar
+          </label>
+          <p className="-mt-2 pl-6 text-xs text-muted-foreground">
+            Se a fonte principal falhar ou esgotar o limite, a app tenta as outras fontes que
+            tiverem chave configurada (jogos e resultados ao vivo).
+          </p>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
               checked={settings.fallbackToMock}
               onChange={(e) => settings.setFallbackToMock(e.target.checked)}
               className="h-4 w-4 accent-[hsl(var(--primary))]"
             />
-            Usar dados de demonstração quando a fonte falhar
+            Usar dados de demonstração quando nenhuma fonte está configurada
           </label>
 
           {!activeProvider.capabilities.worksOffline && (

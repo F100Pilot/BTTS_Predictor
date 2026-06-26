@@ -69,7 +69,16 @@ export function AnalysisPage() {
           if (!cancelled) setBundle(null);
           return;
         }
-        const result = await buildAnalysis(data, fixture, {
+        // Auto-fill bookmaker odds when the provider supports them and the
+        // fixture doesn't already carry them (powers value/calibration cards).
+        let enriched = fixture;
+        if (!fixture.odds?.bttsYes && !fixture.odds?.bttsNo) {
+          const odds = await data.getOdds(fixture.id).catch(() => null);
+          if (odds && (odds.bttsYes || odds.bttsNo)) {
+            enriched = { ...fixture, odds: { ...fixture.odds, ...odds } };
+          }
+        }
+        const result = await buildAnalysis(data, enriched, {
           weights,
           oddsCalibration,
           recalibration,

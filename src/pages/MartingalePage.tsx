@@ -35,6 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { EmptyState } from '@/components/common/States';
+import { StakeCalculator } from '@/components/staking/StakeCalculator';
 import { formatDateTime } from '@/lib/format';
 import { sanitizeNumber, sanitizeText } from '@/services/sanitize';
 import { createLogger } from '@/services/logger';
@@ -406,6 +407,8 @@ export function MartingalePage() {
           </Table>
         </CardContent>
       </Card>
+
+      <StakeCalculator bankroll={stats.bankroll} />
 
       {/* Charts */}
       {stats.equity.length > 0 && (

@@ -20,6 +20,17 @@ Sempre que mudar a versão em `package.json`, acrescente uma entrada abaixo.
 
 ---
 
+## 2.1.0
+
+- Novas fontes de dados: **API-Football**, **SportMonks** e **TheSportsDB**
+  (escolhidas em Definições, cada uma com a sua chave).
+- **Fonte de reserva automática**: se a fonte principal falhar ou esgotar o
+  limite, a app tenta as outras fontes configuradas (jogos e ao vivo).
+- **Odds automáticas**: quando a fonte as fornece (ex.: API-Football), as odds
+  BTTS são preenchidas sozinhas na análise (valor/calibração).
+- **Estratégias de stake**: calculadora que compara aposta fixa, % da banca e
+  Kelly, com o valor esperado (EV) de cada uma.
+
 ## 2.0.0
 
 - Filtro "só jogos com valor" e coluna de valor (edge) na tabela de jogos.

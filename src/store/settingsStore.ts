@@ -11,6 +11,8 @@ interface SettingsState {
   apiKeys: Record<string, string>; // providerId -> key (device-local only)
   corsProxy: string; // optional CORS proxy for providers without CORS headers
   fallbackToMock: boolean;
+  /** Try other configured providers automatically when the primary fails. */
+  autoFallback: boolean;
   theme: ThemeMode;
   favoriteCompetition: string; // pinned league name ('' = none)
   weights: Record<FactorKey, number>;
@@ -28,6 +30,7 @@ interface SettingsState {
   setApiKey: (providerId: string, key: string) => void;
   setCorsProxy: (value: string) => void;
   setFallbackToMock: (value: boolean) => void;
+  setAutoFallback: (value: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   setFavoriteCompetition: (name: string) => void;
   setWeights: (weights: Record<FactorKey, number>) => void;
@@ -50,6 +53,7 @@ export const useSettings = create<SettingsState>()(
       apiKeys: {},
       corsProxy: '',
       fallbackToMock: true,
+      autoFallback: true,
       theme: 'system',
       favoriteCompetition: '',
       weights: { ...DEFAULT_WEIGHTS },
@@ -65,6 +69,7 @@ export const useSettings = create<SettingsState>()(
         set((s) => ({ apiKeys: { ...s.apiKeys, [providerId]: sanitizeApiKey(key) } })),
       setCorsProxy: (value) => set({ corsProxy: value.trim() }),
       setFallbackToMock: (value) => set({ fallbackToMock: value }),
+      setAutoFallback: (value) => set({ autoFallback: value }),
       setTheme: (theme) => set({ theme }),
       setFavoriteCompetition: (name) => set({ favoriteCompetition: name }),
       setWeights: (weights) => set({ weights }),

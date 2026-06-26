@@ -8,15 +8,17 @@ export function useDataService(): DataService {
   const apiKeys = useSettings((s) => s.apiKeys);
   const corsProxy = useSettings((s) => s.corsProxy);
   const fallbackToMock = useSettings((s) => s.fallbackToMock);
+  const autoFallback = useSettings((s) => s.autoFallback);
 
   return useMemo(
     () =>
       new DataService({
         providerId,
-        apiKey: apiKeys[providerId],
+        apiKeys,
         corsProxy,
         fallbackToMock,
+        autoFallback,
       }),
-    [providerId, apiKeys, corsProxy, fallbackToMock],
+    [providerId, apiKeys, corsProxy, fallbackToMock, autoFallback],
   );
 }

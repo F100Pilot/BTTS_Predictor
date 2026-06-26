@@ -1,9 +1,17 @@
 import type { Fixture, LiveMatch, MatchResult } from '@/domain/types';
 
+/** BTTS market odds returned by a provider (decimal odds). */
+export interface BttsOdds {
+  bttsYes?: number;
+  bttsNo?: number;
+}
+
 export interface ProviderCapabilities {
   fixtures: boolean;
   teamHistory: boolean;
   headToHead: boolean;
+  /** True if the provider can supply bookmaker BTTS odds. */
+  odds?: boolean;
   /** True if usable without any user-supplied API key. */
   worksOffline: boolean;
 }
@@ -40,6 +48,8 @@ export interface DataProvider {
   getMatchResultById?(matchId: string, ctx: ProviderContext): Promise<MatchResult | null>;
   /** Optional: fetch matches currently in play (live scores). */
   getLiveMatches?(ctx: ProviderContext): Promise<LiveMatch[]>;
+  /** Optional: fetch bookmaker BTTS odds for a single fixture. */
+  getOdds?(fixtureId: string, ctx: ProviderContext): Promise<BttsOdds | null>;
   getTeamRecentMatches(teamId: string, limit: number, ctx: ProviderContext): Promise<MatchResult[]>;
   getHeadToHead(
     homeId: string,
