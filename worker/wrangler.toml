@@ -1,0 +1,6 @@
+# Cloudflare Worker config for the Football-Data CORS proxy.
+# Deploying with this name UPDATES the existing "btts-proxy" worker (it does not
+# create a duplicate), as long as CLOUDFLARE_ACCOUNT_ID points at the same account.
+name = "btts-proxy"
+main = "src/index.js"
+compatibility_date = "2024-11-01"

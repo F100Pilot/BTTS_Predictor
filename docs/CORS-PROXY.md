@@ -54,6 +54,15 @@ function cors() {
 > acima para veres "Pedidos restantes" no painel. Sem ela, o browser esconde o
 > cabeçalho de quota (no APK aparece sempre, pois não há CORS).
 
+### Deploy automático (GitHub Actions)
+
+Em vez de colar o código à mão, o worker pode ser atualizado automaticamente. O
+código está em [`worker/`](../worker/) e o workflow
+[`deploy-worker.yml`](../.github/workflows/deploy-worker.yml) faz o deploy
+sempre que `worker/` mudar. Basta adicionar dois *secrets* no GitHub
+(`CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`) — ver
+[`worker/README.md`](../worker/README.md).
+
 3. **Deploy**. Copia o URL do Worker (ex.: `https://btts-proxy.o-teu-nome.workers.dev`).
 4. Na app: **Definições → Proxy CORS (opcional)** → cola esse URL.
 5. Volta ao painel. Os jogos reais aparecem. ✅

@@ -1,0 +1,35 @@
+name: Deploy Worker
+
+# Auto-deploys the Cloudflare Worker (CORS proxy) when worker/ changes on main.
+# Requires two GitHub secrets (Settings → Secrets and variables → Actions):
+#   - CLOUDFLARE_API_TOKEN  (token with "Edit Cloudflare Workers" permission)
+#   - CLOUDFLARE_ACCOUNT_ID (your Cloudflare account id)
+# If the token secret is absent, the deploy step is skipped (no failure).
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'worker/**'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Worker
+        if: ${{ env.CF_TOKEN != '' }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+
+      - name: Skipped notice
+        if: ${{ env.CF_TOKEN == '' }}
+        run: echo "CLOUDFLARE_API_TOKEN not set — skipping worker deploy."
