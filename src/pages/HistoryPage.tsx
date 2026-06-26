@@ -1,13 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import {
-  History,
-  Trash2,
-  Download,
-  Calendar as CalendarIcon,
-  X,
-  Check,
-  RefreshCw,
-} from 'lucide-react';
+import { History, Trash2, Download, Calendar as CalendarIcon, X, RefreshCw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Bet, PredictionTier } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
@@ -462,14 +454,17 @@ export function HistoryPage() {
                                 </Button>
                               </div>
                             ) : (
-                              <div className="flex gap-1">
+                              <div className="flex items-center gap-1">
+                                <span className="hidden text-xs text-muted-foreground sm:inline">
+                                  Marcar:
+                                </span>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   className="h-7 px-2"
                                   onClick={() => void setResult(r.id, 'yes')}
                                 >
-                                  <Check className="h-3.5 w-3.5" /> SIM
+                                  BTTS SIM
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -477,7 +472,7 @@ export function HistoryPage() {
                                   className="h-7 px-2"
                                   onClick={() => void setResult(r.id, 'no')}
                                 >
-                                  <X className="h-3.5 w-3.5" /> NÃO
+                                  BTTS NÃO
                                 </Button>
                               </div>
                             )}

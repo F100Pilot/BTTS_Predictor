@@ -2,25 +2,25 @@
 
 Registo das versões do **BTTS Analytics Pro**.
 
-## Esquema de versões (`MAIOR.MENOR.CORREÇÃO`)
+## Esquema de versões (`0.MAIOR.MENOR.CORREÇÃO`)
 
-A versão está em [`package.json`](package.json) e é mostrada na app em **Definições**
-(rodapé). A regra de incremento:
+A versão está em [`src/version.ts`](src/version.ts) e é mostrada na app em
+**Definições** (rodapé). Começa sempre por `0.` (pré-1.0). A regra de incremento:
 
-| Posição    | Exemplo | Quando incrementar                                            |
-| ---------- | ------- | ------------------------------------------------------------ |
-| **MAIOR**  | **2**.0.0 | Grande alteração estrutural (mudança de arquitetura, dados). |
-| **MENOR**  | 2.**0**.0 | Nova funcionalidade.                                         |
-| **CORREÇÃO** | 2.0.**0** | Correções de erros / ajustes pequenos.                      |
+| Posição      | Exemplo     | Quando incrementar                              |
+| ------------ | ----------- | ----------------------------------------------- |
+| **MAIOR**    | 0.**2**.1.1 | Grande alteração estrutural (arquitetura/dados) |
+| **MENOR**    | 0.2.**1**.1 | Nova funcionalidade                             |
+| **CORREÇÃO** | 0.2.1.**1** | Correção de erros / ajustes pequenos            |
 
 > Ao subir um nível, os níveis à direita voltam a `0`
-> (ex.: nova funcionalidade sobre a `2.0.3` → `2.1.0`).
+> (ex.: nova funcionalidade sobre a `0.2.1.3` → `0.2.2.0`).
 
-Sempre que mudar a versão em `package.json`, acrescente uma entrada abaixo.
+Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
-## 2.1.1
+## 0.2.1.1
 
 - Correção importante: jogos **sem histórico** já não aparecem como "Muito
   Forte 93% NÃO". Sem dados, os fatores ficam neutros (~50/50), a previsão é
@@ -30,7 +30,7 @@ Sempre que mudar a versão em `package.json`, acrescente uma entrada abaixo.
 - Ao Vivo: etiqueta mais clara — "Ambas marcaram ✓ (BTTS SIM)" em vez de só
   "BTTS ✓".
 
-## 2.1.0
+## 0.2.1.0
 
 - Novas fontes de dados: **API-Football**, **SportMonks** e **TheSportsDB**
   (escolhidas em Definições, cada uma com a sua chave).
@@ -41,7 +41,7 @@ Sempre que mudar a versão em `package.json`, acrescente uma entrada abaixo.
 - **Estratégias de stake**: calculadora que compara aposta fixa, % da banca e
   Kelly, com o valor esperado (EV) de cada uma.
 
-## 2.0.0
+## 0.2.0.0
 
 - Filtro "só jogos com valor" e coluna de valor (edge) na tabela de jogos.
 - Pesquisa por equipa/competição e liga favorita no painel.

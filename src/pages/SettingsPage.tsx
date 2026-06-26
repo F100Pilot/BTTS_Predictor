@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/select';
 import { sanitizeNumber } from '@/services/sanitize';
 import { round } from '@/lib/math';
+import { APP_VERSION } from '@/version';
 
 export function SettingsPage() {
   const settings = useSettings();
@@ -529,7 +530,7 @@ export function SettingsPage() {
       </Card>
 
       <p className="pt-2 text-center text-xs text-muted-foreground">
-        BTTS Analytics Pro · v{__APP_VERSION__}
+        BTTS Analytics Pro · v{APP_VERSION}
       </p>
     </div>
   );

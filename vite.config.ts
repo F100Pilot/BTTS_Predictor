@@ -2,10 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const pkg = require('./package.json') as { version: string };
 
 // On GitHub Pages the app is served from /<repo>/. Override with VITE_BASE if needed.
 // Example: VITE_BASE=/btts_predictor/ npm run build
@@ -13,9 +9,6 @@ const base = process.env.VITE_BASE ?? '/btts_predictor/';
 
 export default defineConfig({
   base,
-  define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
-  },
   plugins: [
     react(),
     VitePWA({
