@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/select';
 import { sanitizeNumber } from '@/services/sanitize';
 import { round } from '@/lib/math';
+import { QuotaBadge } from '@/components/common/QuotaBadge';
 import { APP_VERSION } from '@/version';
 
 export function SettingsPage() {
@@ -229,6 +230,14 @@ export function SettingsPage() {
 
           {!activeProvider.capabilities.worksOffline && (
             <div className="space-y-3 border-t pt-4">
+              <div>
+                <QuotaBadge />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Pedidos ainda disponíveis na fonte ativa (atualiza a cada chamada). Aparece em
+                  branco até à primeira chamada; na web pode não estar disponível se o proxy não
+                  expuser os cabeçalhos de quota.
+                </p>
+              </div>
               <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
                 {testing ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
                 Testar ligação

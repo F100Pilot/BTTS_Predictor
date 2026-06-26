@@ -7,6 +7,7 @@ import {
 } from '../types';
 import { routeThroughProxy } from '../util';
 import { bucketFor, fetchWithBackoff } from '@/data/rateLimit/rateLimiter';
+import { recordQuota } from '@/store/apiQuotaStore';
 import { sanitizeText } from '@/services/sanitize';
 import { createLogger } from '@/services/logger';
 
@@ -138,7 +139,18 @@ export class SportmonksProvider implements DataProvider {
       log.warn('request failed', { path, status: res.status });
       throw new ProviderError(`Pedido falhou (${res.status})`, this.id, res.status);
     }
-    return (await res.json()) as T;
+    const json = await res.json();
+    // SportMonks reports the rate limit in the response body.
+    const rl = (json as { rate_limit?: { remaining?: number; limit?: number } }).rate_limit;
+    if (rl && typeof rl.remaining === 'number') {
+      recordQuota(this.id, {
+        remaining: rl.remaining,
+        limit: typeof rl.limit === 'number' ? rl.limit : undefined,
+        label: 'por hora',
+        updatedAt: Date.now(),
+      });
+    }
+    return json as T;
   }
 
   async getFixturesByDate(date: string, ctx: ProviderContext): Promise<Fixture[]> {

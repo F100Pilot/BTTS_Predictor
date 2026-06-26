@@ -33,6 +33,7 @@ import { GamesTable } from '@/components/dashboard/GamesTable';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { Spinner, EmptyState } from '@/components/common/States';
+import { QuotaBadge } from '@/components/common/QuotaBadge';
 import { Button } from '@/components/ui/button';
 import { exportCsv, exportPdf, exportXlsx } from '@/services/exportService';
 
@@ -160,6 +161,7 @@ export function DashboardPage() {
             {formatDate(filters.date)} · {filtered.length} jogo(s) · ordenados por BTTS=SIM
             {analyzing && ` · a analisar ${analyzedCount}/${rows.length}…`}
           </p>
+          <QuotaBadge className="mt-1" />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => void handleReanalyze()}>

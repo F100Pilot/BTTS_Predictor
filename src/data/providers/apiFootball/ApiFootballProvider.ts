@@ -8,6 +8,7 @@ import {
 } from '../types';
 import { routeThroughProxy } from '../util';
 import { bucketFor, fetchWithBackoff } from '@/data/rateLimit/rateLimiter';
+import { recordQuota } from '@/store/apiQuotaStore';
 import { sanitizeText } from '@/services/sanitize';
 import { createLogger } from '@/services/logger';
 
@@ -111,6 +112,16 @@ export class ApiFootballProvider implements DataProvider {
     await bucketFor(this.id, 10, 10 / 60).acquire();
     const url = routeThroughProxy(`${BASE}${path}`, ctx.corsProxy);
     const res = await fetchWithBackoff(url, { headers: { 'x-apisports-key': ctx.apiKey } });
+    const remaining = Number(res.headers.get('x-ratelimit-requests-remaining'));
+    const limit = Number(res.headers.get('x-ratelimit-requests-limit'));
+    if (Number.isFinite(remaining)) {
+      recordQuota(this.id, {
+        remaining,
+        limit: Number.isFinite(limit) ? limit : undefined,
+        label: 'hoje',
+        updatedAt: Date.now(),
+      });
+    }
     if (!res.ok) {
       log.warn('request failed', { path, status: res.status });
       throw new ProviderError(`Pedido falhou (${res.status})`, this.id, res.status);

@@ -44,9 +44,15 @@ function cors() {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'X-Auth-Token, Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    // Expor o cabeçalho de quota para a app poder mostrar os pedidos restantes.
+    'Access-Control-Expose-Headers': 'X-Requests-Available-Minute',
   };
 }
 ```
+
+> Se já tens o Worker criado, acrescenta a linha `Access-Control-Expose-Headers`
+> acima para veres "Pedidos restantes" no painel. Sem ela, o browser esconde o
+> cabeçalho de quota (no APK aparece sempre, pois não há CORS).
 
 3. **Deploy**. Copia o URL do Worker (ex.: `https://btts-proxy.o-teu-nome.workers.dev`).
 4. Na app: **Definições → Proxy CORS (opcional)** → cola esse URL.

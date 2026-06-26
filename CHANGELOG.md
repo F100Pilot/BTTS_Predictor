@@ -20,6 +20,15 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.5.0
+
+- **Pedidos restantes da API**: o painel e as Definições mostram quantos pedidos
+  ainda tens na janela atual da fonte ativa (lido dos cabeçalhos/corpo da
+  resposta — Football-Data: por minuto; API-Football: por dia; SportMonks: por
+  hora). Fica destacado a amarelo quando está perto do limite.
+- Na web com proxy, é preciso expor o cabeçalho de quota no Worker
+  (`Access-Control-Expose-Headers`); no APK aparece sempre. Doc atualizada.
+
 ## 0.2.4.0
 
 - **Análises guardadas por dia**: ao voltar a um dia já analisado, os jogos

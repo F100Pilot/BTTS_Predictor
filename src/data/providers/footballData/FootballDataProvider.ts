@@ -6,6 +6,7 @@ import {
   type ProviderContext,
 } from '../types';
 import { bucketFor, fetchWithBackoff } from '@/data/rateLimit/rateLimiter';
+import { recordQuota } from '@/store/apiQuotaStore';
 import { createLogger } from '@/services/logger';
 import { normalizeFixture, normalizeLive, normalizeResult, type FdMatch } from './normalize';
 
@@ -53,6 +54,10 @@ export class FootballDataProvider implements DataProvider {
     const res = await fetchWithBackoff(url, {
       headers: { 'X-Auth-Token': ctx.apiKey },
     });
+    const remaining = Number(res.headers.get('X-Requests-Available-Minute'));
+    if (Number.isFinite(remaining)) {
+      recordQuota(this.id, { remaining, limit: 10, label: 'este minuto', updatedAt: Date.now() });
+    }
     if (!res.ok) {
       log.warn('request failed', { path, status: res.status });
       throw new ProviderError(`Pedido falhou (${res.status})`, this.id, res.status);
