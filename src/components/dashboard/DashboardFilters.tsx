@@ -31,6 +31,8 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
   const selected = isValid(parseISO(value.date)) ? parseISO(value.date) : undefined;
   const favoriteCompetition = useSettings((s) => s.favoriteCompetition);
   const setFavoriteCompetition = useSettings((s) => s.setFavoriteCompetition);
+  const hideAmateur = useSettings((s) => s.hideAmateur);
+  const setHideAmateur = useSettings((s) => s.setHideAmateur);
 
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
@@ -58,6 +60,15 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
             className="h-4 w-4 accent-[hsl(var(--primary))]"
           />
           Mostrar só jogos analisados
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={hideAmateur}
+            onChange={(e) => setHideAmateur(e.target.checked)}
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
+          />
+          Esconder ligas amadoras/juvenis
         </label>
         <div className="flex items-center gap-2 text-sm sm:ml-auto">
           <span className="text-muted-foreground">⭐ Liga favorita</span>

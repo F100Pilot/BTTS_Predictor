@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.6.0
+
+- Novo filtro **"Esconder ligas amadoras/juvenis"** (ligado por defeito): exclui
+  amigáveis, equipas juvenis (U17–U23/Sub-XX), reservas e amadoras **antes** da
+  análise. Evita que centenas de jogos menores esgotem a quota e bloqueiem a
+  análise do dia. Heurística por nome da competição, com testes.
+
 ## 0.2.5.0
 
 - **Pedidos restantes da API**: o painel e as Definições mostram quantos pedidos

@@ -12,6 +12,7 @@ import type { DashboardRow } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
 import { buildDashboardRow, sortDashboardRows } from '@/services/analysisService';
+import { isMinorCompetition } from '@/core/classification/competitions';
 import {
   loadDayPredictions,
   saveDayPrediction,
@@ -47,6 +48,7 @@ export function DashboardPage() {
   const platt = useCalibration((s) => s.platt);
   const calibrationReady = useCalibration((s) => s.ready);
   const recalibration = autoCalibrate && calibrationReady ? platt : undefined;
+  const hideAmateur = useSettings((s) => s.hideAmateur);
   const cacheFixtures = useFixtureCache((s) => s.put);
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
   const [rows, setRows] = useState<DashboardRow[]>([]);
@@ -63,8 +65,13 @@ export function DashboardPage() {
     setLoadError(null);
     const sig = predictionSignature(weights, oddsCalibration, recalibration);
     (async () => {
-      const fixtures = await data.getFixturesByDate(filters.date);
+      const allFixtures = await data.getFixturesByDate(filters.date);
       if (cancelled) return;
+      // Drop amateur/youth/friendly games BEFORE analysis so we don't burn the
+      // API budget on hundreds of minor matches that never finish analysing.
+      const fixtures = hideAmateur
+        ? allFixtures.filter((f) => !isMinorCompetition(f.competition.name))
+        : allFixtures;
 
       // On first load, if the selected day has no games, jump to the next day
       // within the next 21 days that does (keeps the user from landing on empty).
@@ -120,7 +127,16 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [data, filters.date, weights, oddsCalibration, recalibration, cacheFixtures, refreshKey]);
+  }, [
+    data,
+    filters.date,
+    weights,
+    oddsCalibration,
+    recalibration,
+    cacheFixtures,
+    refreshKey,
+    hideAmateur,
+  ]);
 
   const handleReanalyze = useCallback(async () => {
     await clearDayPredictions(filters.date);

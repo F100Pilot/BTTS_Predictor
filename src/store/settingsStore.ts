@@ -15,6 +15,8 @@ interface SettingsState {
   autoFallback: boolean;
   theme: ThemeMode;
   favoriteCompetition: string; // pinned league name ('' = none)
+  /** Exclude amateur/youth/friendly/reserve competitions before analysis. */
+  hideAmateur: boolean;
   weights: Record<FactorKey, number>;
   /** Market-odds calibration weight (0 = pure model, 1 = pure market). */
   oddsCalibration: number;
@@ -33,6 +35,7 @@ interface SettingsState {
   setAutoFallback: (value: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   setFavoriteCompetition: (name: string) => void;
+  setHideAmateur: (value: boolean) => void;
   setWeights: (weights: Record<FactorKey, number>) => void;
   resetWeights: () => void;
   setOddsCalibration: (value: number) => void;
@@ -56,6 +59,7 @@ export const useSettings = create<SettingsState>()(
       autoFallback: true,
       theme: 'system',
       favoriteCompetition: '',
+      hideAmateur: true,
       weights: { ...DEFAULT_WEIGHTS },
       oddsCalibration: 0,
       autoCalibrate: false,
@@ -72,6 +76,7 @@ export const useSettings = create<SettingsState>()(
       setAutoFallback: (value) => set({ autoFallback: value }),
       setTheme: (theme) => set({ theme }),
       setFavoriteCompetition: (name) => set({ favoriteCompetition: name }),
+      setHideAmateur: (value) => set({ hideAmateur: value }),
       setWeights: (weights) => set({ weights }),
       resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS } }),
       setOddsCalibration: (value) => set({ oddsCalibration: Math.min(1, Math.max(0, value)) }),
