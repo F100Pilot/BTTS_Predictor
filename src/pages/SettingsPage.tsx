@@ -395,6 +395,29 @@ export function SettingsPage() {
               </span>
             </span>
           </label>
+
+          <div className="space-y-1 border-t pt-4">
+            <Label htmlFor="batch-size">Jogos analisados por lote</Label>
+            <input
+              id="batch-size"
+              type="number"
+              min={0}
+              max={200}
+              step={5}
+              value={settings.analysisBatchSize}
+              onChange={(e) =>
+                settings.setAnalysisBatchSize(
+                  sanitizeNumber(e.target.value, { min: 0, max: 200, fallback: 20 }),
+                )
+              }
+              className="w-24 rounded-md border bg-background px-2 py-1 text-sm tabular-nums"
+            />
+            <p className="text-xs text-muted-foreground">
+              Em dias com muitos jogos, a app só analisa os próximos N a começar (por hora de
+              início) para poupar pedidos à API. Usa o botão “Analisar mais” no painel para
+              continuar. 0 = analisar todos de uma vez.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
