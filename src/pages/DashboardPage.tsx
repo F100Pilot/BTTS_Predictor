@@ -7,8 +7,9 @@ import {
   FileText,
   AlertTriangle,
   RefreshCw,
+  PlusCircle,
 } from 'lucide-react';
-import type { DashboardRow } from '@/domain/types';
+import type { DashboardRow, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
 import { buildDashboardRow, sortDashboardRows } from '@/services/analysisService';
@@ -40,6 +41,24 @@ import { exportCsv, exportPdf, exportXlsx } from '@/services/exportService';
 
 const log = createLogger('DashboardPage');
 
+/**
+ * Order fixtures by analysis priority: upcoming games (not yet kicked off) first,
+ * soonest kickoff first; already-started/finished games go last. This way a day
+ * with hundreds of fixtures analyses the *next games to be played* first instead
+ * of burning the API budget on matches that are already over.
+ */
+function orderByKickoff(fixtures: Fixture[]): Fixture[] {
+  const now = Date.now();
+  return [...fixtures].sort((a, b) => {
+    const ta = Date.parse(a.date);
+    const tb = Date.parse(b.date);
+    const aPast = ta < now;
+    const bPast = tb < now;
+    if (aPast !== bPast) return aPast ? 1 : -1;
+    return ta - tb;
+  });
+}
+
 export function DashboardPage() {
   const data = useDataService();
   const weights = useSettings((s) => s.weights);
@@ -49,33 +68,47 @@ export function DashboardPage() {
   const calibrationReady = useCalibration((s) => s.ready);
   const recalibration = autoCalibrate && calibrationReady ? platt : undefined;
   const hideAmateur = useSettings((s) => s.hideAmateur);
+  const batchSize = useSettings((s) => s.analysisBatchSize);
   const cacheFixtures = useFixtureCache((s) => s.put);
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
+  // `fixtures` is the kickoff-ordered list; it drives analysis priority (not display).
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [rows, setRows] = useState<DashboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // How many fixtures (in kickoff order) we are allowed to analyse. 0 batch size
+  // means "analyse everything" (Infinity).
+  const [batchLimit, setBatchLimit] = useState<number>(() => batchSize || Infinity);
   // Auto-jump to the next day with games only once, on the initial load.
   const autoJumpDone = useRef(false);
+  // Fixture ids already analysed (from cache or this session) — skip re-analysing.
+  const analyzedRef = useRef<Set<string>>(new Set());
+  const sigRef = useRef('');
 
+  // Effect A — fetch fixtures + seed rows from cache. Does NOT analyse, so
+  // extending the batch later never re-fetches or flashes the spinner.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setRows([]);
+    setFixtures([]);
     setLoadError(null);
+    analyzedRef.current = new Set();
     const sig = predictionSignature(weights, oddsCalibration, recalibration);
+    sigRef.current = sig;
     (async () => {
       const allFixtures = await data.getFixturesByDate(filters.date);
       if (cancelled) return;
       // Drop amateur/youth/friendly games BEFORE analysis so we don't burn the
       // API budget on hundreds of minor matches that never finish analysing.
-      const fixtures = hideAmateur
+      const dayFixtures = hideAmateur
         ? allFixtures.filter((f) => !isMinorCompetition(f.competition.name))
         : allFixtures;
 
       // On first load, if the selected day has no games, jump to the next day
       // within the next 21 days that does (keeps the user from landing on empty).
-      if (fixtures.length === 0 && !autoJumpDone.current) {
+      if (dayFixtures.length === 0 && !autoJumpDone.current) {
         autoJumpDone.current = true;
         const from = filters.date;
         const to = format(addDays(new Date(`${from}T12:00:00Z`), 21), 'yyyy-MM-dd');
@@ -89,29 +122,17 @@ export function DashboardPage() {
       }
       autoJumpDone.current = true;
 
-      cacheFixtures(fixtures);
+      const ordered = orderByKickoff(dayFixtures);
+      cacheFixtures(ordered);
       // Reuse any predictions already analysed for this day+settings; the rest
       // fill in progressively. Saved games never get re-analysed (saves API).
       const saved = await loadDayPredictions(filters.date, sig);
       if (cancelled) return;
-      setRows(fixtures.map((fixture) => ({ fixture, prediction: saved[fixture.id] })));
+      analyzedRef.current = new Set(Object.keys(saved));
+      setFixtures(ordered);
+      setRows(ordered.map((fixture) => ({ fixture, prediction: saved[fixture.id] })));
+      setBatchLimit(batchSize || Infinity); // reset the window on a fresh load
       setLoading(false);
-      for (const fixture of fixtures) {
-        if (saved[fixture.id]) continue; // already analysed for this day
-        const row = await buildDashboardRow(data, fixture, {
-          weights,
-          oddsCalibration,
-          recalibration,
-        });
-        if (cancelled) return;
-        // Persist successful analyses (predictionError rows are left to retry).
-        if (row.prediction) {
-          void saveDayPrediction(filters.date, sig, fixture.id, row.prediction);
-        }
-        setRows((prev) =>
-          sortDashboardRows(prev.map((r) => (r.fixture.id === fixture.id ? row : r))),
-        );
-      }
     })().catch((err: unknown) => {
       log.error('failed to load dashboard', err);
       if (cancelled) return;
@@ -136,12 +157,56 @@ export function DashboardPage() {
     cacheFixtures,
     refreshKey,
     hideAmateur,
+    batchSize,
   ]);
+
+  // Effect B — analyse the un-analysed fixtures within the current batch window.
+  // Re-runs when the window grows ("Analisar mais"); cached/analysed games are
+  // skipped via analyzedRef so growing the window only costs the new slice.
+  useEffect(() => {
+    if (fixtures.length === 0) return;
+    let cancelled = false;
+    const sig = sigRef.current;
+    const window = Number.isFinite(batchLimit) ? fixtures.slice(0, batchLimit) : fixtures;
+    const pending = window.filter((f) => !analyzedRef.current.has(f.id));
+    if (pending.length === 0) return;
+    (async () => {
+      for (const fixture of pending) {
+        if (cancelled) return;
+        if (analyzedRef.current.has(fixture.id)) continue;
+        const row = await buildDashboardRow(data, fixture, {
+          weights,
+          oddsCalibration,
+          recalibration,
+        });
+        if (cancelled) return;
+        // Persist successful analyses (predictionError rows are left to retry).
+        if (row.prediction) {
+          analyzedRef.current.add(fixture.id);
+          void saveDayPrediction(filters.date, sig, fixture.id, row.prediction);
+        }
+        setRows((prev) =>
+          sortDashboardRows(prev.map((r) => (r.fixture.id === fixture.id ? row : r))),
+        );
+      }
+    })().catch((err: unknown) => {
+      log.error('analysis batch failed', err);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fixtures, batchLimit, data, weights, oddsCalibration, recalibration, filters.date]);
 
   const handleReanalyze = useCallback(async () => {
     await clearDayPredictions(filters.date);
     setRefreshKey((k) => k + 1);
   }, [filters.date]);
+
+  const loadMore = useCallback(() => {
+    setBatchLimit(
+      (b) => (Number.isFinite(b) ? b : fixtures.length) + (batchSize || fixtures.length),
+    );
+  }, [batchSize, fixtures.length]);
 
   const favoriteCompetition = useSettings((s) => s.favoriteCompetition);
   const filtered = useMemo(
@@ -150,8 +215,28 @@ export function DashboardPage() {
   );
   const competitions = useMemo(() => uniqueCompetitions(rows), [rows]);
   const countries = useMemo(() => uniqueCountries(rows), [rows]);
-  const analyzedCount = useMemo(() => rows.filter((r) => r.prediction).length, [rows]);
-  const analyzing = rows.length > 0 && analyzedCount < rows.length;
+
+  // Batch progress: how many of the current window are done vs how many fixtures
+  // are still waiting beyond the window.
+  const predById = useMemo(() => new Map(rows.map((r) => [r.fixture.id, r.prediction])), [rows]);
+  const batchIds = useMemo(
+    () =>
+      new Set(
+        (Number.isFinite(batchLimit) ? fixtures.slice(0, batchLimit) : fixtures).map((f) => f.id),
+      ),
+    [fixtures, batchLimit],
+  );
+  const batchTotal = batchIds.size;
+  const analyzedInBatch = useMemo(
+    () => [...batchIds].filter((id) => predById.get(id)).length,
+    [batchIds, predById],
+  );
+  const waiting = useMemo(
+    () => fixtures.filter((f) => !batchIds.has(f.id) && !predById.get(f.id)).length,
+    [fixtures, batchIds, predById],
+  );
+  const analyzing = batchTotal > 0 && analyzedInBatch < batchTotal;
+  const nextBatch = Math.min(batchSize || waiting, waiting);
 
   const handleExport = useCallback(
     async (kind: 'csv' | 'xlsx' | 'pdf') => {
@@ -175,11 +260,17 @@ export function DashboardPage() {
           </h1>
           <p className="text-sm text-muted-foreground">
             {formatDate(filters.date)} · {filtered.length} jogo(s) · ordenados por BTTS=SIM
-            {analyzing && ` · a analisar ${analyzedCount}/${rows.length}…`}
+            {analyzing && ` · a analisar ${analyzedInBatch}/${batchTotal}…`}
+            {waiting > 0 && ` · ${waiting} em espera`}
           </p>
           <QuotaBadge className="mt-1" />
         </div>
         <div className="flex gap-2">
+          {waiting > 0 && (
+            <Button variant="outline" size="sm" onClick={loadMore} disabled={analyzing}>
+              <PlusCircle /> Analisar mais {nextBatch}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => void handleReanalyze()}>
             <RefreshCw /> Reanalisar
           </Button>
@@ -227,7 +318,7 @@ export function DashboardPage() {
       {loading ? (
         <Spinner label="A calcular previsões..." />
       ) : filtered.length === 0 && analyzing ? (
-        <Spinner label={`A analisar previsões... (${analyzedCount}/${rows.length})`} />
+        <Spinner label={`A analisar previsões... (${analyzedInBatch}/${batchTotal})`} />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<CalendarX className="h-8 w-8 text-muted-foreground" />}
@@ -235,7 +326,9 @@ export function DashboardPage() {
           description={
             loadError
               ? 'A fonte de dados não respondeu. Tenta novamente daqui a pouco.'
-              : 'Experimente outra data ou reduza os filtros aplicados.'
+              : waiting > 0
+                ? `Há ${waiting} jogo(s) por analisar. Usa "Analisar mais" para continuar.`
+                : 'Experimente outra data ou reduza os filtros aplicados.'
           }
         />
       ) : (

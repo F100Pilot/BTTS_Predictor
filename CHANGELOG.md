@@ -20,6 +20,19 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.7.0
+
+- **Análise por lotes** no painel: em dias com muitos jogos (centenas), a app
+  deixou de analisar tudo de uma vez — esgotava a quota da API. Agora analisa
+  apenas os próximos N jogos a começar, **ordenados por hora de início** (jogos
+  já iniciados/terminados ficam no fim da fila de prioridade).
+- Botão **"Analisar mais N"** no painel para estender a janela de análise quando
+  o utilizador quiser; jogos já analisados ficam em cache e não voltam a gastar
+  pedidos.
+- Nova definição **"Jogos analisados por lote"** (Definições → Análise), por
+  defeito **20**. `0` = analisar todos de uma vez (comportamento antigo).
+- Indicador de estado no cabeçalho mostra `a analisar X/Y` e `Z em espera`.
+
 ## 0.2.6.0
 
 - Novo filtro **"Esconder ligas amadoras/juvenis"** (ligado por defeito): exclui
