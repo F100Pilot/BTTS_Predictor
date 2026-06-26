@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.3.0
+
+- **Ao Vivo** mostra apenas os jogos que estás a acompanhar (no histórico de
+  previsões ou nas apostas), em vez de todos os jogos da fonte.
+- **Hora de início** do jogo passa a estar visível no histórico, no Ao Vivo e na
+  análise. Os jogos `LiveMatch` passam a transportar a data de início, corrigindo
+  a hora errada nos jogos abertos a partir do Ao Vivo.
+
 ## 0.2.2.0
 
 - Jogos **sem dados suficientes** deixam de ser considerados: o painel esconde-os

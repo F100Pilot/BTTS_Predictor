@@ -25,6 +25,7 @@ export function normalizeLive(m: FdMatch): LiveMatch {
     awayGoals: m.score?.fullTime?.away ?? 0,
     status: m.status,
     minute: typeof m.minute === 'number' ? m.minute : undefined,
+    date: m.utcDate,
   };
 }
 

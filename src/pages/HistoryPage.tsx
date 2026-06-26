@@ -400,7 +400,7 @@ export function HistoryPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Quando</TableHead>
+                        <TableHead>Início do jogo</TableHead>
                         <TableHead>Jogo</TableHead>
                         <TableHead>BTTS</TableHead>
                         <TableHead className="hidden sm:table-cell">Confiança</TableHead>
@@ -412,7 +412,7 @@ export function HistoryPage() {
                       {filtered.map((r) => (
                         <TableRow key={r.id}>
                           <TableCell className="text-xs text-muted-foreground">
-                            {formatDateTime(new Date(r.createdAt).toISOString())}
+                            {r.date ? formatDateTime(r.date) : '—'}
                           </TableCell>
                           <TableCell className="font-medium">{r.fixtureName}</TableCell>
                           <TableCell>

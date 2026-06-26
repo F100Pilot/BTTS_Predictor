@@ -99,6 +99,7 @@ function toLive(m: SmFixture): LiveMatch {
     homeGoals: goalsFor(m, 'home') ?? 0,
     awayGoals: goalsFor(m, 'away') ?? 0,
     status: m.state?.developer_name ?? 'LIVE',
+    date: isoDate(m.starting_at),
   };
 }
 

@@ -126,6 +126,7 @@ export class MockProvider implements DataProvider {
         awayGoals: ag,
         status: minute >= 45 && minute <= 48 ? 'PAUSED' : 'IN_PLAY',
         minute,
+        date: f.date,
       } satisfies LiveMatch;
     });
   }

@@ -59,6 +59,8 @@ export interface LiveMatch {
   status: string;
   /** Elapsed minute when available. */
   minute?: number;
+  /** Kickoff date-time (ISO), when the source provides it. */
+  date?: string;
 }
 
 /** Aggregated statistics over a window of matches for a single team. */

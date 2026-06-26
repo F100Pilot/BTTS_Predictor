@@ -79,6 +79,7 @@ function toLive(m: AfFixture): LiveMatch {
     awayGoals: m.goals.away ?? 0,
     status: m.fixture.status?.short ?? 'LIVE',
     minute: m.fixture.status?.elapsed ?? undefined,
+    date: m.fixture.date,
   };
 }
 

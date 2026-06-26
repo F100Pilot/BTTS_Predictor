@@ -4,10 +4,11 @@ import { RefreshCw, Radio } from 'lucide-react';
 import type { LiveMatch } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
+import { listHistory, listBets } from '@/data/cache/repositories';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner, EmptyState } from '@/components/common/States';
-import { formatTime } from '@/lib/format';
+import { formatTime, formatDateTime } from '@/lib/format';
 import { createLogger } from '@/services/logger';
 
 const log = createLogger('LiveScorePage');
@@ -32,8 +33,18 @@ export function LiveScorePage() {
     async (showSpinner = false) => {
       if (showSpinner) setLoading(true);
       try {
-        const live = await data.getLiveMatches();
-        setMatches(live);
+        const [live, history, bets] = await Promise.all([
+          data.getLiveMatches(),
+          listHistory(),
+          listBets(),
+        ]);
+        // Only show live games the user is tracking: in the prediction history
+        // or with a placed bet.
+        const tracked = new Set<string>([
+          ...history.map((h) => h.fixtureId),
+          ...bets.map((b) => b.fixtureId).filter((id): id is string => Boolean(id)),
+        ]);
+        setMatches(live.filter((m) => tracked.has(m.id)));
         setUpdatedAt(formatTime(new Date().toISOString()));
       } catch (err) {
         log.warn('failed to load live', err);
@@ -55,7 +66,7 @@ export function LiveScorePage() {
     cacheFixtures([
       {
         id: m.id,
-        date: new Date().toISOString(),
+        date: m.date ?? new Date().toISOString(),
         competition: m.competition,
         home: m.home,
         away: m.away,
@@ -85,8 +96,8 @@ export function LiveScorePage() {
       ) : matches.length === 0 ? (
         <EmptyState
           icon={<Radio className="h-8 w-8 text-muted-foreground" />}
-          title="Sem jogos ao vivo"
-          description="Não há jogos em curso nas competições da fonte ativa. Volte mais tarde."
+          title="Sem jogos ao vivo a acompanhar"
+          description="Só aparecem aqui jogos que estão no teu histórico de previsões ou nas tuas apostas. Analisa um jogo ou faz uma aposta para o acompanhares ao vivo."
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -115,6 +126,11 @@ export function LiveScorePage() {
                     </span>
                     <span className="flex-1 truncate text-right font-medium">{m.away.name}</span>
                   </div>
+                  {m.date && (
+                    <p className="mt-1 text-center text-xs text-muted-foreground">
+                      Início: {formatDateTime(m.date)}
+                    </p>
+                  )}
                   <div className="mt-2 text-center">
                     {btts ? (
                       <span className="rounded-full bg-success px-2 py-0.5 text-xs font-semibold text-success-foreground">
