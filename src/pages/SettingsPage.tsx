@@ -505,6 +505,10 @@ export function SettingsPage() {
           </p>
         </CardContent>
       </Card>
+
+      <p className="pt-2 text-center text-xs text-muted-foreground">
+        BTTS Analytics Pro · v{__APP_VERSION__}
+      </p>
     </div>
   );
 }

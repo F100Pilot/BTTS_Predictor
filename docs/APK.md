@@ -72,3 +72,53 @@ npx cap open ios       # abre o Xcode
 | Ecrã branco no arranque | Confirme `VITE_BASE=/` no build antes de `cap sync`. |
 | Alterações não aparecem | Corra `npm run build && npx cap sync` novamente. |
 | Erro `@capacitor/cli` não encontrado | Instale as dependências do passo 1. |
+
+---
+
+# APK pelo PWABuilder (TWA) — barra de endereço e conflitos
+
+O [PWABuilder.com](https://www.pwabuilder.com) gera um APK no formato **TWA**
+(Trusted Web Activity). É a via mais simples, mas tem dois pormenores típicos.
+
+## A. Tirar a barra de endereço do browser
+
+A TWA só esconde a barra do browser se a verificação **Digital Asset Links**
+passar. Para isso o ficheiro `assetlinks.json` (vem no download do PWABuilder)
+tem de estar na **raiz do domínio**, não no subcaminho da app:
+
+```
+✅ https://f100pilot.github.io/.well-known/assetlinks.json
+❌ https://f100pilot.github.io/btts_predictor/.well-known/assetlinks.json
+```
+
+Como a app é servida em `/btts_predictor/`, a raiz `f100pilot.github.io/` é
+servida por **outro** repositório. Passos:
+
+1. Cria um repositório público chamado exatamente **`f100pilot.github.io`**.
+2. Adiciona o ficheiro **`.well-known/assetlinks.json`** (usa o que veio no
+   download do PWABuilder — já tem o `package_name` e o `sha256_cert_fingerprints`
+   corretos para a tua chave).
+3. Em *Settings → Pages*, ativa o GitHub Pages (branch `main`, pasta `/root`).
+4. Confirma que abre em
+   `https://f100pilot.github.io/.well-known/assetlinks.json`.
+5. Reinstala o APK. Pode demorar alguns minutos / exigir reabrir a app para o
+   Android revalidar.
+
+> Se mudaste o **Package ID** no PWABuilder, gera um novo download — o
+> `assetlinks.json` desse download passa a refletir o ID novo. Usa **esse**.
+
+## B. "O pacote entra em conflito com um pacote existente"
+
+Acontece quando já existe instalada uma app com o **mesmo Package ID** mas
+assinada com uma **chave diferente**. Opções:
+
+- **Reutilizar a chave:** no PWABuilder, em *Android → All settings → Signing
+  key*, escolhe **"Use mine"** e carrega o `signing.keystore` do download
+  original (guarda sempre este ficheiro!). Assim atualiza por cima.
+- **Mudar o Package ID:** em *All settings → Package ID*, usa um ID novo
+  (ex.: `io.github.f100pilot.bttspro`). Instala como app nova, sem conflito.
+  ⚠️ Ao mudar o ID, o `assetlinks.json` da secção A tem de ser o do **novo**
+  download (com o novo ID), senão a barra de endereço volta a aparecer.
+
+Regras do Package ID: só minúsculas, números e pontos; cada secção começa por
+letra; sem hífens nem espaços.
