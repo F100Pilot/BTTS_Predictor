@@ -118,10 +118,12 @@ export function LiveScorePage() {
                   <div className="mt-2 text-center">
                     {btts ? (
                       <span className="rounded-full bg-success px-2 py-0.5 text-xs font-semibold text-success-foreground">
-                        BTTS ✓
+                        Ambas marcaram ✓ (BTTS SIM)
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">BTTS por concretizar</span>
+                      <span className="text-xs text-muted-foreground">
+                        Ainda não marcaram ambas
+                      </span>
                     )}
                   </div>
                 </CardContent>

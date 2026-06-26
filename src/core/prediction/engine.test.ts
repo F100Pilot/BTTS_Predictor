@@ -77,6 +77,19 @@ describe('predict', () => {
     expect(empty.confidence).toBeLessThanOrEqual(10);
   });
 
+  it('stays neutral (~50/50) and flags weak/insufficient when there is no data', () => {
+    const empty = predict({
+      home: team('A', { played: 0, avgGoalsFor: 0, avgGoalsAgainst: 0, bttsPct: 0 }),
+      away: team('B', { played: 0, avgGoalsFor: 0, avgGoalsAgainst: 0, bttsPct: 0 }),
+      h2h: noH2h,
+    });
+    // No data must NOT produce a confident "NÃO 92%" / Muito Forte verdict.
+    expect(empty.probYes).toBeGreaterThan(0.4);
+    expect(empty.probYes).toBeLessThan(0.6);
+    expect(empty.insufficientData).toBe(true);
+    expect(empty.tier).toBe('weak');
+  });
+
   it('weights sum to 1 by default', () => {
     const sum = Object.values(DEFAULT_WEIGHTS).reduce((s, w) => s + w, 0);
     expect(sum).toBeCloseTo(1, 5);

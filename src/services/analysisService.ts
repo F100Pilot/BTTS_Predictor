@@ -34,7 +34,7 @@ function applyRecalibration(
     ...prediction,
     probYes,
     probNo,
-    tier: tierForProbability(Math.max(probYes, probNo)),
+    tier: prediction.insufficientData ? 'weak' : tierForProbability(Math.max(probYes, probNo)),
     recalibrated: true,
   };
 }

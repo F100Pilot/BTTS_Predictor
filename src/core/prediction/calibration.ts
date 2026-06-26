@@ -42,7 +42,7 @@ export function calibrate(
     ...prediction,
     probYes,
     probNo,
-    tier: tierForProbability(dominant),
+    tier: prediction.insufficientData ? 'weak' : tierForProbability(dominant),
     modelProbYes: model,
     marketImpliedYes: impliedYes,
     calibrationApplied: l,

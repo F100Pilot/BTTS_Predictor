@@ -130,13 +130,24 @@ export function HistoryPage() {
       const pending = records.filter(
         (r) => !r.actual && r.fixtureId && r.date.slice(0, 10) <= today,
       );
+      // BTTS=SIM is locked the moment both teams have scored, even mid-game —
+      // settle those early from the live feed before checking finished results.
+      const live = await data.getLiveMatches().catch(() => []);
+      const liveById = new Map(live.map((l) => [l.id, l]));
       let updated = 0;
       for (const r of pending) {
         const result = await data.getMatchResultById(r.fixtureId);
-        if (!result) continue;
-        const btts = result.homeGoals > 0 && result.awayGoals > 0 ? 'yes' : 'no';
-        await setHistoryResult(r.id, btts);
-        updated += 1;
+        if (result) {
+          const btts = result.homeGoals > 0 && result.awayGoals > 0 ? 'yes' : 'no';
+          await setHistoryResult(r.id, btts);
+          updated += 1;
+          continue;
+        }
+        const lm = liveById.get(r.fixtureId);
+        if (lm && lm.homeGoals > 0 && lm.awayGoals > 0) {
+          await setHistoryResult(r.id, 'yes');
+          updated += 1;
+        }
       }
       await load();
       await refreshCalibration();

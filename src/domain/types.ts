@@ -134,6 +134,8 @@ export interface BttsPrediction {
   modelProbYes?: number;
   /** True when auto-calibration (Platt) adjusted the final probability. */
   recalibrated?: boolean;
+  /** True when there is too little team history to trust the prediction. */
+  insufficientData?: boolean;
 }
 
 /** Other markets derived from the same expected-goals model. */

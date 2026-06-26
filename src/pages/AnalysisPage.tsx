@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Eye, Coins } from 'lucide-react';
+import { ArrowLeft, Star, Eye, Coins, AlertTriangle } from 'lucide-react';
 import type { AnalysisBundle, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
@@ -195,6 +195,17 @@ export function AnalysisPage() {
             </div>
           </div>
           <ProbabilityBar probYes={prediction.probYes} />
+          {prediction.insufficientData && (
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <span>
+                <span className="font-medium">Dados insuficientes.</span> A fonte ativa não tem
+                histórico recente destas equipas, por isso esta previsão é apenas indicativa (perto
+                de 50/50) e não deve ser usada para apostar. Experimente uma liga com mais
+                cobertura.
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 

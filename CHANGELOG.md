@@ -20,6 +20,16 @@ Sempre que mudar a versão em `package.json`, acrescente uma entrada abaixo.
 
 ---
 
+## 2.1.1
+
+- Correção importante: jogos **sem histórico** já não aparecem como "Muito
+  Forte 93% NÃO". Sem dados, os fatores ficam neutros (~50/50), a previsão é
+  marcada como **"Fraca / dados insuficientes"** e mostra um aviso na análise.
+- "Atualizar resultados" passa a fechar o **BTTS=SIM** ainda com o jogo a
+  decorrer, assim que ambas as equipas marcam (antes só fechava no final).
+- Ao Vivo: etiqueta mais clara — "Ambas marcaram ✓ (BTTS SIM)" em vez de só
+  "BTTS ✓".
+
 ## 2.1.0
 
 - Novas fontes de dados: **API-Football**, **SportMonks** e **TheSportsDB**
