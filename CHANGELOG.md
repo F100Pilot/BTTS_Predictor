@@ -20,6 +20,15 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.2.0
+
+- Jogos **sem dados suficientes** deixam de ser considerados: o painel esconde-os
+  por defeito (filtro "Esconder jogos sem dados"). Só são analisados jogos com
+  histórico real das equipas.
+- Novo botão **"Adicionar jogo"** no Histórico → Previsões: regista um jogo
+  manualmente (equipas, competição, data, previsão e resultado), mesmo sem aposta.
+- **Popup de novidades**: ao atualizar a app, aparece um resumo do que mudou.
+
 ## 0.2.1.1
 
 - Correção importante: jogos **sem histórico** já não aparecem como "Muito

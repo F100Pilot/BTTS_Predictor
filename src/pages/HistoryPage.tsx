@@ -6,6 +6,7 @@ import type { HistoryRecord } from '@/data/cache/db';
 import { listHistory, clearHistory, setHistoryResult, listBets } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
 import { FinancialDashboard } from '@/components/history/FinancialDashboard';
+import { AddHistoryDialog } from '@/components/history/AddHistoryDialog';
 import { EmptyState, Spinner } from '@/components/common/States';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -211,11 +212,14 @@ export function HistoryPage() {
         </TabsList>
 
         <TabsContent value="predictions" className="space-y-3">
+          <div className="flex justify-end">
+            <AddHistoryDialog onAdded={() => void load()} />
+          </div>
           {records.length === 0 ? (
             <EmptyState
               icon={<History className="h-8 w-8 text-muted-foreground" />}
               title="Sem previsões"
-              description="As previsões que consultar serão guardadas aqui automaticamente."
+              description="As previsões que consultar serão guardadas aqui automaticamente, ou adicione um jogo manualmente."
             />
           ) : (
             <>
