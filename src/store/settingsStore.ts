@@ -17,6 +17,8 @@ interface SettingsState {
   favoriteCompetition: string; // pinned league name ('' = none)
   /** Exclude amateur/youth/friendly/reserve competitions before analysis. */
   hideAmateur: boolean;
+  /** Keep only top leagues + world/continental tournaments before analysis. */
+  majorOnly: boolean;
   /** How many fixtures to analyse per batch (kickoff order). 0 = analyse all. */
   analysisBatchSize: number;
   weights: Record<FactorKey, number>;
@@ -38,6 +40,7 @@ interface SettingsState {
   setTheme: (theme: ThemeMode) => void;
   setFavoriteCompetition: (name: string) => void;
   setHideAmateur: (value: boolean) => void;
+  setMajorOnly: (value: boolean) => void;
   setAnalysisBatchSize: (value: number) => void;
   setWeights: (weights: Record<FactorKey, number>) => void;
   resetWeights: () => void;
@@ -63,6 +66,7 @@ export const useSettings = create<SettingsState>()(
       theme: 'system',
       favoriteCompetition: '',
       hideAmateur: true,
+      majorOnly: true,
       analysisBatchSize: 20,
       weights: { ...DEFAULT_WEIGHTS },
       oddsCalibration: 0,
@@ -81,6 +85,7 @@ export const useSettings = create<SettingsState>()(
       setTheme: (theme) => set({ theme }),
       setFavoriteCompetition: (name) => set({ favoriteCompetition: name }),
       setHideAmateur: (value) => set({ hideAmateur: value }),
+      setMajorOnly: (value) => set({ majorOnly: value }),
       setAnalysisBatchSize: (value) => set({ analysisBatchSize: Math.max(0, Math.round(value)) }),
       setWeights: (weights) => set({ weights }),
       resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS } }),

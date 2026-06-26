@@ -20,6 +20,20 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.8.0
+
+- Novo filtro **"Só grandes competições"** (ligado por defeito): allowlist que
+  mantém apenas as grandes ligas (Premier League, La Liga, Serie A, Bundesliga,
+  Ligue 1, Liga Portugal, Eredivisie, Championship) e os torneios
+  mundiais/continentais (Mundial, Euro, Champions League, Europa League,
+  Copa América, Copa Libertadores, Nations League, Club World Cup, etc.).
+  Aplicado **antes** da análise — reduz dias de 400+ jogos a uma mão-cheia, para
+  a análise terminar dentro da quota da API.
+- Heurística `isMajorCompetition(name, country)` por nome de competição, com
+  testes; exclui variantes juvenis/amigáveis mesmo que contenham o nome de uma
+  grande competição (ex.: "World Cup U20").
+- Quando o filtro deixa o dia vazio, o estado vazio explica como desligá-lo.
+
 ## 0.2.7.0
 
 - **Análise por lotes** no painel: em dias com muitos jogos (centenas), a app

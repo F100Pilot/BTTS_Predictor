@@ -33,6 +33,8 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
   const setFavoriteCompetition = useSettings((s) => s.setFavoriteCompetition);
   const hideAmateur = useSettings((s) => s.hideAmateur);
   const setHideAmateur = useSettings((s) => s.setHideAmateur);
+  const majorOnly = useSettings((s) => s.majorOnly);
+  const setMajorOnly = useSettings((s) => s.setMajorOnly);
 
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
@@ -64,7 +66,20 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
+            checked={majorOnly}
+            onChange={(e) => setMajorOnly(e.target.checked)}
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
+          />
+          Só grandes competições
+        </label>
+        <label
+          className={`flex items-center gap-2 text-sm ${majorOnly ? 'opacity-50' : ''}`}
+          title={majorOnly ? 'Já incluído em "Só grandes competições"' : undefined}
+        >
+          <input
+            type="checkbox"
             checked={hideAmateur}
+            disabled={majorOnly}
             onChange={(e) => setHideAmateur(e.target.checked)}
             className="h-4 w-4 accent-[hsl(var(--primary))]"
           />

@@ -13,7 +13,7 @@ import type { DashboardRow, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
 import { buildDashboardRow, sortDashboardRows } from '@/services/analysisService';
-import { isMinorCompetition } from '@/core/classification/competitions';
+import { isMinorCompetition, isMajorCompetition } from '@/core/classification/competitions';
 import {
   loadDayPredictions,
   saveDayPrediction,
@@ -68,6 +68,7 @@ export function DashboardPage() {
   const calibrationReady = useCalibration((s) => s.ready);
   const recalibration = autoCalibrate && calibrationReady ? platt : undefined;
   const hideAmateur = useSettings((s) => s.hideAmateur);
+  const majorOnly = useSettings((s) => s.majorOnly);
   const batchSize = useSettings((s) => s.analysisBatchSize);
   const cacheFixtures = useFixtureCache((s) => s.put);
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
@@ -100,11 +101,15 @@ export function DashboardPage() {
     (async () => {
       const allFixtures = await data.getFixturesByDate(filters.date);
       if (cancelled) return;
-      // Drop amateur/youth/friendly games BEFORE analysis so we don't burn the
-      // API budget on hundreds of minor matches that never finish analysing.
-      const dayFixtures = hideAmateur
-        ? allFixtures.filter((f) => !isMinorCompetition(f.competition.name))
-        : allFixtures;
+      // Narrow the fixtures BEFORE analysis so we don't burn the API budget on
+      // hundreds of matches that never finish analysing. "Major only" is the
+      // strongest filter (top leagues + world/continental cups); otherwise we
+      // at least drop amateur/youth/friendly games.
+      const dayFixtures = majorOnly
+        ? allFixtures.filter((f) => isMajorCompetition(f.competition.name, f.competition.country))
+        : hideAmateur
+          ? allFixtures.filter((f) => !isMinorCompetition(f.competition.name))
+          : allFixtures;
 
       // On first load, if the selected day has no games, jump to the next day
       // within the next 21 days that does (keeps the user from landing on empty).
@@ -157,6 +162,7 @@ export function DashboardPage() {
     cacheFixtures,
     refreshKey,
     hideAmateur,
+    majorOnly,
     batchSize,
   ]);
 
@@ -328,7 +334,9 @@ export function DashboardPage() {
               ? 'A fonte de dados não respondeu. Tenta novamente daqui a pouco.'
               : waiting > 0
                 ? `Há ${waiting} jogo(s) por analisar. Usa "Analisar mais" para continuar.`
-                : 'Experimente outra data ou reduza os filtros aplicados.'
+                : majorOnly && fixtures.length === 0
+                  ? 'Sem grandes competições neste dia. Desliga "Só grandes competições" nos filtros para ver mais jogos, ou escolhe outra data.'
+                  : 'Experimente outra data ou reduza os filtros aplicados.'
           }
         />
       ) : (
