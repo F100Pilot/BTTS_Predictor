@@ -120,6 +120,7 @@ export class DataService {
     emptyValue: T,
     mockRun: () => Promise<T>,
     allowMock = this.config.fallbackToMock,
+    throwOnError = false,
   ): Promise<T> {
     const provider = getProvider(this.providerId);
     const ctx = this.ctxFor(provider.id);
@@ -130,6 +131,9 @@ export class DataService {
     try {
       return await cached(`${provider.id}:${cacheKey}`, ttl, () => run(provider, ctx));
     } catch (err) {
+      // Let callers that need to distinguish a real failure (e.g. 429) from
+      // genuinely-empty data opt into surfacing the error instead of [].
+      if (throwOnError) throw err;
       log.error('primary provider failed — returning empty (no mock substitution)', err);
       return emptyValue;
     }
@@ -223,23 +227,32 @@ export class DataService {
     }
   }
 
-  getTeamRecentMatches(teamId: string, limit = 10): Promise<MatchResult[]> {
+  getTeamRecentMatches(teamId: string, limit = 10, throwOnError = false): Promise<MatchResult[]> {
     return this.withPrimary(
       `team:${teamId}:${limit}`,
       TTL.teamHistory,
       (provider, ctx) => provider.getTeamRecentMatches(teamId, limit, ctx),
       [],
       () => mock.getTeamRecentMatches(teamId, limit),
+      this.config.fallbackToMock,
+      throwOnError,
     );
   }
 
-  getHeadToHead(homeId: string, awayId: string, limit = 10): Promise<MatchResult[]> {
+  getHeadToHead(
+    homeId: string,
+    awayId: string,
+    limit = 10,
+    throwOnError = false,
+  ): Promise<MatchResult[]> {
     return this.withPrimary(
       `h2h:${homeId}:${awayId}:${limit}`,
       TTL.h2h,
       (provider, ctx) => provider.getHeadToHead(homeId, awayId, limit, ctx),
       [],
       () => mock.getHeadToHead(homeId, awayId, limit),
+      this.config.fallbackToMock,
+      throwOnError,
     );
   }
 }

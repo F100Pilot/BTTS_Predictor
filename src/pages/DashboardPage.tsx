@@ -1,10 +1,23 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { addDays, format } from 'date-fns';
-import { CalendarX, Download, FileSpreadsheet, FileText, AlertTriangle } from 'lucide-react';
+import {
+  CalendarX,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  AlertTriangle,
+  RefreshCw,
+} from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
 import { buildDashboardRow, sortDashboardRows } from '@/services/analysisService';
+import {
+  loadDayPredictions,
+  saveDayPrediction,
+  clearDayPredictions,
+  predictionSignature,
+} from '@/services/dayPredictions';
 import { todayIso, formatDate } from '@/lib/format';
 import { createLogger } from '@/services/logger';
 import {
@@ -38,6 +51,7 @@ export function DashboardPage() {
   const [rows, setRows] = useState<DashboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   // Auto-jump to the next day with games only once, on the initial load.
   const autoJumpDone = useRef(false);
 
@@ -46,6 +60,7 @@ export function DashboardPage() {
     setLoading(true);
     setRows([]);
     setLoadError(null);
+    const sig = predictionSignature(weights, oddsCalibration, recalibration);
     (async () => {
       const fixtures = await data.getFixturesByDate(filters.date);
       if (cancelled) return;
@@ -67,17 +82,24 @@ export function DashboardPage() {
       autoJumpDone.current = true;
 
       cacheFixtures(fixtures);
-      // Show the fixtures immediately; predictions fill in progressively so the
-      // table is never empty while waiting on (rate-limited) API calls.
-      setRows(fixtures.map((fixture) => ({ fixture })));
+      // Reuse any predictions already analysed for this day+settings; the rest
+      // fill in progressively. Saved games never get re-analysed (saves API).
+      const saved = await loadDayPredictions(filters.date, sig);
+      if (cancelled) return;
+      setRows(fixtures.map((fixture) => ({ fixture, prediction: saved[fixture.id] })));
       setLoading(false);
       for (const fixture of fixtures) {
+        if (saved[fixture.id]) continue; // already analysed for this day
         const row = await buildDashboardRow(data, fixture, {
           weights,
           oddsCalibration,
           recalibration,
         });
         if (cancelled) return;
+        // Persist successful analyses (predictionError rows are left to retry).
+        if (row.prediction) {
+          void saveDayPrediction(filters.date, sig, fixture.id, row.prediction);
+        }
         setRows((prev) =>
           sortDashboardRows(prev.map((r) => (r.fixture.id === fixture.id ? row : r))),
         );
@@ -97,7 +119,12 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [data, filters.date, weights, oddsCalibration, recalibration, cacheFixtures]);
+  }, [data, filters.date, weights, oddsCalibration, recalibration, cacheFixtures, refreshKey]);
+
+  const handleReanalyze = useCallback(async () => {
+    await clearDayPredictions(filters.date);
+    setRefreshKey((k) => k + 1);
+  }, [filters.date]);
 
   const favoriteCompetition = useSettings((s) => s.favoriteCompetition);
   const filtered = useMemo(
@@ -135,6 +162,9 @@ export function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => void handleReanalyze()}>
+            <RefreshCw /> Reanalisar
+          </Button>
           <Button
             variant="outline"
             size="sm"

@@ -66,6 +66,16 @@ export async function cached<T>(key: string, ttlMs: number, loader: () => Promis
   return promise;
 }
 
+/** Delete a single cache entry by key (best-effort). */
+export async function cacheDelete(key: string): Promise<void> {
+  try {
+    const db = await getDb();
+    await db.delete('cache', key);
+  } catch (err) {
+    log.warn('cacheDelete failed', err);
+  }
+}
+
 /** Remove expired records (best-effort housekeeping). */
 export async function purgeExpired(): Promise<void> {
   try {

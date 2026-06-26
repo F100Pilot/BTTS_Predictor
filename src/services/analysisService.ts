@@ -18,6 +18,9 @@ export interface AnalysisOptions {
   oddsCalibration?: number;
   /** Auto-calibration mapping learned from settled history (Platt). */
   recalibration?: PlattParams;
+  /** Throw on a provider data error (e.g. 429) instead of treating it as empty.
+   * Lets the dashboard tell a rate-limit failure apart from genuine no-data. */
+  throwOnDataError?: boolean;
 }
 
 /** Apply a learned Platt recalibration to the final probability (no-op for identity). */
@@ -45,10 +48,11 @@ export async function buildAnalysis(
   fixture: Fixture,
   options: AnalysisOptions = {},
 ): Promise<AnalysisBundle> {
+  const t = options.throwOnDataError ?? false;
   const [homeMatches, awayMatches, h2hMatches] = await Promise.all([
-    data.getTeamRecentMatches(fixture.home.id, 10),
-    data.getTeamRecentMatches(fixture.away.id, 10),
-    data.getHeadToHead(fixture.home.id, fixture.away.id, 10),
+    data.getTeamRecentMatches(fixture.home.id, 10, t),
+    data.getTeamRecentMatches(fixture.away.id, 10, t),
+    data.getHeadToHead(fixture.home.id, fixture.away.id, 10, t),
   ]);
 
   const homeStats = computeTeamStats(fixture.home, homeMatches);
@@ -88,7 +92,9 @@ export async function buildDashboardRow(
   options: AnalysisOptions = {},
 ): Promise<DashboardRow> {
   try {
-    const bundle = await buildAnalysis(data, fixture, options);
+    // Surface provider errors (e.g. 429) so a rate-limited game becomes a
+    // predictionError (retried later) rather than a cached "no data" verdict.
+    const bundle = await buildAnalysis(data, fixture, { ...options, throwOnDataError: true });
     return { fixture, prediction: bundle.prediction };
   } catch (err) {
     log.warn('failed to build row', { fixture: fixture.id, err });

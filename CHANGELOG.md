@@ -20,6 +20,15 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.4.0
+
+- **Análises guardadas por dia**: ao voltar a um dia já analisado, os jogos
+  aparecem de imediato e não se gasta novamente pedidos à API. A cache é por dia
+  e é invalidada se mudares os pesos / calibração.
+- Novo botão **"Reanalisar"** para forçar nova análise do dia.
+- Jogos sem dados não são reanalisados; jogos falhados por limite (429) são
+  retentados na próxima visita (não ficam gravados como "sem dados").
+
 ## 0.2.3.1
 
 - O painel mostra apenas jogos **já analisados**: as linhas com "..." (ainda por
