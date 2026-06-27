@@ -5,6 +5,7 @@
  */
 
 import { parseFlashscoreMatches, type FlashFixture } from './flashscoreMatches';
+import type { LiveMatch } from '@/domain/types';
 
 const HOST = 'flashscore4.p.rapidapi.com';
 
@@ -34,4 +35,29 @@ export async function fetchFlashscoreLive(
 ): Promise<FlashFixture[]> {
   const target = `https://${HOST}/api/flashscore/v2/matches/live?sport_id=1&timezone=${encodeURIComponent(timezone)}`;
   return parseFlashscoreMatches(await getJson(target, rapidApiKey, corsProxy));
+}
+
+/** All matches for a given day (YYYY-MM-DD) — scheduled, live and finished. */
+export async function fetchFlashscoreByDate(
+  rapidApiKey: string,
+  corsProxy: string,
+  date: string,
+  timezone = 'Europe/Lisbon',
+): Promise<FlashFixture[]> {
+  const target = `https://${HOST}/api/flashscore/v2/matches/list-by-date?sport_id=1&date=${encodeURIComponent(date)}&timezone=${encodeURIComponent(timezone)}`;
+  return parseFlashscoreMatches(await getJson(target, rapidApiKey, corsProxy));
+}
+
+/** Adapt a Flashscore fixture to the app's LiveMatch shape (for the live page). */
+export function fixtureToLiveMatch(f: FlashFixture): LiveMatch {
+  return {
+    id: f.matchId,
+    competition: { id: '', name: f.tournament || f.country || 'Flashscore' },
+    home: { id: f.home.id, name: f.home.name },
+    away: { id: f.away.id, name: f.away.name },
+    homeGoals: f.scores.home ?? 0,
+    awayGoals: f.scores.away ?? 0,
+    status: f.status === 'live' ? 'IN_PLAY' : f.status.toUpperCase(),
+    date: undefined,
+  };
 }

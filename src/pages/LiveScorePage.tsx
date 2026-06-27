@@ -4,7 +4,10 @@ import { RefreshCw, Radio } from 'lucide-react';
 import type { LiveMatch } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
+import { useSettings } from '@/store/settingsStore';
 import { listHistory, listBets } from '@/data/cache/repositories';
+import { fetchFlashscoreLive, fixtureToLiveMatch } from '@/services/flashscoreClient';
+import { buildFixtureIndex } from '@/services/flashscoreSettle';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner, EmptyState } from '@/components/common/States';
@@ -20,10 +23,15 @@ function statusLabel(m: LiveMatch): string {
   return 'Ao vivo';
 }
 
+const nameKey = (home: string, away: string): string =>
+  `${home.trim().toLowerCase()}|${away.trim().toLowerCase()}`;
+
 export function LiveScorePage() {
   const data = useDataService();
   const navigate = useNavigate();
   const cacheFixtures = useFixtureCache((s) => s.put);
+  const corsProxy = useSettings((s) => s.corsProxy);
+  const rapidApiKey = useSettings((s) => s.rapidApiKey);
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<string>('');
@@ -34,7 +42,7 @@ export function LiveScorePage() {
       if (showSpinner) setLoading(true);
       try {
         const [live, history, bets] = await Promise.all([
-          data.getLiveMatches(),
+          data.getLiveMatches().catch(() => [] as LiveMatch[]),
           listHistory(),
           listBets(),
         ]);
@@ -44,7 +52,32 @@ export function LiveScorePage() {
           ...history.map((h) => h.fixtureId),
           ...bets.map((b) => b.fixtureId).filter((id): id is string => Boolean(id)),
         ]);
-        setMatches(live.filter((m) => tracked.has(m.id)));
+        const providerLive = live.filter((m) => tracked.has(m.id));
+
+        // Also pull the Flashscore live feed (best-effort) and keep only the
+        // games we track, matched by Flashscore id or by team-name pair.
+        let flashLive: LiveMatch[] = [];
+        if (rapidApiKey.trim()) {
+          const fixtures = await fetchFlashscoreLive(rapidApiKey, corsProxy).catch(
+            () => [] as Awaited<ReturnType<typeof fetchFlashscoreLive>>,
+          );
+          const idx = buildFixtureIndex(fixtures);
+          const matched = new Map<string, ReturnType<typeof idx.find>>();
+          for (const h of history) {
+            const f = idx.find(h.flashMatchId, h.fixtureName);
+            if (f && f.status === 'live') matched.set(f.matchId, f);
+          }
+          for (const b of bets) {
+            const f = idx.find(b.flashMatchId, b.matchLabel);
+            if (f && f.status === 'live') matched.set(f.matchId, f);
+          }
+          const shown = new Set(providerLive.map((m) => nameKey(m.home.name, m.away.name)));
+          flashLive = [...matched.values()]
+            .filter((f) => f && !shown.has(nameKey(f.home.name, f.away.name)))
+            .map((f) => fixtureToLiveMatch(f!));
+        }
+
+        setMatches([...providerLive, ...flashLive]);
         setUpdatedAt(formatTime(new Date().toISOString()));
       } catch (err) {
         log.warn('failed to load live', err);
@@ -52,7 +85,7 @@ export function LiveScorePage() {
         setLoading(false);
       }
     },
-    [data],
+    [data, corsProxy, rapidApiKey],
   );
 
   useEffect(() => {

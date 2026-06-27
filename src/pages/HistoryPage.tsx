@@ -19,7 +19,8 @@ import {
 } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
 import { bttsFromGoals, settleBetAgainstBtts } from '@/services/settlementService';
-import { fetchFlashscoreLive } from '@/services/flashscoreClient';
+import { fetchFlashscoreByDate } from '@/services/flashscoreClient';
+import type { FlashFixture } from '@/services/flashscoreMatches';
 import { flashOutcome, buildFixtureIndex } from '@/services/flashscoreSettle';
 import { FinancialDashboard } from '@/components/history/FinancialDashboard';
 import { AddHistoryDialog } from '@/components/history/AddHistoryDialog';
@@ -253,10 +254,11 @@ export function HistoryPage() {
     }
   };
 
-  // Settle pending predictions/bets straight from the Flashscore live feed.
-  // Matches by the stored Flashscore match id (Calculator imports) first, then
-  // by team-name pair. Finished games settle both ways; in-play games can only
-  // lock an early "yes" once both teams have scored.
+  // Settle pending predictions/bets from Flashscore. We fetch the day list for
+  // each pending game's date (finished games carry the final score; in-play ones
+  // are included too), match by the stored Flashscore match id (Calculator
+  // imports) first, then by team-name pair. Finished games settle both ways;
+  // in-play games can only lock an early "yes" once both teams have scored.
   const handleFlashResults = async (): Promise<void> => {
     if (!rapidApiKey.trim()) {
       setFetchMsg('Configura a chave RapidAPI em Definições para usar o Flashscore.');
@@ -265,11 +267,23 @@ export function HistoryPage() {
     setFlashFetching(true);
     setFetchMsg(null);
     try {
-      const fixtures = await fetchFlashscoreLive(rapidApiKey, corsProxy);
+      const pendingRecords = records.filter((r) => !r.actual);
+      const pendingBets = bets.filter((b) => b.result === 'pending');
+
+      // Unique match days to query (capped to bound API calls), newest last.
+      const days = new Set<string>([todayIso()]);
+      for (const r of pendingRecords) days.add(r.date.slice(0, 10));
+      for (const b of pendingBets) days.add(new Date(b.createdAt).toISOString().slice(0, 10));
+      const dayList = [...days].sort().slice(-21);
+
+      const fixtures: FlashFixture[] = [];
+      for (const d of dayList) {
+        fixtures.push(...(await fetchFlashscoreByDate(rapidApiKey, corsProxy, d).catch(() => [])));
+      }
       const idx = buildFixtureIndex(fixtures);
 
       let updated = 0;
-      for (const r of records.filter((r) => !r.actual)) {
+      for (const r of pendingRecords) {
         const f = idx.find(r.flashMatchId, r.fixtureName);
         const o = f ? flashOutcome(f) : null;
         if (o) {
@@ -279,7 +293,7 @@ export function HistoryPage() {
       }
 
       let betsSettled = 0;
-      for (const b of bets.filter((b) => b.result === 'pending')) {
+      for (const b of pendingBets) {
         const f = idx.find(b.flashMatchId, b.matchLabel);
         const o = f ? flashOutcome(f) : null;
         if (!o) continue;
@@ -297,8 +311,8 @@ export function HistoryPage() {
       if (betsSettled > 0) parts.push(`${betsSettled} aposta(s)`);
       setFetchMsg(
         parts.length > 0
-          ? `Atualizado via Flashscore: ${parts.join(' e ')}.`
-          : `Sem resultados aplicáveis agora (${idx.size} jogos ao vivo). O feed ao vivo só liquida jogos terminados ou já com golos de ambas as equipas.`,
+          ? `Atualizado via Flashscore: ${parts.join(' e ')} (${idx.size} jogos em ${dayList.length} dia(s)).`
+          : `Sem resultados aplicáveis (${idx.size} jogos verificados em ${dayList.length} dia(s)). Os jogos importados na Calculadora associam por id; os outros pelo nome exato das equipas.`,
       );
     } catch (err) {
       log.error('flash results failed', err);
