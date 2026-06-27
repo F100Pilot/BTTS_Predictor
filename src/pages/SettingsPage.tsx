@@ -407,15 +407,15 @@ export function SettingsPage() {
               value={settings.analysisBatchSize}
               onChange={(e) =>
                 settings.setAnalysisBatchSize(
-                  sanitizeNumber(e.target.value, { min: 0, max: 200, fallback: 20 }),
+                  sanitizeNumber(e.target.value, { min: 0, max: 200, fallback: 0 }),
                 )
               }
               className="w-24 rounded-md border bg-background px-2 py-1 text-sm tabular-nums"
             />
             <p className="text-xs text-muted-foreground">
-              Em dias com muitos jogos, a app só analisa os próximos N a começar (por hora de
-              início) para poupar pedidos à API. Usa o botão “Analisar mais” no painel para
-              continuar. 0 = analisar todos de uma vez.
+              <strong>0 = analisar todos</strong> (predefinição). Se definires um valor N, a app só
+              analisa os próximos N jogos a começar (por hora de início) para poupar pedidos à API,
+              com um botão “Analisar mais” no painel para continuar.
             </p>
           </div>
         </CardContent>

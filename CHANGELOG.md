@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.9.0
+
+- **Limite de análise removido por defeito**: `analysisBatchSize` passa a `0`
+  (analisar todos os jogos filtrados). A análise por lotes continua disponível
+  como opção em Definições para quem quiser poupar pedidos à API.
+- Migração do estado persistido (`btts:settings` v1): instalações antigas com o
+  limite de 20 são repostas para `0` automaticamente.
+
 ## 0.2.8.0
 
 - Novo filtro **"Só grandes competições"** (ligado por defeito): allowlist que

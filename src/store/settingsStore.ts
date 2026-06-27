@@ -67,7 +67,7 @@ export const useSettings = create<SettingsState>()(
       favoriteCompetition: '',
       hideAmateur: true,
       majorOnly: true,
-      analysisBatchSize: 20,
+      analysisBatchSize: 0, // 0 = analyse all (no per-day limit)
       weights: { ...DEFAULT_WEIGHTS },
       oddsCalibration: 0,
       autoCalibrate: false,
@@ -103,6 +103,16 @@ export const useSettings = create<SettingsState>()(
               : s.notifyPregameMinutes,
         })),
     }),
-    { name: 'btts:settings' },
+    {
+      name: 'btts:settings',
+      version: 1,
+      // v1: drop the per-day analysis cap — analyse all matching fixtures by
+      // default. Reset existing installs that still carry the old 20 limit.
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<SettingsState> | undefined;
+        if (state && version < 1) state.analysisBatchSize = 0;
+        return state as SettingsState;
+      },
+    },
   ),
 );
