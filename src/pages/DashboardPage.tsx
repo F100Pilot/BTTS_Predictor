@@ -36,6 +36,7 @@ import { useCalibration } from '@/store/calibrationStore';
 import { Spinner, EmptyState } from '@/components/common/States';
 import { QuotaBadge } from '@/components/common/QuotaBadge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { exportCsv, exportPdf, exportXlsx } from '@/services/exportService';
 
 const log = createLogger('DashboardPage');
@@ -363,6 +364,19 @@ export function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {analyzing && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>A analisar previsões…</span>
+            <span>
+              {analyzedInBatch}/{batchTotal}
+              {showWaiting && ` · ${waiting} em espera`}
+            </span>
+          </div>
+          <Progress value={analyzedInBatch} max={batchTotal} />
+        </div>
+      )}
 
       <DashboardFilters
         value={filters}
