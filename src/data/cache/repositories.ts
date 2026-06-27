@@ -5,6 +5,7 @@ import {
   type HistoryRecord,
   type WatchlistRecord,
 } from './db';
+import { scheduleSync } from '@/services/syncService';
 
 // ---- Favorites ----
 export async function listFavorites(): Promise<FavoriteRecord[]> {
@@ -47,6 +48,7 @@ export async function listHistory(limit = 500): Promise<HistoryRecord[]> {
 export async function addHistory(record: HistoryRecord): Promise<void> {
   const db = await getDb();
   await db.put('history', record);
+  scheduleSync();
 }
 /** One record per fixture: updates prediction fields but keeps the existing
  * real result (`actual`) and original creation time. Once a real result is
@@ -58,6 +60,7 @@ export async function upsertHistory(record: HistoryRecord): Promise<void> {
   const existing = await db.get('history', record.id);
   if (existing?.actual) return; // settled — keep the graded prediction intact
   await db.put('history', existing ? { ...record, createdAt: existing.createdAt } : record);
+  scheduleSync();
 }
 export async function clearHistory(): Promise<void> {
   const db = await getDb();
@@ -81,6 +84,7 @@ export async function setHistoryResult(
   // when re-marking without a new one (e.g. manual SIM/NÃO).
   const score = actual === undefined ? undefined : (actualScore ?? record.actualScore);
   await db.put('history', { ...record, actual, actualScore: score });
+  scheduleSync();
 }
 
 /**
@@ -111,6 +115,7 @@ export async function listBets(): Promise<BetRecord[]> {
 export async function putBet(record: BetRecord): Promise<void> {
   const db = await getDb();
   await db.put('bets', record);
+  scheduleSync();
 }
 export async function removeBet(id: string): Promise<void> {
   const db = await getDb();

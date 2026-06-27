@@ -10,6 +10,9 @@ interface SettingsState {
   providerId: string;
   apiKeys: Record<string, string>; // providerId -> key (device-local only)
   corsProxy: string; // optional CORS proxy for providers without CORS headers
+  /** Shared secret that namespaces this user's synced history/bets in the
+   * worker's KV. Empty = sync off. Same code on every device = same data. */
+  syncCode: string;
   fallbackToMock: boolean;
   /** Try other configured providers automatically when the primary fails. */
   autoFallback: boolean;
@@ -37,6 +40,7 @@ interface SettingsState {
   setProvider: (id: string) => void;
   setApiKey: (providerId: string, key: string) => void;
   setCorsProxy: (value: string) => void;
+  setSyncCode: (value: string) => void;
   setFallbackToMock: (value: boolean) => void;
   setAutoFallback: (value: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
@@ -64,6 +68,7 @@ export const useSettings = create<SettingsState>()(
       providerId: DEFAULT_PROVIDER_ID,
       apiKeys: {},
       corsProxy: '',
+      syncCode: '',
       fallbackToMock: true,
       autoFallback: true,
       theme: 'system',
@@ -84,6 +89,7 @@ export const useSettings = create<SettingsState>()(
       setApiKey: (providerId, key) =>
         set((s) => ({ apiKeys: { ...s.apiKeys, [providerId]: sanitizeApiKey(key) } })),
       setCorsProxy: (value) => set({ corsProxy: value.trim() }),
+      setSyncCode: (value) => set({ syncCode: value.trim() }),
       setFallbackToMock: (value) => set({ fallbackToMock: value }),
       setAutoFallback: (value) => set({ autoFallback: value }),
       setTheme: (theme) => set({ theme }),

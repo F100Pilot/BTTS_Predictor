@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.27.3';
+export const APP_VERSION = '0.2.28.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.28: Sincronização entre dispositivos — o histórico e as apostas passam a ficar guardados no teu Worker (Cloudflare KV). Define o mesmo “código de sincronização” em Definições no PC e no telemóvel e os dados aparecem em todo o lado. (Requer criar um KV namespace uma vez — ver worker/README.)',
   'v0.2.27: Barra inferior deslizável (sem letras sobrepostas), correção do “Failed to fetch” na API-Football quando se usa o proxy {url}, e importação do FootyStats só com o link.',
   'v0.2.26: Na Calculadora podes guardar o jogo no histórico e/ou criar a aposta BTTS diretamente do resultado. Novo botão “Colar conteúdo” para importar do FootyStats no telemóvel (resolve o problema de só aparecer “preenchimento automático”).',
   'v0.2.25: Importar do FootyStats na Calculadora — cola o conteúdo da página de uma equipa e preenche automaticamente os golos, BTTS% e jogos (em casa/fora), sem CORS nem chamadas à API. Funciona no telemóvel: carrega longamente → Selecionar tudo → Copiar → colar (não precisa do código-fonte).',

@@ -32,6 +32,28 @@ Once the secrets exist, any change to `worker/` (or a manual *Run workflow* on
 the **Deploy Worker** action) updates the live `btts-proxy` worker. Without the
 token the deploy step is skipped — it never fails the build.
 
+## Cross-device sync (history & bets) — enable KV
+
+The worker also stores your **history and bets** so they sync across devices
+(`/sync` endpoint). This needs a Cloudflare **KV namespace**. Do it once:
+
+1. Create the namespace (prints an `id`):
+   ```bash
+   cd worker
+   npx wrangler kv namespace create SYNC
+   ```
+2. In [`wrangler.toml`](wrangler.toml), **uncomment** the `[[kv_namespaces]]`
+   block and paste the printed `id`.
+3. Commit & push (auto-deploys), or `npx wrangler deploy` manually.
+4. In the app: **Definições → Sincronização entre dispositivos**, set the same
+   **código de sincronização** on every device. The Proxy CORS must point at
+   this worker.
+
+Until the KV block is set, `/sync` replies `503` and everything else keeps
+working. The sync code is a shared secret that namespaces your data (the worker
+stores it under a SHA-256 hash of the code); anyone with the code can read it,
+so use a long, private phrase.
+
 ## Manual deploy (optional)
 
 ```bash

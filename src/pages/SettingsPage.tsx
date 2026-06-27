@@ -27,6 +27,7 @@ import {
   showNotification,
 } from '@/services/notifications';
 import { exportProfile, importProfile } from '@/services/backupService';
+import { syncNow, isSyncConfigured } from '@/services/syncService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,25 @@ export function SettingsPage() {
   const [perm, setPerm] = useState<NotificationPermission>(notificationPermission());
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  const handleSyncNow = async (): Promise<void> => {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await syncNow();
+      setSyncMsg(
+        res.ok
+          ? 'Sincronizado ✓'
+          : 'Configura o código de sincronização e o Proxy CORS (o teu Worker) primeiro.',
+      );
+    } catch {
+      setSyncMsg('Falhou a sincronização. Verifica o Worker (KV configurado?) e o código.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleImport = async (file: File): Promise<void> => {
     try {
@@ -268,6 +288,52 @@ export function SettingsPage() {
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sincronização entre dispositivos</CardTitle>
+          <CardDescription>
+            Guarda o histórico e as apostas no teu Worker (Cloudflare KV) para aparecerem em todos
+            os dispositivos. Usa o <span className="font-medium">mesmo código</span> no PC e no
+            telemóvel. Requer o Proxy CORS apontado ao teu Worker (acima) e o KV configurado — ver{' '}
+            <code>worker/README.md</code>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="synccode">Código de sincronização</Label>
+            <Input
+              id="synccode"
+              type="text"
+              autoComplete="off"
+              placeholder="ex.: a-minha-frase-secreta-123"
+              value={settings.syncCode}
+              onChange={(e) => settings.setSyncCode(e.target.value)}
+              className="max-w-md"
+            />
+            <p className="text-xs text-muted-foreground">
+              Funciona como uma palavra-passe partilhada: quem tiver este código acede a estes
+              dados. Mínimo 6 caracteres. Deixa vazio para desligar a sincronização.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" onClick={() => void handleSyncNow()} disabled={syncing}>
+              {syncing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-2 h-4 w-4" />
+              )}
+              Sincronizar agora
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {isSyncConfigured()
+                ? 'Ativa — sincroniza ao abrir, ao focar e após cada alteração.'
+                : 'Inativa — falta o código ou o Proxy CORS.'}
+            </span>
+          </div>
+          {syncMsg && <p className="text-sm text-muted-foreground">{syncMsg}</p>}
         </CardContent>
       </Card>
 

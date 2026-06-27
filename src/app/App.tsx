@@ -14,6 +14,7 @@ import { useSettings } from '@/store/settingsStore';
 import { DEFAULT_PROVIDER_ID } from '@/data/providers/registry';
 import { purgeMockData } from '@/data/cache/repositories';
 import { purgeExpired } from '@/data/cache/cache';
+import { syncNow, isSyncConfigured } from '@/services/syncService';
 
 const DashboardPage = lazy(() =>
   import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
@@ -53,6 +54,8 @@ export function App() {
   const refreshCollections = useCollections((s) => s.refresh);
   const refreshCalibration = useCalibration((s) => s.refresh);
   const providerId = useSettings((s) => s.providerId);
+  const syncCode = useSettings((s) => s.syncCode);
+  const corsProxy = useSettings((s) => s.corsProxy);
 
   useEffect(() => {
     (async () => {
@@ -66,6 +69,25 @@ export function App() {
       await purgeExpired();
     })();
   }, [refreshCollections, refreshCalibration, providerId]);
+
+  // Cross-device sync: reconcile on mount, when the tab regains focus, and on a
+  // gentle interval while visible. No-op until a sync code + proxy are set.
+  useEffect(() => {
+    if (!isSyncConfigured()) return;
+    const run = (): void => {
+      if (document.visibilityState === 'visible') void syncNow().catch(() => {});
+    };
+    run();
+    const onVisible = (): void => run();
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    const id = setInterval(run, 45000);
+    return () => {
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(id);
+    };
+  }, [syncCode, corsProxy]);
 
   return (
     <AppShell>

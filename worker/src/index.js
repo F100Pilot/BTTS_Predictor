@@ -45,7 +45,7 @@ const BROWSER_HEADERS = {
 };
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
     const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : '';
@@ -59,6 +59,12 @@ export default {
     // blocks other sites from abusing the proxy from the browser).
     if (!allowOrigin) {
       return new Response('Forbidden origin', { status: 403, headers: cors('') });
+    }
+
+    // Cross-device sync: store/read the user's history & bets in KV, namespaced
+    // by a hash of their sync code.
+    if (url.pathname === '/sync') {
+      return handleSync(request, env, url, allowOrigin);
     }
 
     // Resolve the upstream target: explicit ?url= wins, else the /v4/ shortcut.
@@ -114,9 +120,58 @@ function cors(origin) {
     // blocks the request before it reaches the worker ("Failed to fetch").
     'Access-Control-Allow-Headers':
       'X-Auth-Token, x-apisports-key, x-rapidapi-key, x-rapidapi-host, Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
     // Expose the quota headers so the app can show remaining requests.
     'Access-Control-Expose-Headers':
       'X-Requests-Available-Minute, x-ratelimit-requests-remaining, x-ratelimit-requests-limit',
   };
+}
+
+// ---- Cross-device sync (Cloudflare KV) ----
+
+function syncJson(obj, status, origin) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...cors(origin) },
+  });
+}
+
+async function sha256Hex(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function handleSync(request, env, url, allowOrigin) {
+  // KV binding "SYNC" must exist (see worker/README.md). Without it, sync is
+  // simply unavailable — the proxy keeps working.
+  if (!env || !env.SYNC) {
+    return syncJson({ error: 'sync-not-configured' }, 503, allowOrigin);
+  }
+  const code = (url.searchParams.get('code') || '').trim();
+  const kind = url.searchParams.get('kind') || '';
+  if (code.length < 6) return syncJson({ error: 'bad-code' }, 400, allowOrigin);
+  if (kind !== 'history' && kind !== 'bets') {
+    return syncJson({ error: 'bad-kind' }, 400, allowOrigin);
+  }
+  const key = `sync:${await sha256Hex(code)}:${kind}`;
+
+  if (request.method === 'GET') {
+    const v = await env.SYNC.get(key);
+    return new Response(v || 'null', {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...cors(allowOrigin) },
+    });
+  }
+  if (request.method === 'PUT' || request.method === 'POST') {
+    const body = await request.text();
+    try {
+      JSON.parse(body);
+    } catch {
+      return syncJson({ error: 'bad-json' }, 400, allowOrigin);
+    }
+    if (body.length > 5_000_000) return syncJson({ error: 'too-large' }, 413, allowOrigin);
+    await env.SYNC.put(key, body);
+    return syncJson({ ok: true }, 200, allowOrigin);
+  }
+  return syncJson({ error: 'method-not-allowed' }, 405, allowOrigin);
 }
