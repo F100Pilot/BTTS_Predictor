@@ -16,6 +16,8 @@ import type { HistoryRecord } from '@/data/cache/db';
 import { upsertHistory } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
 import { createLogger } from '@/services/logger';
+import { routeThroughProxy } from '@/data/providers/util';
+import { Search } from 'lucide-react';
 import { predict } from '@/core/prediction/engine';
 import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
 import { predictMarkets } from '@/core/prediction/markets';
@@ -264,7 +266,50 @@ export function CalculatorPage() {
     [importHtml],
   );
 
+  const corsProxy = useSettings((s) => s.corsProxy);
+  const [fetchUrl, setFetchUrl] = useState('');
+  const [fetching, setFetching] = useState(false);
   const [pasteError, setPasteError] = useState<string | null>(null);
+
+  // "Paste just the link": fetch the page through the configured CORS proxy and
+  // feed its HTML into the same parse pipeline. Far easier than copy/paste on a
+  // phone — but needs a {url}-style CORS proxy (Settings) since the page is
+  // third-party.
+  const fetchByUrl = async (): Promise<void> => {
+    const target = fetchUrl.trim();
+    if (!/^https?:\/\//i.test(target)) {
+      setPasteError('Indica um link válido (começa por https://).');
+      return;
+    }
+    const proxied = routeThroughProxy(target, corsProxy);
+    if (proxied === target) {
+      setPasteError(
+        'Configura um Proxy CORS do tipo {url} em Definições (ex.: https://corsproxy.io/?url={url}) para a app poder ir buscar o link — ou usa “Colar conteúdo”.',
+      );
+      return;
+    }
+    setFetching(true);
+    setPasteError(null);
+    try {
+      const res = await fetch(proxied);
+      if (!res.ok) throw new Error(String(res.status));
+      const text = await res.text();
+      setImportHtml(text);
+      if (!parseFootystatsClub(text)) {
+        setPasteError(
+          'Busquei a página mas não reconheci as estatísticas. Confirma que é uma página de equipa, ou usa “Colar conteúdo”.',
+        );
+      }
+    } catch (err) {
+      log.warn('footystats fetch-by-url failed', err);
+      setPasteError(
+        'Não consegui buscar o link (bloqueio CORS ou anti-bot do site). Tenta outro proxy ou usa “Colar conteúdo”.',
+      );
+    } finally {
+      setFetching(false);
+    }
+  };
+
   // On phones, long-pressing an empty field often shows "Autofill" instead of
   // "Paste". Reading the clipboard from a button press sidesteps that entirely.
   const pasteFromClipboard = async (): Promise<void> => {
@@ -433,6 +478,37 @@ export function CalculatorPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Fetch by link (easiest on mobile) */}
+          <div className="space-y-1">
+            <Label htmlFor="fs-url" className="text-xs font-medium">
+              Opção rápida — cola só o link da equipa
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="fs-url"
+                type="url"
+                inputMode="url"
+                placeholder="https://footystats.org/clubs/…"
+                value={fetchUrl}
+                onChange={(e) => setFetchUrl(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <Button size="sm" onClick={() => void fetchByUrl()} disabled={fetching}>
+                <Search className="mr-2 h-4 w-4" />
+                {fetching ? 'A buscar…' : 'Buscar'}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              A app vai buscar a página através do teu Proxy CORS (Definições). Precisa de um proxy
+              do tipo <code>{'{url}'}</code>. Se falhar, usa o método abaixo.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> ou copiar o conteúdo
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="secondary" onClick={() => void pasteFromClipboard()}>
               <ClipboardPaste className="mr-2 h-4 w-4" /> Colar conteúdo
