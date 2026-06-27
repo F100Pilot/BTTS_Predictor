@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.14.0
+
+- Painel: jogos **já começados/terminados** deixam de aparecer e de ser
+  analisados (não faz sentido prever um jogo a decorrer e gastava quota). Nova
+  definição/filtro **"Esconder jogos já começados"** (ligado por defeito,
+  `hideStarted`); o estado vazio oferece um botão para os voltar a mostrar.
+
 ## 0.2.13.0
 
 - Painel: novo botão de ação **"Adicionar ao histórico"** (ícone +) em cada

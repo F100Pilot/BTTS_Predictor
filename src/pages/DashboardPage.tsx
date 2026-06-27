@@ -77,6 +77,8 @@ export function DashboardPage() {
   const hideAmateur = useSettings((s) => s.hideAmateur);
   const majorOnly = useSettings((s) => s.majorOnly);
   const setMajorOnly = useSettings((s) => s.setMajorOnly);
+  const hideStarted = useSettings((s) => s.hideStarted);
+  const setHideStarted = useSettings((s) => s.setHideStarted);
   const batchSize = useSettings((s) => s.analysisBatchSize);
   const cacheFixtures = useFixtureCache((s) => s.put);
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
@@ -113,11 +115,17 @@ export function DashboardPage() {
       // hundreds of matches that never finish analysing. "Major only" is the
       // strongest filter (top leagues + world/continental cups); otherwise we
       // at least drop amateur/youth/friendly games.
-      const dayFixtures = majorOnly
+      const byCompetition = majorOnly
         ? allFixtures.filter((f) => isMajorCompetition(f.competition.name, f.competition.country))
         : hideAmateur
           ? allFixtures.filter((f) => !isMinorCompetition(f.competition.name))
           : allFixtures;
+      // Drop games that have already kicked off — predicting a match in progress
+      // or already finished is pointless and just wastes the API budget.
+      const now = Date.now();
+      const dayFixtures = hideStarted
+        ? byCompetition.filter((f) => Date.parse(f.date) > now)
+        : byCompetition;
 
       // On first load, if the selected day has no games, jump to the next day
       // within the next 21 days that does (keeps the user from landing on empty).
@@ -171,6 +179,7 @@ export function DashboardPage() {
     refreshKey,
     hideAmateur,
     majorOnly,
+    hideStarted,
     batchSize,
   ]);
 
@@ -342,15 +351,24 @@ export function DashboardPage() {
               ? 'A fonte de dados não respondeu. Tenta novamente daqui a pouco.'
               : waiting > 0
                 ? `Há ${waiting} jogo(s) por analisar. Usa "Analisar mais" para continuar.`
-                : majorOnly && fixtures.length === 0
-                  ? 'Sem grandes competições neste dia (fora de época as ligas de clubes param). Mostra todas as competições ou escolhe outra data.'
+                : fixtures.length === 0
+                  ? 'Sem jogos por começar para os filtros atuais. Fora de época as ligas de clubes param, e os jogos que já começaram estão escondidos.'
                   : 'Experimente outra data ou reduza os filtros aplicados.'
           }
           action={
-            majorOnly && fixtures.length === 0 && !loadError ? (
-              <Button variant="outline" size="sm" onClick={() => setMajorOnly(false)}>
-                Mostrar todas as competições
-              </Button>
+            fixtures.length === 0 && !loadError ? (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {hideStarted && (
+                  <Button variant="outline" size="sm" onClick={() => setHideStarted(false)}>
+                    Mostrar jogos já começados
+                  </Button>
+                )}
+                {majorOnly && (
+                  <Button variant="outline" size="sm" onClick={() => setMajorOnly(false)}>
+                    Mostrar todas as competições
+                  </Button>
+                )}
+              </div>
             ) : undefined
           }
         />

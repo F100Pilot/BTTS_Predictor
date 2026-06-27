@@ -35,6 +35,8 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
   const setHideAmateur = useSettings((s) => s.setHideAmateur);
   const majorOnly = useSettings((s) => s.majorOnly);
   const setMajorOnly = useSettings((s) => s.setMajorOnly);
+  const hideStarted = useSettings((s) => s.hideStarted);
+  const setHideStarted = useSettings((s) => s.setHideStarted);
 
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
@@ -62,6 +64,15 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
             className="h-4 w-4 accent-[hsl(var(--primary))]"
           />
           Mostrar só jogos analisados
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={hideStarted}
+            onChange={(e) => setHideStarted(e.target.checked)}
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
+          />
+          Esconder jogos já começados
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input

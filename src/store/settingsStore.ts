@@ -19,6 +19,8 @@ interface SettingsState {
   hideAmateur: boolean;
   /** Keep only top leagues + world/continental tournaments before analysis. */
   majorOnly: boolean;
+  /** Hide (and skip analysing) fixtures whose kickoff is already in the past. */
+  hideStarted: boolean;
   /** How many fixtures to analyse per batch (kickoff order). 0 = analyse all. */
   analysisBatchSize: number;
   weights: Record<FactorKey, number>;
@@ -41,6 +43,7 @@ interface SettingsState {
   setFavoriteCompetition: (name: string) => void;
   setHideAmateur: (value: boolean) => void;
   setMajorOnly: (value: boolean) => void;
+  setHideStarted: (value: boolean) => void;
   setAnalysisBatchSize: (value: number) => void;
   setWeights: (weights: Record<FactorKey, number>) => void;
   resetWeights: () => void;
@@ -67,6 +70,7 @@ export const useSettings = create<SettingsState>()(
       favoriteCompetition: '',
       hideAmateur: true,
       majorOnly: true,
+      hideStarted: true,
       analysisBatchSize: 0, // 0 = analyse all (no per-day limit)
       weights: { ...DEFAULT_WEIGHTS },
       oddsCalibration: 0,
@@ -86,6 +90,7 @@ export const useSettings = create<SettingsState>()(
       setFavoriteCompetition: (name) => set({ favoriteCompetition: name }),
       setHideAmateur: (value) => set({ hideAmateur: value }),
       setMajorOnly: (value) => set({ majorOnly: value }),
+      setHideStarted: (value) => set({ hideStarted: value }),
       setAnalysisBatchSize: (value) => set({ analysisBatchSize: Math.max(0, Math.round(value)) }),
       setWeights: (weights) => set({ weights }),
       resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS } }),
