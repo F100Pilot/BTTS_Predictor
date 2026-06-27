@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.29.2';
+export const APP_VERSION = '0.2.29.3';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.29.3: Correção da importação do Flashscore — passa a ler os resultados no formato novo da API (campo “scores” no topo e estado nulo). As estatísticas das equipas voltam a preencher (ex.: Croácia, Gana).',
   'v0.2.29.2: Importação do Flashscore — nova caixa “Resposta da API (debug)” com botão “Copiar resposta”, para quando as estatísticas vierem a 0 poderes partilhar o JSON real e alinharmos a leitura ao formato desse jogo.',
   'v0.2.29.1: Importação do Flashscore mais robusta — a pré-visualização passa a mostrar os golos/BTTS/jogos calculados antes de preencheres (para confires que os dados foram lidos), aceita respostas embrulhadas ({data:[…]}) ou em secções, e ignora espaços nos nomes das equipas.',
   'v0.2.29: Importar do Flashscore na Calculadora — cola o link (ou o id) de um jogo e a app preenche as duas equipas e o H2H com um só pedido (RapidAPI). Define a chave RapidAPI e o Proxy CORS em Definições. Inclui botão “Trocar casa/fora”.',

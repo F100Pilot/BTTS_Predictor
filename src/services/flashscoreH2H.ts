@@ -11,10 +11,12 @@
 export interface FlashMatch {
   match_id: string;
   timestamp: number;
-  status?: string;
+  status?: string | null;
   tournament_name?: string;
-  home_team: { name: string; score: string | number };
-  away_team: { name: string; score: string | number };
+  home_team: { name: string; score?: string | number };
+  away_team: { name: string; score?: string | number };
+  /** Newer endpoint shape: final score lives here instead of on the teams. */
+  scores?: { home?: string | number | null; away?: string | number | null };
 }
 
 /** One venue split (overall / home / away). bttsPct is 0–100. */
@@ -40,9 +42,21 @@ export interface FlashH2HResult {
 const RECENT = 10; // games per form window
 const EMPTY: FlashSplit = { played: 0, goalsFor: 0, goalsAgainst: 0, bttsPct: 0 };
 
-function toGoals(v: string | number): number | null {
-  const n = typeof v === 'number' ? v : parseInt(v, 10);
+function toGoals(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === 'number' ? v : parseInt(String(v), 10);
   return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Final score as [home, away]. Supports both response shapes: the score on a
+ * top-level `scores` object, or on the team objects (`home_team.score`).
+ */
+function goalsOf(m: FlashMatch): [number | null, number | null] {
+  return [
+    toGoals(m.scores?.home ?? m.home_team.score),
+    toGoals(m.scores?.away ?? m.away_team.score),
+  ];
 }
 
 function isFriendly(m: FlashMatch): boolean {
@@ -84,8 +98,7 @@ function buildSplit(matches: FlashMatch[], team: string): FlashSplit {
   let ga = 0;
   let btts = 0;
   for (const m of matches.slice(0, RECENT)) {
-    const hs = toGoals(m.home_team.score);
-    const as = toGoals(m.away_team.score);
+    const [hs, as] = goalsOf(m);
     if (hs === null || as === null) continue;
     const isHome = normName(m.home_team.name) === team;
     const teamGoals = isHome ? hs : as;
@@ -138,7 +151,10 @@ function buildTeam(all: FlashMatch[], team: string): FlashTeam {
  * the two most frequent names when that block is absent.
  */
 function subjectTeams(all: FlashMatch[]): [string, string] | null {
-  const h2hRows = all.filter((m) => (m.status ?? '') === '');
+  // Older shape marks pure head-to-head rows with an empty status string. The
+  // newer shape uses null everywhere, so treat only the empty string as a marker
+  // (null means "unknown" → fall back to the frequency heuristic below).
+  const h2hRows = all.filter((m) => m.status === '');
   const names = new Set<string>();
   for (const m of h2hRows) {
     names.add(normName(m.home_team.name));
@@ -169,8 +185,7 @@ function buildH2H(all: FlashMatch[], a: string, b: string): { played: number; bt
   let played = 0;
   let btts = 0;
   for (const m of between) {
-    const hs = toGoals(m.home_team.score);
-    const as = toGoals(m.away_team.score);
+    const [hs, as] = goalsOf(m);
     if (hs === null || as === null) continue;
     played += 1;
     if (hs >= 1 && as >= 1) btts += 1;
