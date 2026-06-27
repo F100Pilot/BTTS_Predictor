@@ -7,11 +7,12 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.31.0';
+export const APP_VERSION = '0.2.32.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
-  'v0.2.31: Atualizar resultados via Flashscore — no Histórico, o botão “Via Flashscore” liquida previsões e apostas a partir do feed ao vivo do Flashscore. Jogos importados na Calculadora guardam o id do Flashscore (associação exata); os restantes são associados pelo nome das equipas. Jogos terminados liquidam Sim/Não; ao vivo fixam “Sim” assim que ambas marcam.',
+  'v0.2.32: “Via Flashscore” no Histórico passa a liquidar também jogos já terminados — vai buscar a lista de jogos por data (resultado final) dos dias dos jogos pendentes e liquida Sim/Não. A página Ao Vivo passa a mostrar também os jogos ao vivo do Flashscore que estão no teu histórico/apostas.',
+  'v0.2.31: Atualizar resultados via Flashscore — no Histórico, o botão “Via Flashscore” liquida previsões e apostas a partir do feed do Flashscore. Jogos importados na Calculadora guardam o id do Flashscore (associação exata); os restantes são associados pelo nome das equipas. Jogos terminados liquidam Sim/Não; ao vivo fixam “Sim” assim que ambas marcam.',
   'v0.2.30: Importar do Flashscore passa a trazer também as odds BTTS do mercado — ao importar um jogo, os campos “Odds BTTS Sim/Não” são preenchidos com a média das casas de apostas (mercado FULL_TIME), entrando diretamente na calibração da previsão.',
   'v0.2.29.4: Limpeza da importação do FootyStats — removida a opção de “colar só o link” (busca por URL), que era bloqueada pelo site. Fica só o “Colar conteúdo” (texto da página), mais fiável.',
   'v0.2.29.3: Correção da importação do Flashscore — passa a ler os resultados no formato novo da API (campo “scores” no topo e estado nulo). As estatísticas das equipas voltam a preencher (ex.: Croácia, Gana).',
