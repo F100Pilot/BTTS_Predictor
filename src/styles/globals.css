@@ -76,3 +76,14 @@
       sans-serif;
   }
 }
+
+@layer utilities {
+  /* Hide the scrollbar while keeping horizontal scroll (mobile bottom nav). */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

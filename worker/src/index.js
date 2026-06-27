@@ -27,11 +27,15 @@ const ALLOWED_ORIGINS = [
 // becoming an open proxy that anyone could abuse.
 const ALLOWED_TARGET_HOSTS = [
   'api.football-data.org',
+  'v3.football.api-sports.io',
   'footystats.org',
   'www.footystats.org',
   'betexplorer.com',
   'www.betexplorer.com',
 ];
+
+// Auth headers we forward upstream (and allow through CORS preflight).
+const FORWARD_HEADERS = ['X-Auth-Token', 'x-apisports-key', 'x-rapidapi-key', 'x-rapidapi-host'];
 
 const BROWSER_HEADERS = {
   'User-Agent':
@@ -78,15 +82,20 @@ export default {
       return new Response('Target host not allowed', { status: 403, headers: cors(allowOrigin) });
     }
 
-    // Forward a browser-like UA (helps with anti-bot pages) plus the API key
-    // when present (Football-Data).
+    // Forward a browser-like UA (helps with anti-bot pages) plus any API-key
+    // headers the caller sent (Football-Data, API-Football, RapidAPI).
     const upstreamHeaders = { ...BROWSER_HEADERS };
-    const token = request.headers.get('X-Auth-Token');
-    if (token) upstreamHeaders['X-Auth-Token'] = token;
+    for (const h of FORWARD_HEADERS) {
+      const v = request.headers.get(h);
+      if (v) upstreamHeaders[h] = v;
+    }
 
     let upstream;
     try {
-      upstream = await fetch(targetUrl.toString(), { headers: upstreamHeaders, redirect: 'follow' });
+      upstream = await fetch(targetUrl.toString(), {
+        headers: upstreamHeaders,
+        redirect: 'follow',
+      });
     } catch {
       return new Response('Upstream fetch failed', { status: 502, headers: cors(allowOrigin) });
     }
@@ -101,9 +110,13 @@ function cors(origin) {
   return {
     'Access-Control-Allow-Origin': origin || 'null',
     Vary: 'Origin',
-    'Access-Control-Allow-Headers': 'X-Auth-Token, Content-Type',
+    // Allow the API-key headers through the CORS preflight, else the browser
+    // blocks the request before it reaches the worker ("Failed to fetch").
+    'Access-Control-Allow-Headers':
+      'X-Auth-Token, x-apisports-key, x-rapidapi-key, x-rapidapi-host, Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    // Expose the quota header so the app can show remaining requests.
-    'Access-Control-Expose-Headers': 'X-Requests-Available-Minute',
+    // Expose the quota headers so the app can show remaining requests.
+    'Access-Control-Expose-Headers':
+      'X-Requests-Available-Minute, x-ratelimit-requests-remaining, x-ratelimit-requests-limit',
   };
 }
