@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.20.0
+
+- Os filtros do painel (data, campeonato, país, pesquisa, etc.) ficam
+  **guardados em memória** durante a sessão. Abrir um jogo e voltar com o
+  botão "Voltar" (ou o botão nativo do browser) repõe os filtros exatamente
+  como estavam — não é preciso voltar a selecionar tudo.
+
 ## 0.2.19.0
 
 - Jogos com **dados insuficientes** (menos de 3 jogos de histórico por equipa)

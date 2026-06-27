@@ -7,10 +7,9 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.19.0';
+export const APP_VERSION = '0.2.20.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
-  'Jogos sem histórico suficiente para análise passam a desaparecer sempre do painel (já não voltam a aparecer nem a ser analisados).',
-  'A marca "insuficiente" fica guardada — na API-Football (modo manual), depois de analisares um jogo sem dados, ele some e não gasta mais pedidos.',
+  'Os filtros do painel ficam guardados quando abres um jogo e voltas — data, campeonato, país e pesquisa mantêm-se.',
 ];

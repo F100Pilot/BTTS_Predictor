@@ -24,15 +24,14 @@ import { todayIso, formatDate } from '@/lib/format';
 import { createLogger } from '@/services/logger';
 import {
   applyFilters,
-  defaultFilters,
   sortByFavourite,
   uniqueCompetitions,
   uniqueCountries,
-  type DashboardFilterState,
 } from '@/components/dashboard/filters';
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { GamesTable } from '@/components/dashboard/GamesTable';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
+import { useDashboardFilters } from '@/store/dashboardFiltersStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { Spinner, EmptyState } from '@/components/common/States';
 import { QuotaBadge } from '@/components/common/QuotaBadge';
@@ -85,7 +84,7 @@ export function DashboardPage() {
   // spare the daily quota. Other providers keep the automatic batch analysis.
   const manualMode = providerId === 'api-football';
   const cacheFixtures = useFixtureCache((s) => s.put);
-  const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
+  const { filters, setFilters } = useDashboardFilters();
   // `fixtures` is the kickoff-ordered list; it drives analysis priority (not display).
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [rows, setRows] = useState<DashboardRow[]>([]);
@@ -192,6 +191,7 @@ export function DashboardPage() {
     hideStarted,
     manualMode,
     batchSize,
+    setFilters,
   ]);
 
   // Effect B — analyse the un-analysed fixtures within the current batch window.
