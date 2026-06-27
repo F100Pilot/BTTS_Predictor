@@ -20,6 +20,12 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.11.1
+
+- O aviso de "dados insuficientes" (página de análise) passa a indicar o número
+  de jogos de histórico devolvidos por equipa (`last10.played`), tornando óbvio
+  quando a causa são seleções/competições com pouca cobertura.
+
 ## 0.2.11.0
 
 - **Fontes de dados reduzidas a Football-Data.org + API-Football** (mais o

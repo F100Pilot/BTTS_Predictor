@@ -7,11 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.11.0';
+export const APP_VERSION = '0.2.11.1';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
-  'Fontes de dados simplificadas: ficam apenas a Football-Data.org e a API-Football (mais os dados de demonstração).',
-  'O SofaScore foi removido — a proteção anti-bot (Cloudflare) devolvia sempre 403. A SportMonks (paga) e a TheSportsDB (cobertura fraca) também saíram.',
-  'Se vires "dados insuficientes", é a fonte a não devolver histórico suficiente das equipas (mín. 3 jogos). A API-Football costuma ter histórico mais completo.',
+  'O aviso de "dados insuficientes" passa a mostrar quantos jogos de histórico a fonte devolveu para cada equipa (ex.: "Casa 1 jogo · Fora 0 jogos"), para perceberes logo a causa.',
+  'Dica: seleções (Mundial/Euro) têm pouco histórico nas APIs → desliga "Só grandes competições" e testa um jogo de uma liga de clubes, ou usa a API-Football (histórico mais completo).',
+  'Fontes de dados simplificadas: apenas Football-Data.org e API-Football (mais os dados de demonstração).',
 ];
