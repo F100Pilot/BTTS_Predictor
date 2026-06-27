@@ -13,6 +13,7 @@ import {
   type ParsedTeamSplit,
 } from '@/services/footystatsParser';
 import { parseFlashscoreH2H, type FlashH2HResult, type FlashSplit } from '@/services/flashscoreH2H';
+import { parseFlashscoreBttsOdds, type FlashBttsOdds } from '@/services/flashscoreOdds';
 import type { HistoryRecord } from '@/data/cache/db';
 import { upsertHistory } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
@@ -350,12 +351,14 @@ export function CalculatorPage() {
   // user can copy it and share so we can align the parser to the real shape.
   const [flashRaw, setFlashRaw] = useState<string>('');
   const [flashCopied, setFlashCopied] = useState(false);
+  // Market BTTS odds fetched alongside the h2h (null until/unless available).
+  const [flashOdds, setFlashOdds] = useState<FlashBttsOdds | null>(null);
 
-  // Accept a raw 6–12 char id, a "match_id=…" query, or a Flashscore URL.
+  // Accept a raw 6–12 char id, a "match_id="/"mid=" query, or a Flashscore URL.
   const extractMatchId = (raw: string): string | null => {
     const s = raw.trim();
     if (!s) return null;
-    const q = s.match(/match_id=([A-Za-z0-9]{6,12})/);
+    const q = s.match(/(?:match_id|mid)=([A-Za-z0-9]{6,12})/);
     if (q) return q[1] ?? null;
     if (/^[A-Za-z0-9]{6,12}$/.test(s)) return s;
     const tokens = s.match(/[A-Za-z0-9]{8}/g);
@@ -408,6 +411,27 @@ export function CalculatorPage() {
       }
       setFlashResult(parsed);
       setFlashSwap(false);
+
+      // Best-effort: also pull the market BTTS odds for this match. A failure
+      // here never blocks the import — the form just keeps its current odds.
+      setFlashOdds(null);
+      try {
+        const oddsTarget = `https://flashscore4.p.rapidapi.com/api/flashscore/v2/matches/odds?match_id=${id}&geo_ip_code=US`;
+        const oddsProxied = proxyFor(oddsTarget);
+        if (oddsProxied) {
+          const oddsRes = await fetch(oddsProxied, {
+            headers: {
+              'x-rapidapi-key': rapidApiKey.trim(),
+              'x-rapidapi-host': 'flashscore4.p.rapidapi.com',
+            },
+          });
+          if (oddsRes.ok) {
+            setFlashOdds(parseFlashscoreBttsOdds(await oddsRes.json()));
+          }
+        }
+      } catch (oddsErr) {
+        log.warn('flashscore odds fetch failed', oddsErr);
+      }
     } catch (err) {
       log.warn('flashscore h2h fetch failed', err);
       setFlashError('Não consegui buscar o jogo (proxy, chave RapidAPI ou id inválido).');
@@ -463,8 +487,14 @@ export function CalculatorPage() {
       awayGames: fmt(awaySplit.played),
       h2hBttsPct: r.h2h.played >= 1 ? fmt(r.h2h.bttsPct) : prev.h2hBttsPct,
       h2hGames: r.h2h.played >= 1 ? fmt(r.h2h.played) : prev.h2hGames,
+      // Market BTTS odds, when we managed to fetch them.
+      oddYes: flashOdds ? String(flashOdds.yes) : prev.oddYes,
+      oddNo: flashOdds ? String(flashOdds.no) : prev.oddNo,
     }));
-    setFilledMsg(`${home.name} (casa) e ${away.name} (fora) preenchidos a partir do Flashscore.`);
+    const oddsMsg = flashOdds ? ` Odds BTTS ${flashOdds.yes}/${flashOdds.no} incluídas.` : '';
+    setFilledMsg(
+      `${home.name} (casa) e ${away.name} (fora) preenchidos a partir do Flashscore.${oddsMsg}`,
+    );
   };
 
   const homeGames = Math.max(0, Math.round(n(form.homeGames)));
@@ -655,6 +685,14 @@ export function CalculatorPage() {
                       {round(as.goalsFor, 2)}–{round(as.goalsAgainst, 2)} golos · BTTS{' '}
                       {round(as.bttsPct, 0)}% · {as.played}j
                     </p>
+                    {flashOdds && (
+                      <p>
+                        💰 Odds BTTS (mercado): Sim{' '}
+                        <span className="font-medium text-foreground">{flashOdds.yes}</span> · Não{' '}
+                        <span className="font-medium text-foreground">{flashOdds.no}</span> (
+                        {flashOdds.bookmakers} {flashOdds.bookmakers === 1 ? 'casa' : 'casas'})
+                      </p>
+                    )}
                     {noData && (
                       <p className="flex items-center gap-1.5 text-destructive">
                         <AlertCircle className="h-3.5 w-3.5" />
