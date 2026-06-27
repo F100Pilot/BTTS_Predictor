@@ -8,11 +8,13 @@
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS = /[\x00-\x1f\x7f]/g;
 
+const ABSOLUTE_MAX = 500;
+
 /** Strip control chars and trim. Use for any string coming from a data source. */
 export function sanitizeText(input: unknown, maxLength = 120): string {
   if (typeof input !== 'string') return '';
   const cleaned = input.replace(CONTROL_CHARS, '').trim();
-  return cleaned.slice(0, maxLength);
+  return cleaned.slice(0, Math.min(maxLength, ABSOLUTE_MAX));
 }
 
 /** Clamp a numeric user input within bounds, returning fallback on NaN. */
@@ -28,5 +30,11 @@ export function sanitizeNumber(
 /** Validate that a string looks like an API key (alphanumeric-ish). */
 export function sanitizeApiKey(input: unknown): string {
   if (typeof input !== 'string') return '';
-  return input.replace(/[^A-Za-z0-9._-]/g, '').slice(0, 200);
+  const cleaned = input.replace(/[^A-Za-z0-9._-]/g, '').slice(0, 200);
+  if (cleaned !== input.slice(0, 200)) {
+    console.warn(
+      '[sanitize] API key contained invalid characters and was modified. Check for extra spaces or special chars.',
+    );
+  }
+  return cleaned;
 }

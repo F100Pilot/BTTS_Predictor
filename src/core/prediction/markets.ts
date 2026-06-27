@@ -1,7 +1,6 @@
 import type { MarketPrediction, TeamStats } from '@/domain/types';
 import { clamp, round } from '@/lib/math';
-
-const HOME_ADVANTAGE = 1.1;
+import { MARKETS_HOME_ADVANTAGE as HOME_ADVANTAGE } from './constants';
 
 /** Poisson PMF. */
 function pmf(k: number, lambda: number): number {

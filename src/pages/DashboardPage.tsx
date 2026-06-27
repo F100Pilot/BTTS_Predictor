@@ -221,9 +221,7 @@ export function DashboardPage() {
           analyzedRef.current.add(fixture.id);
           void saveDayPrediction(filters.date, sig, fixture.id, row.prediction);
         }
-        setRows((prev) =>
-          sortDashboardRows(prev.map((r) => (r.fixture.id === fixture.id ? row : r))),
-        );
+        setRows((prev) => prev.map((r) => (r.fixture.id === fixture.id ? row : r)));
       }
     })().catch((err: unknown) => {
       log.error('analysis batch failed', err);
@@ -257,8 +255,13 @@ export function DashboardPage() {
   const filtered = useMemo(
     () =>
       sortByFavourite(
-        // Manual mode lists un-analysed games too, so ignore "only analysed".
-        applyFilters(rows, manualMode ? { ...filters, hideNoData: false } : filters),
+        // Sort by probYes first so highest-confidence BTTS=YES games appear at top,
+        // then apply filters. Sort happens here (not inside setRows) so individual
+        // prediction updates don't re-sort the entire rows array on every fixture.
+        applyFilters(
+          sortDashboardRows(rows),
+          manualMode ? { ...filters, hideNoData: false } : filters,
+        ),
         favoriteCompetition,
       ),
     [rows, filters, favoriteCompetition, manualMode],

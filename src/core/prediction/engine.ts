@@ -9,6 +9,7 @@ import type {
 import { clamp, average, stdDev, round } from '@/lib/math';
 import { tierForProbability } from '@/core/classification/classification';
 import { DEFAULT_WEIGHTS, FACTOR_LABELS, normalizeWeights, type FactorKey } from './weights';
+import { MIN_MATCHES, NEUTRAL, HOME_ADVANTAGE } from './constants';
 
 export interface PredictInput {
   home: TeamStats;
@@ -21,13 +22,6 @@ export interface PredictInput {
 function probScores(expectedGoals: number): number {
   return 1 - Math.exp(-Math.max(0, expectedGoals));
 }
-
-/** Neutral score used when a factor has no underlying data ("don't know"). */
-const NEUTRAL = 0.5;
-/** Minimum matches before a factor is trusted (else season stats or NEUTRAL). */
-const MIN_MATCHES = 3;
-/** Mild home-scoring boost applied to the home team's expected goals. */
-const HOME_ADVANTAGE = 1.05;
 
 /** Average goals-for, preferring venue-specific data when it has enough games. */
 function venueGoalsFor(venue: VenueStats, fallback: WindowStats): number {

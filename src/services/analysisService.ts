@@ -7,6 +7,7 @@ import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
 import { applyPlatt, IDENTITY_PLATT, type PlattParams } from '@/core/backtest/backtest';
 import { tierForProbability } from '@/core/classification/classification';
 import { clamp } from '@/lib/math';
+import { MAX_RECENT_MATCHES } from '@/core/prediction/constants';
 import type { FactorKey } from '@/core/prediction/weights';
 import { createLogger } from '@/services/logger';
 
@@ -53,8 +54,8 @@ export async function buildAnalysis(
   // data). H2H is derived locally from those instead of a 3rd API call — this
   // cuts the per-fixture cost from 3 requests to 2 and avoids double-fetching.
   const [homeMatches, awayMatches] = await Promise.all([
-    data.getTeamRecentMatches(fixture.home.id, 15, t),
-    data.getTeamRecentMatches(fixture.away.id, 15, t),
+    data.getTeamRecentMatches(fixture.home.id, MAX_RECENT_MATCHES, t),
+    data.getTeamRecentMatches(fixture.away.id, MAX_RECENT_MATCHES, t),
   ]);
 
   let homeStats = computeTeamStats(fixture.home, homeMatches);

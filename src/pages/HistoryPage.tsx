@@ -98,13 +98,24 @@ export function HistoryPage() {
     () => records.filter((r) => r.actual === 'yes' || r.actual === 'no'),
     [records],
   );
+  const VALID_TIERS = new Set<string>(['very-strong', 'strong', 'medium', 'weak']);
   const samples = useMemo<Sample[]>(
     () =>
-      settled.map((r) => ({
-        probYes: r.probYes,
-        tier: r.tier as PredictionTier,
-        outcome: r.actual === 'yes' ? 1 : 0,
-      })),
+      settled
+        .filter((r) => {
+          if (VALID_TIERS.has(r.tier as string)) return true;
+          log.warn('invalid tier in history record, skipping from calibration', {
+            id: r.id,
+            tier: r.tier,
+          });
+          return false;
+        })
+        .map((r) => ({
+          probYes: r.probYes,
+          tier: r.tier as PredictionTier,
+          outcome: r.actual === 'yes' ? 1 : 0,
+        })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [settled],
   );
   const evaluation = useMemo(() => evaluate(samples), [samples]);

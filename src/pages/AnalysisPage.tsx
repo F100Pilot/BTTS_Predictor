@@ -49,6 +49,7 @@ export function AnalysisPage() {
 
   const [bundle, setBundle] = useState<AnalysisBundle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const resolveFixture = useCallback(async (): Promise<Fixture | undefined> => {
@@ -66,11 +67,15 @@ export function AnalysisPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
     (async () => {
       try {
         const fixture = await resolveFixture();
         if (!fixture) {
-          if (!cancelled) setBundle(null);
+          if (!cancelled) {
+            setBundle(null);
+            setLoadError(null);
+          }
           return;
         }
         // Auto-fill bookmaker odds when the provider supports them and the
@@ -122,7 +127,15 @@ export function AnalysisPage() {
         }
       } catch (err) {
         log.error('analysis failed', err);
-        if (!cancelled) setBundle(null);
+        if (!cancelled) {
+          setBundle(null);
+          const status = (err as { status?: number })?.status;
+          setLoadError(
+            status === 429
+              ? 'Limite de pedidos atingido. Aguarda ~1 minuto e tenta de novo.'
+              : 'Erro ao carregar a análise. Verifica a ligação e tenta de novo.',
+          );
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -136,12 +149,22 @@ export function AnalysisPage() {
   if (!bundle)
     return (
       <EmptyState
-        title="Jogo não encontrado"
-        description="Não foi possível carregar este jogo. Volte ao painel e tente novamente."
+        title={loadError ? 'Erro ao carregar' : 'Jogo não encontrado'}
+        description={
+          loadError ??
+          'Este jogo não existe na fonte de dados atual. Volte ao painel e tente novamente.'
+        }
         action={
-          <Button onClick={() => navigate('/')}>
-            <ArrowLeft /> Voltar
-          </Button>
+          <div className="flex gap-2">
+            {loadError && (
+              <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
+                <RefreshCw /> Tentar de novo
+              </Button>
+            )}
+            <Button onClick={() => navigate('/')}>
+              <ArrowLeft /> Voltar
+            </Button>
+          </div>
         }
       />
     );
