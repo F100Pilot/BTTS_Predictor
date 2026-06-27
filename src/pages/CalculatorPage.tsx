@@ -310,6 +310,22 @@ export function CalculatorPage() {
     }
   };
 
+  // Paste straight into the link field (same clipboard trick as the content
+  // box, but for the short URL).
+  const pasteLink = async (): Promise<void> => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        setFetchUrl(text.trim());
+        setPasteError(null);
+      } else {
+        setPasteError('A área de transferência está vazia — copia primeiro o link.');
+      }
+    } catch {
+      setPasteError('O browser não permitiu colar automaticamente. Cola o link manualmente.');
+    }
+  };
+
   // On phones, long-pressing an empty field often shows "Autofill" instead of
   // "Paste". Reading the clipboard from a button press sidesteps that entirely.
   const pasteFromClipboard = async (): Promise<void> => {
@@ -480,8 +496,19 @@ export function CalculatorPage() {
         <CardContent className="space-y-3">
           {/* Fetch by link (easiest on mobile) */}
           <div className="space-y-1">
-            <Label htmlFor="fs-url" className="text-xs font-medium">
-              Opção rápida — cola só o link da equipa
+            <Label
+              htmlFor="fs-url"
+              className="flex items-center justify-between gap-2 text-xs font-medium"
+            >
+              <span>Opção rápida — cola só o link da equipa</span>
+              <button
+                type="button"
+                onClick={() => void pasteLink()}
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10"
+                aria-label="Colar link da área de transferência"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5" /> Colar link
+              </button>
             </Label>
             <div className="flex gap-2">
               <Input
