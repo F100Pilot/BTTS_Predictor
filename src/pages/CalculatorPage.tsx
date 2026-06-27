@@ -351,6 +351,17 @@ export function CalculatorPage() {
   };
 
   const fmt = (v: number): string => (v ? String(v) : '');
+  const [filledMsg, setFilledMsg] = useState<string | null>(null);
+
+  // After filling, wipe the import box so the NEXT team is pasted clean — this
+  // prevents accidentally reusing the first team (the parser reads the first
+  // match in the text, so a second paste appended to the first re-fills team 1).
+  const afterFill = (side: 'Casa' | 'Fora', name: string): void => {
+    setImportHtml('');
+    setFetchUrl('');
+    setPasteError(null);
+    setFilledMsg(`${name || 'Equipa'} colocada na ${side}. Importa agora a outra equipa.`);
+  };
 
   // Prefer the venue split; fall back to the overall split when the venue has
   // too few games (common early in a season).
@@ -364,6 +375,7 @@ export function CalculatorPage() {
       homeBttsPct: fmt(s.bttsPct),
       homeGames: fmt(s.played),
     }));
+    afterFill('Casa', t.name);
   };
   const fillAway = (t: ParsedFootystatsTeam): void => {
     const s: ParsedTeamSplit = t.away.played >= 1 ? t.away : t.overall;
@@ -375,6 +387,7 @@ export function CalculatorPage() {
       awayBttsPct: fmt(s.bttsPct),
       awayGames: fmt(s.played),
     }));
+    afterFill('Fora', t.name);
   };
 
   const homeGames = Math.max(0, Math.round(n(form.homeGames)));
@@ -584,6 +597,12 @@ export function CalculatorPage() {
               <AlertCircle className="h-3.5 w-3.5" />
               Não reconheci uma página de equipa do FootyStats. Confirma que copiaste o conteúdo
               completo da página de um clube (texto ou código-fonte).
+            </p>
+          )}
+          {filledMsg && !imported && (
+            <p className="flex items-center gap-1.5 text-xs text-primary">
+              <Check className="h-3.5 w-3.5" />
+              {filledMsg}
             </p>
           )}
           {imported && (
