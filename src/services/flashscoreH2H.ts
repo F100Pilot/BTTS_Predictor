@@ -49,6 +49,27 @@ function isFriendly(m: FlashMatch): boolean {
   return /friendly/i.test(m.tournament_name ?? '');
 }
 
+/** Normalize a team name for matching (trim + collapse inner whitespace). */
+function normName(s: string): string {
+  return s.trim().replace(/\s+/g, ' ');
+}
+
+/**
+ * Coerce an unknown payload into a flat array of match-like objects. Handles the
+ * plain array, common RapidAPI wrappers ({data|response|result|matches: [...]}),
+ * and section objects ({home_form, away_form, h2h: [...]}) by concatenating every
+ * nested array of objects we find one level deep.
+ */
+function toMatchArray(input: unknown): unknown[] {
+  if (Array.isArray(input)) return input;
+  if (!input || typeof input !== 'object') return [];
+  const out: unknown[] = [];
+  for (const v of Object.values(input as Record<string, unknown>)) {
+    if (Array.isArray(v)) out.push(...v);
+  }
+  return out;
+}
+
 /** Dedupe by match_id, newest first. */
 function dedupeSorted(matches: FlashMatch[]): FlashMatch[] {
   const byId = new Map<string, FlashMatch>();
@@ -66,7 +87,7 @@ function buildSplit(matches: FlashMatch[], team: string): FlashSplit {
     const hs = toGoals(m.home_team.score);
     const as = toGoals(m.away_team.score);
     if (hs === null || as === null) continue;
-    const isHome = m.home_team.name === team;
+    const isHome = normName(m.home_team.name) === team;
     const teamGoals = isHome ? hs : as;
     const oppGoals = isHome ? as : hs;
     played += 1;
@@ -94,9 +115,11 @@ function teamMatches(
 ): FlashMatch[] {
   return all.filter((m) => {
     if (isFriendly(m)) return false;
-    if (venue === 'home') return m.home_team.name === team;
-    if (venue === 'away') return m.away_team.name === team;
-    return m.home_team.name === team || m.away_team.name === team;
+    const home = normName(m.home_team.name);
+    const away = normName(m.away_team.name);
+    if (venue === 'home') return home === team;
+    if (venue === 'away') return away === team;
+    return home === team || away === team;
   });
 }
 
@@ -118,16 +141,18 @@ function subjectTeams(all: FlashMatch[]): [string, string] | null {
   const h2hRows = all.filter((m) => (m.status ?? '') === '');
   const names = new Set<string>();
   for (const m of h2hRows) {
-    names.add(m.home_team.name);
-    names.add(m.away_team.name);
+    names.add(normName(m.home_team.name));
+    names.add(normName(m.away_team.name));
   }
   if (names.size === 2) return [...names] as [string, string];
 
   // Fallback: two most common team names across all rows.
   const freq = new Map<string, number>();
   for (const m of all) {
-    freq.set(m.home_team.name, (freq.get(m.home_team.name) ?? 0) + 1);
-    freq.set(m.away_team.name, (freq.get(m.away_team.name) ?? 0) + 1);
+    const home = normName(m.home_team.name);
+    const away = normName(m.away_team.name);
+    freq.set(home, (freq.get(home) ?? 0) + 1);
+    freq.set(away, (freq.get(away) ?? 0) + 1);
   }
   const top = [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([n]) => n);
   return top.length >= 2 ? [top[0]!, top[1]!] : null;
@@ -137,7 +162,7 @@ function subjectTeams(all: FlashMatch[]): [string, string] | null {
 function buildH2H(all: FlashMatch[], a: string, b: string): { played: number; bttsPct: number } {
   const between = dedupeSorted(
     all.filter((m) => {
-      const names = [m.home_team.name, m.away_team.name];
+      const names = [normName(m.home_team.name), normName(m.away_team.name)];
       return names.includes(a) && names.includes(b);
     }),
   ).slice(0, RECENT);
@@ -158,8 +183,9 @@ function buildH2H(all: FlashMatch[], a: string, b: string): { played: number; bt
  * when the input isn't a usable match array.
  */
 export function parseFlashscoreH2H(input: unknown): FlashH2HResult | null {
-  if (!Array.isArray(input)) return null;
-  const all = input.filter(
+  const arr = toMatchArray(input);
+  if (arr.length === 0) return null;
+  const all = arr.filter(
     (m): m is FlashMatch =>
       !!m && typeof m === 'object' && 'home_team' in m && 'away_team' in m && 'match_id' in m,
   );

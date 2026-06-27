@@ -666,6 +666,35 @@ export function CalculatorPage() {
                   </>
                 )}
               </p>
+              {(() => {
+                const [a, b] = flashResult.teams;
+                const home = flashSwap ? b : a;
+                const away = flashSwap ? a : b;
+                const hs: FlashSplit = home.home.played >= 1 ? home.home : home.overall;
+                const as: FlashSplit = away.away.played >= 1 ? away.away : away.overall;
+                const noData = hs.played === 0 && as.played === 0;
+                return (
+                  <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                    <p>
+                      🏠 <span className="font-medium text-foreground">{home.name}</span>:{' '}
+                      {round(hs.goalsFor, 2)}–{round(hs.goalsAgainst, 2)} golos · BTTS{' '}
+                      {round(hs.bttsPct, 0)}% · {hs.played}j
+                    </p>
+                    <p>
+                      ✈️ <span className="font-medium text-foreground">{away.name}</span>:{' '}
+                      {round(as.goalsFor, 2)}–{round(as.goalsAgainst, 2)} golos · BTTS{' '}
+                      {round(as.bttsPct, 0)}% · {as.played}j
+                    </p>
+                    {noData && (
+                      <p className="flex items-center gap-1.5 text-destructive">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        Recebi o jogo mas não calculei estatísticas (sem jogos de forma na
+                        resposta).
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => applyFlash(flashResult)}>
                   Preencher casa e fora
