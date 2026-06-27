@@ -172,6 +172,8 @@ export interface Bet {
   createdAt: number;
   settledAt?: number;
   fixtureId?: string;
+  /** Data source that produced fixtureId (results must come from the same one). */
+  providerId?: string;
   matchLabel: string;
   market: string; // e.g. "BTTS"
   selection: string; // e.g. "SIM" / "NÃO"

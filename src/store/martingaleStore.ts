@@ -4,6 +4,7 @@ import type { Bet, BetResult } from '@/domain/types';
 import { activeSeries, calculateStake } from '@/core/martingale/martingale';
 import { clearBets, listBets, putBet, removeBet } from '@/data/cache/repositories';
 import { sanitizeNumber } from '@/services/sanitize';
+import { useSettings } from '@/store/settingsStore';
 
 export interface NewBetInput {
   matchLabel: string;
@@ -95,6 +96,7 @@ export const useMartingale = create<MartingaleState>()(
           id: uid(),
           createdAt: Date.now(),
           fixtureId: input.fixtureId,
+          providerId: input.fixtureId ? useSettings.getState().providerId : undefined,
           matchLabel: input.matchLabel,
           market: input.market,
           selection: input.selection,

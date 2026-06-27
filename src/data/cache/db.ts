@@ -38,6 +38,9 @@ export interface HistoryRecord {
   actual?: 'yes' | 'no';
   /** Final scoreline once known, e.g. "2-1" (display only). */
   actualScore?: string;
+  /** Data source that produced fixtureId — results must be fetched from the
+   * same provider (ids are provider-specific). */
+  providerId?: string;
   /** Per-factor sub-scores at prediction time (for weight auto-tuning). */
   factorScores?: Record<string, number>;
 }

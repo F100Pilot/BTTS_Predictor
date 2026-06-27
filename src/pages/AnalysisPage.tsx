@@ -38,6 +38,7 @@ export function AnalysisPage() {
   const weights = useSettings((s) => s.weights);
   const oddsCalibration = useSettings((s) => s.oddsCalibration);
   const autoCalibrate = useSettings((s) => s.autoCalibrate);
+  const providerId = useSettings((s) => s.providerId);
   const platt = useCalibration((s) => s.platt);
   const calibrationReady = useCalibration((s) => s.ready);
   const recalibration = autoCalibrate && calibrationReady ? platt : undefined;
@@ -101,6 +102,7 @@ export function AnalysisPage() {
             confidence: result.prediction.confidence,
             tier: result.prediction.tier,
             createdAt: Date.now(),
+            providerId,
             factorScores: Object.fromEntries(
               result.prediction.factors.map((f) => [f.key, f.score]),
             ),
@@ -116,7 +118,7 @@ export function AnalysisPage() {
     return () => {
       cancelled = true;
     };
-  }, [resolveFixture, data, weights, oddsCalibration, recalibration]);
+  }, [resolveFixture, data, weights, oddsCalibration, recalibration, providerId]);
 
   if (loading) return <Spinner label="A analisar o jogo..." />;
   if (!bundle)

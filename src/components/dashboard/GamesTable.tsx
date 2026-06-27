@@ -17,6 +17,7 @@ import { bttsVerdict } from '@/core/classification/classification';
 import { formatTime } from '@/lib/format';
 import { toPercent, round } from '@/lib/math';
 import { useCollections } from '@/store/collectionsStore';
+import { useSettings } from '@/store/settingsStore';
 import { upsertHistory } from '@/data/cache/repositories';
 import { rowEdge } from '@/components/dashboard/filters';
 import { createLogger } from '@/services/logger';
@@ -25,7 +26,7 @@ import { cn } from '@/lib/utils';
 const log = createLogger('GamesTable');
 
 /** Build a history record from an analysed dashboard row. */
-function toHistoryRecord(row: DashboardRow): HistoryRecord | null {
+function toHistoryRecord(row: DashboardRow, providerId: string): HistoryRecord | null {
   const { fixture, prediction } = row;
   if (!prediction) return null;
   return {
@@ -39,6 +40,7 @@ function toHistoryRecord(row: DashboardRow): HistoryRecord | null {
     confidence: prediction.confidence,
     tier: prediction.tier,
     createdAt: Date.now(),
+    providerId,
     factorScores: Object.fromEntries(prediction.factors.map((f) => [f.key, f.score])),
   };
 }
@@ -46,10 +48,11 @@ function toHistoryRecord(row: DashboardRow): HistoryRecord | null {
 export function GamesTable({ rows }: { rows: DashboardRow[] }) {
   const navigate = useNavigate();
   const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
+  const providerId = useSettings((s) => s.providerId);
   const [added, setAdded] = useState<Set<string>>(new Set());
 
   const addToHistory = (row: DashboardRow): void => {
-    const record = toHistoryRecord(row);
+    const record = toHistoryRecord(row, providerId);
     if (!record) return;
     void upsertHistory(record)
       .then(() => setAdded((prev) => new Set(prev).add(row.fixture.id)))

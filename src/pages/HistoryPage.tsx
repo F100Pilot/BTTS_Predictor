@@ -69,6 +69,7 @@ export function HistoryPage() {
   const data = useDataService();
   const refreshCalibration = useCalibration((s) => s.refresh);
   const autoCalibrate = useSettings((s) => s.autoCalibrate);
+  const providerId = useSettings((s) => s.providerId);
   const initialBankroll = useMartingale((s) => s.initialBankroll);
   // Read bets from the Martingale store so settlements made here (or there)
   // stay in sync across pages instead of living in a separate local copy.
@@ -135,10 +136,23 @@ export function HistoryPage() {
     setFetchMsg(null);
     try {
       const today = todayIso();
+      // Only settle games whose fixtureId came from the ACTIVE provider — ids are
+      // provider-specific, so fetching a result for an id created by another
+      // source returns a different match (wrong score). Mismatched/legacy
+      // (untagged) records are skipped and reported.
+      const isPlayable = (date: string): boolean => date.slice(0, 10) <= today;
       const pendingRecords = records.filter(
-        (r) => !r.actual && r.fixtureId && r.date.slice(0, 10) <= today,
+        (r) => !r.actual && r.fixtureId && isPlayable(r.date) && r.providerId === providerId,
       );
-      const pendingBets = bets.filter((b) => b.result === 'pending' && b.fixtureId);
+      const pendingBets = bets.filter(
+        (b) => b.result === 'pending' && b.fixtureId && b.providerId === providerId,
+      );
+      const skipped =
+        records.filter(
+          (r) => !r.actual && r.fixtureId && isPlayable(r.date) && r.providerId !== providerId,
+        ).length +
+        bets.filter((b) => b.result === 'pending' && b.fixtureId && b.providerId !== providerId)
+          .length;
 
       // BTTS=SIM is locked the moment both teams have scored, even mid-game —
       // use the live feed to early-settle "yes". Final results settle both ways.
@@ -198,10 +212,14 @@ export function HistoryPage() {
       const parts: string[] = [];
       if (updated > 0) parts.push(`${updated} previsão(ões)`);
       if (betsSettled > 0) parts.push(`${betsSettled} aposta(s)`);
+      const skipNote =
+        skipped > 0
+          ? ` ${skipped} jogo(s) de outra fonte ignorado(s) — apaga e volta a adicionar com a fonte atual.`
+          : '';
       setFetchMsg(
-        parts.length > 0
+        (parts.length > 0
           ? `Atualizado: ${parts.join(' e ')}.`
-          : 'Sem novos resultados disponíveis (fonte/plano podem não os fornecer).',
+          : 'Sem novos resultados disponíveis (fonte/plano podem não os fornecer).') + skipNote,
       );
     } catch (err) {
       log.error('fetch results failed', err);

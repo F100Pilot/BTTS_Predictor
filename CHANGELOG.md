@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.16.0 — correção de resultados trocados
+
+- **Bug corrigido:** os resultados podiam vir da fonte errada. Os IDs de jogo são
+  **específicos de cada fornecedor**, por isso liquidar um jogo guardado numa
+  fonte usando outra fonte ia buscar um **jogo diferente** (score trocado, ex.:
+  2-1 num jogo que acabou 0-0).
+- Cada `HistoryRecord` e `Bet` passa a guardar o `providerId` que o criou. O
+  "Atualizar resultados" só liquida jogos da **fonte ativa**; jogos de outra
+  fonte (ou antigos sem fonte) são ignorados e reportados na mensagem.
+- Limpar o resultado de uma previsão também limpa o score guardado.
+
 ## 0.2.15.0
 
 - Painel: a coluna BTTS mostra agora o **lado dominante com etiqueta** (ex.:
