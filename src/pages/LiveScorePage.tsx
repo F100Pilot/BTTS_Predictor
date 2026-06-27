@@ -5,7 +5,8 @@ import type { LiveMatch } from '@/domain/types';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useSettings } from '@/store/settingsStore';
 import { listHistory, listBets } from '@/data/cache/repositories';
-import { splitFixtureName } from '@/services/flashscoreSettle';
+import { splitFixtureName, buildFixtureIndex } from '@/services/flashscoreSettle';
+import { fetchFlashscoreLive, fixtureToLiveMatch } from '@/services/flashscoreClient';
 import { getProvider } from '@/data/providers/registry';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ export function LiveScorePage() {
   const cacheFixtures = useFixtureCache((s) => s.put);
   const apiKeys = useSettings((s) => s.apiKeys);
   const corsProxy = useSettings((s) => s.corsProxy);
+  const rapidApiKey = useSettings((s) => s.rapidApiKey);
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<string>('');
@@ -41,15 +43,16 @@ export function LiveScorePage() {
     async (showSpinner = false) => {
       if (showSpinner) setLoading(true);
       try {
-        // Live scores come from Football-Data specifically (per-minute limit is
-        // forgiving for 30s polling, unlike API-Football's daily cap).
-        const provider = getProvider(FD_PROVIDER);
-        const ctx = { apiKey: apiKeys[FD_PROVIDER], corsProxy };
-        const livePromise =
-          provider.isConfigured(ctx) && provider.getLiveMatches
-            ? provider.getLiveMatches(ctx).catch(() => [] as LiveMatch[])
+        // Football-Data covers only the major leagues (per-minute limit suits
+        // 30s polling). Flashscore covers everything else — including the games
+        // imported in the Calculator — so we use both and merge by tracked game.
+        const fd = getProvider(FD_PROVIDER);
+        const fdCtx = { apiKey: apiKeys[FD_PROVIDER], corsProxy };
+        const fdPromise =
+          fd.isConfigured(fdCtx) && fd.getLiveMatches
+            ? fd.getLiveMatches(fdCtx).catch(() => [] as LiveMatch[])
             : Promise.resolve([] as LiveMatch[]);
-        const [live, history, bets] = await Promise.all([livePromise, listHistory(), listBets()]);
+        const [live, history, bets] = await Promise.all([fdPromise, listHistory(), listBets()]);
 
         // Only show live games the user is tracking (in history or with a bet),
         // matched by fixture id OR team-name pair (covers Flashscore imports).
@@ -67,11 +70,33 @@ export function LiveScorePage() {
           if (p) trackedNames.add(nameKey(p[0], p[1]));
         }
 
-        setMatches(
-          live.filter(
-            (m) => trackedIds.has(m.id) || trackedNames.has(nameKey(m.home.name, m.away.name)),
-          ),
+        const fdShown = live.filter(
+          (m) => trackedIds.has(m.id) || trackedNames.has(nameKey(m.home.name, m.away.name)),
         );
+
+        // Flashscore live for tracked games not covered by Football-Data.
+        let flashShown: LiveMatch[] = [];
+        if (rapidApiKey.trim()) {
+          const fixtures = await fetchFlashscoreLive(rapidApiKey, corsProxy).catch(
+            () => [] as Awaited<ReturnType<typeof fetchFlashscoreLive>>,
+          );
+          const idx = buildFixtureIndex(fixtures);
+          const matched = new Map<string, ReturnType<typeof idx.find>>();
+          for (const h of history) {
+            const f = idx.find(h.flashMatchId, h.fixtureName);
+            if (f && f.status === 'live') matched.set(f.matchId, f);
+          }
+          for (const b of bets) {
+            const f = idx.find(b.flashMatchId, b.matchLabel);
+            if (f && f.status === 'live') matched.set(f.matchId, f);
+          }
+          const already = new Set(fdShown.map((m) => nameKey(m.home.name, m.away.name)));
+          flashShown = [...matched.values()]
+            .filter((f) => f && !already.has(nameKey(f.home.name, f.away.name)))
+            .map((f) => fixtureToLiveMatch(f!));
+        }
+
+        setMatches([...fdShown, ...flashShown]);
         setUpdatedAt(formatTime(new Date().toISOString()));
       } catch (err) {
         log.warn('failed to load live', err);
@@ -79,7 +104,7 @@ export function LiveScorePage() {
         setLoading(false);
       }
     },
-    [apiKeys, corsProxy],
+    [apiKeys, corsProxy, rapidApiKey],
   );
 
   useEffect(() => {
@@ -114,6 +139,7 @@ export function LiveScorePage() {
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Fonte: <span className="font-medium text-foreground">Football-Data</span>
+            {rapidApiKey.trim() ? ' + Flashscore' : ''}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load(true)}>
