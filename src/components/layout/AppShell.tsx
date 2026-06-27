@@ -52,12 +52,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="container flex-1 py-4 pb-24 md:pb-8">{children}</main>
+      <main className="container flex-1 py-4 pb-28 md:pb-8">{children}</main>
 
-      {/* Mobile bottom navigation — horizontally scrollable so the 8 labels
-          never overlap on narrow screens (swipe to reach the last items). */}
+      {/* Mobile bottom navigation — a 4-column grid so all items fit on a narrow
+          screen at once (two rows), without horizontal scrolling. */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur md:hidden">
-        <div className="no-scrollbar flex snap-x overflow-x-auto">
+        <div className="grid grid-cols-4">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
@@ -65,13 +65,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               end={item.to === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex min-w-[4.25rem] shrink-0 snap-start flex-col items-center gap-1 py-2 text-[10px] font-medium transition-colors',
+                  'flex flex-col items-center gap-0.5 py-1.5 text-[10px] font-medium transition-colors',
                   isActive ? 'text-primary' : 'text-muted-foreground',
                 )
               }
             >
               <item.icon className="h-5 w-5" />
-              <span className="whitespace-nowrap">{item.label}</span>
+              <span className="w-full truncate px-0.5 text-center">{item.label}</span>
             </NavLink>
           ))}
         </div>

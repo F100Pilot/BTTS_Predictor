@@ -5,13 +5,13 @@ import { cn } from '@/lib/utils';
 
 /**
  * Shows the remaining API requests for the active provider's current window,
- * as reported by the source (headers/body). Hidden when unknown or on demo data.
+ * as reported by the source (headers/body). Hidden when unknown.
  */
 export function QuotaBadge({ className }: { className?: string }) {
   const providerId = useSettings((s) => s.providerId);
   const info = useApiQuota((s) => s.byProvider[providerId]);
 
-  if (providerId === 'mock' || !info || info.remaining == null) return null;
+  if (!info || info.remaining == null) return null;
 
   const low = info.limit ? info.remaining / info.limit < 0.2 : info.remaining <= 2;
 

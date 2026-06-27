@@ -18,9 +18,3 @@ export const useFixtureCache = create<FixtureCacheState>((set, get) => ({
     }),
   get: (id) => get().byId[id],
 }));
-
-/** Best-effort date extraction from a mock fixture id (mock-YYYY-MM-DD-...). */
-export function dateFromMockId(id: string): string | undefined {
-  const match = id.match(/^mock-(\d{4}-\d{2}-\d{2})-/);
-  return match?.[1];
-}

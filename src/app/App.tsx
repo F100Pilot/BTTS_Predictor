@@ -11,8 +11,6 @@ import { usePregameReminders } from '@/hooks/usePregameReminders';
 import { useCollections } from '@/store/collectionsStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { useSettings } from '@/store/settingsStore';
-import { DEFAULT_PROVIDER_ID } from '@/data/providers/registry';
-import { purgeMockData } from '@/data/cache/repositories';
 import { purgeExpired } from '@/data/cache/cache';
 import { syncNow, isSyncConfigured } from '@/services/syncService';
 
@@ -59,11 +57,6 @@ export function App() {
 
   useEffect(() => {
     (async () => {
-      // With a real provider active, purge any demo-origin (mock) records that a
-      // previous fallback/demo session may have stored, then load.
-      if (providerId !== DEFAULT_PROVIDER_ID) {
-        await purgeMockData().catch(() => 0);
-      }
       await refreshCollections();
       await refreshCalibration();
       await purgeExpired();
