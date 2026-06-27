@@ -20,6 +20,20 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.10.0
+
+- **Nova fonte de dados experimental: SofaScore** (`SofascoreProvider`, sem
+  chave). Usa a API JSON pública do SofaScore (`api.sofascore.com`) para jogos,
+  resultados, histórico de equipas e jogos ao vivo.
+  - ⚠️ Experimental: o SofaScore está protegido por anti-bot (Cloudflare) e pode
+    devolver **403** mesmo via proxy. Pode simplesmente não funcionar — a
+    alternativa estável continua a ser a Football-Data.org.
+  - Capability `keyless` nas fontes que não precisam de chave (esconde o campo de
+    chave em Definições, mantendo o campo de proxy).
+- **Worker CORS** atualizado para encaminhar dois upstreams por prefixo de
+  caminho: `/sofa/...` → `api.sofascore.com` (com cabeçalhos tipo-browser) e o
+  resto → `api.football-data.org`. Deploy automático via GitHub Actions.
+
 ## 0.2.9.0
 
 - **Limite de análise removido por defeito**: `analysisBatchSize` passa a `0`

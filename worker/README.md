@@ -1,8 +1,14 @@
-# CORS Proxy Worker (Football-Data.org)
+# CORS Proxy Worker
 
-Cloudflare Worker that lets the PWA call Football-Data.org from the browser
-(which otherwise blocks it for lack of CORS headers). Your API key is sent
-per-request by the app and is **not** stored here.
+Cloudflare Worker that lets the PWA call external football APIs from the browser
+(which otherwise blocks them for lack of CORS headers). API keys are sent
+per-request by the app and are **not** stored here.
+
+Two upstreams, selected by path prefix:
+
+- `/sofa/...` → `https://api.sofascore.com/...` (experimental, keyless;
+  SofaScore's Cloudflare bot protection may still answer 403).
+- everything else → `https://api.football-data.org/...` (uses `X-Auth-Token`).
 
 - Code: [`src/index.js`](src/index.js)
 - Config: [`wrangler.toml`](wrangler.toml) — worker name `btts-proxy`

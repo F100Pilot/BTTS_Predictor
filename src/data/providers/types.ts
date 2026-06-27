@@ -12,6 +12,8 @@ export interface ProviderCapabilities {
   headToHead: boolean;
   /** True if the provider can supply bookmaker BTTS odds. */
   odds?: boolean;
+  /** True if usable without any user-supplied API key (but may need a proxy). */
+  keyless?: boolean;
   /** True if usable without any user-supplied API key. */
   worksOffline: boolean;
 }

@@ -156,7 +156,7 @@ export function SettingsPage() {
             </Select>
           </div>
 
-          {!activeProvider.capabilities.worksOffline && (
+          {!activeProvider.capabilities.worksOffline && !activeProvider.capabilities.keyless && (
             <div className="space-y-1.5">
               <Label htmlFor="apikey">Chave de API ({activeProvider.label})</Label>
               <Input

@@ -4,6 +4,7 @@ import { FootballDataProvider } from './footballData/FootballDataProvider';
 import { ApiFootballProvider } from './apiFootball/ApiFootballProvider';
 import { SportmonksProvider } from './sportmonks/SportmonksProvider';
 import { TheSportsDbProvider } from './theSportsDb/TheSportsDbProvider';
+import { SofascoreProvider } from './sofascore/SofascoreProvider';
 
 /** Central registry of available data providers (Open/Closed: add here only). */
 export const PROVIDERS: DataProvider[] = [
@@ -12,6 +13,7 @@ export const PROVIDERS: DataProvider[] = [
   new ApiFootballProvider(),
   new SportmonksProvider(),
   new TheSportsDbProvider(),
+  new SofascoreProvider(),
 ];
 
 export const DEFAULT_PROVIDER_ID = 'mock';

@@ -7,11 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.9.0';
+export const APP_VERSION = '0.2.10.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
-  'Limite de análise removido: por defeito a app passa a analisar TODOS os jogos que passam pelos filtros (já não para nos primeiros 20).',
-  'Se quiseres voltar a limitar para poupar pedidos à API, define um valor em Definições → "Jogos analisados por lote" (0 = todos).',
-  'Lembrete: o contador "Pedidos restantes" depende da fonte de dados. No plano grátis da API-Football são 100 pedidos por DIA (reiniciam à meia-noite). Com tantos jogos, esgota depressa.',
+  'Nova fonte de dados experimental: SofaScore (sem chave de API). Seleciona-a em Definições → Fonte de dados.',
+  'Aviso: o SofaScore tem proteção anti-bot (Cloudflare) e pode responder 403 — pode simplesmente não funcionar. Precisa do mesmo proxy CORS (Worker) já configurado, que foi atualizado para encaminhar os pedidos do SofaScore.',
+  'Alternativa recomendada e estável: Football-Data.org (grátis, cobre as grandes ligas, limite por minuto em vez de por dia).',
 ];
