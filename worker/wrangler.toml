@@ -5,15 +5,8 @@ name = "btts-proxy"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
-# Cross-device sync storage (history & bets). Create a KV namespace once, then
-# UNCOMMENT the block below with its id and push (auto-deploys):
-#
-#   npx wrangler kv namespace create SYNC
-#   # copy the printed id into the line below
-#
-# Until this is set, /sync replies 503 ("sync-not-configured") and the rest of
-# the proxy keeps working normally.
-#
-# [[kv_namespaces]]
-# binding = "SYNC"
-# id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
+# Cross-device sync storage (history & bets). KV namespace "btts-sync".
+# The binding name MUST stay "SYNC" (the worker reads env.SYNC).
+[[kv_namespaces]]
+binding = "SYNC"
+id = "bc8e21d26fd741ffb1344d1e8def402e"
