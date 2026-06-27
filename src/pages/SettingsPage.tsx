@@ -231,6 +231,23 @@ export function SettingsPage() {
             </div>
           )}
 
+          <div className="space-y-1.5">
+            <Label htmlFor="rapidapikey">Chave RapidAPI — Flashscore (opcional)</Label>
+            <Input
+              id="rapidapikey"
+              type="password"
+              autoComplete="off"
+              placeholder="x-rapidapi-key"
+              value={settings.rapidApiKey}
+              onChange={(e) => settings.setRapidApiKey(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Usada na Calculadora para importar um jogo do Flashscore (forma das duas equipas +
+              H2H) com um só pedido. Fica guardada apenas neste dispositivo. Requer o Proxy CORS
+              acima apontado ao teu Worker.
+            </p>
+          </div>
+
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
