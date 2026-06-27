@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.34.2';
+export const APP_VERSION = '0.2.34.3';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.34.3: Ao Vivo volta a combinar Football-Data + Flashscore. O plano grátis da Football-Data só cobre as grandes ligas, por isso os jogos importados do Flashscore (ligas menores) só aparecem ao vivo via Flashscore. Agora usam-se as duas fontes em simultâneo.',
   'v0.2.34.2: Nova chave “Football-Data — resultados ao vivo” em Definições (visível quando a análise usa outra fonte), para o Ao Vivo funcionar com qualquer fonte de análise. Barra inferior do telemóvel voltou à deslocação horizontal.',
   'v0.2.34.1: Página Ao Vivo passa a usar a API Football-Data (limite por minuto, não gasta a quota diária da API-Football) e deixou de depender do Flashscore. Mostra os teus jogos do histórico/apostas, associados por id ou pelo nome das equipas.',
   'v0.2.34: Removida a fonte de demonstração (dados fictícios) — a app passa a usar só fontes reais. Removida também a importação do FootyStats na Calculadora. Menu inferior do telemóvel reorganizado em grelha (2 linhas) para caber tudo no ecrã sem deslizar.',
