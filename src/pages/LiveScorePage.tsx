@@ -8,6 +8,7 @@ import { useSettings } from '@/store/settingsStore';
 import { listHistory, listBets } from '@/data/cache/repositories';
 import { fetchFlashscoreLive, fixtureToLiveMatch } from '@/services/flashscoreClient';
 import { buildFixtureIndex } from '@/services/flashscoreSettle';
+import { getProvider } from '@/data/providers/registry';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner, EmptyState } from '@/components/common/States';
@@ -32,6 +33,7 @@ export function LiveScorePage() {
   const cacheFixtures = useFixtureCache((s) => s.put);
   const corsProxy = useSettings((s) => s.corsProxy);
   const rapidApiKey = useSettings((s) => s.rapidApiKey);
+  const providerId = useSettings((s) => s.providerId);
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<string>('');
@@ -117,6 +119,11 @@ export function LiveScorePage() {
           </h1>
           <p className="text-sm text-muted-foreground">
             Atualização automática a cada 30s{updatedAt ? ` · ${updatedAt}` : ''}.
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Fonte:{' '}
+            <span className="font-medium text-foreground">{getProvider(providerId).label}</span>
+            {rapidApiKey.trim() ? ' + Flashscore (ao vivo)' : ''}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load(true)}>

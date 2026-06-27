@@ -3,9 +3,26 @@ import {
   type BetRecord,
   type FavoriteRecord,
   type HistoryRecord,
+  type TombstoneRecord,
   type WatchlistRecord,
 } from './db';
 import { scheduleSync } from '@/services/syncService';
+
+// ---- Tombstones (so deletions propagate across devices via sync) ----
+export async function listTombstones(): Promise<TombstoneRecord[]> {
+  const db = await getDb();
+  return db.getAll('tombstones');
+}
+/** Mark an id as deleted. Idempotent; bumps the deletion time. */
+export async function addTombstone(kind: 'history' | 'bets', id: string): Promise<void> {
+  const db = await getDb();
+  await db.put('tombstones', { key: `${kind}:${id}`, id, kind, at: Date.now() });
+}
+/** Persist a tombstone coming from the sync layer (keeps the newest time). */
+export async function putTombstone(t: TombstoneRecord): Promise<void> {
+  const db = await getDb();
+  await db.put('tombstones', t);
+}
 
 // ---- Favorites ----
 export async function listFavorites(): Promise<FavoriteRecord[]> {
@@ -64,12 +81,19 @@ export async function upsertHistory(record: HistoryRecord): Promise<void> {
 }
 export async function clearHistory(): Promise<void> {
   const db = await getDb();
+  // Tombstone every id so the clear propagates (otherwise they resurrect on the
+  // next sync pull from KV).
+  const ids = (await db.getAllKeys('history')) as string[];
+  for (const id of ids) await addTombstone('history', id);
   await db.clear('history');
+  scheduleSync();
 }
 /** Delete a single history record by id. */
 export async function removeHistory(id: string): Promise<void> {
   const db = await getDb();
   await db.delete('history', id);
+  await addTombstone('history', id);
+  scheduleSync();
 }
 /** Set (or clear) the real BTTS outcome (and optional final score) on a record. */
 export async function setHistoryResult(
@@ -120,8 +144,13 @@ export async function putBet(record: BetRecord): Promise<void> {
 export async function removeBet(id: string): Promise<void> {
   const db = await getDb();
   await db.delete('bets', id);
+  await addTombstone('bets', id);
+  scheduleSync();
 }
 export async function clearBets(): Promise<void> {
   const db = await getDb();
+  const ids = (await db.getAllKeys('bets')) as string[];
+  for (const id of ids) await addTombstone('bets', id);
   await db.clear('bets');
+  scheduleSync();
 }

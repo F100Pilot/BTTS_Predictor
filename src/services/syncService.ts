@@ -9,9 +9,22 @@
  * write the merged set back to IndexedDB, then push the merged set up. Merges
  * are union-by-id with a "more settled wins" rule so grading/result changes on
  * one device propagate without clobbering fresh additions on another.
+ *
+ * Deletions are tracked with tombstones (a separate "deletes" blob): a removed
+ * id is excluded from the merged set and deleted locally, so a delete on one
+ * device sticks everywhere instead of being resurrected by the next pull.
  */
-import type { BetRecord, HistoryRecord } from '@/data/cache/db';
-import { addHistory, listHistory, listBets, putBet } from '@/data/cache/repositories';
+import type { BetRecord, HistoryRecord, TombstoneRecord } from '@/data/cache/db';
+import {
+  addHistory,
+  listHistory,
+  listBets,
+  putBet,
+  listTombstones,
+  putTombstone,
+  removeHistory,
+  removeBet,
+} from '@/data/cache/repositories';
 import { useSettings } from '@/store/settingsStore';
 import { createLogger } from './logger';
 
@@ -39,11 +52,13 @@ export function isSyncConfigured(): boolean {
   return code().length >= MIN_CODE_LEN && syncBase() !== null;
 }
 
-function endpoint(base: string, kind: 'history' | 'bets'): string {
+type SyncKind = 'history' | 'bets' | 'deletes';
+
+function endpoint(base: string, kind: SyncKind): string {
   return `${base}/sync?code=${encodeURIComponent(code())}&kind=${kind}`;
 }
 
-async function pull<T>(kind: 'history' | 'bets'): Promise<T[] | null> {
+async function pull<T>(kind: SyncKind): Promise<T[] | null> {
   const base = syncBase();
   if (!base || !isSyncConfigured()) return null;
   const res = await fetch(endpoint(base, kind));
@@ -52,7 +67,7 @@ async function pull<T>(kind: 'history' | 'bets'): Promise<T[] | null> {
   return Array.isArray(data) ? (data as T[]) : [];
 }
 
-async function push<T>(kind: 'history' | 'bets', data: T[]): Promise<void> {
+async function push<T>(kind: SyncKind, data: T[]): Promise<void> {
   const base = syncBase();
   if (!base || !isSyncConfigured()) return;
   const res = await fetch(endpoint(base, kind), {
@@ -88,6 +103,16 @@ function mergeBets(local: BetRecord[], remote: BetRecord[]): BetRecord[] {
   return [...byId.values()];
 }
 
+/** Union tombstones by key, keeping the newest deletion time. */
+function mergeTombstones(local: TombstoneRecord[], remote: TombstoneRecord[]): TombstoneRecord[] {
+  const byKey = new Map<string, TombstoneRecord>();
+  for (const t of [...local, ...remote]) {
+    const cur = byKey.get(t.key);
+    if (!cur || t.at > cur.at) byKey.set(t.key, t);
+  }
+  return [...byKey.values()];
+}
+
 // Guard so the writes performed by a reconcile don't re-trigger scheduleSync.
 let applying = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -100,17 +125,31 @@ export async function syncNow(): Promise<{ ok: boolean; reason?: string }> {
   if (!isSyncConfigured()) return { ok: false, reason: 'not-configured' };
   applying = true;
   try {
+    // Tombstones first, so we know what to exclude/remove below.
+    const [localT, remoteT] = await Promise.all([
+      listTombstones(),
+      pull<TombstoneRecord>('deletes'),
+    ]);
+    const mergedT = mergeTombstones(localT, remoteT ?? []);
+    for (const t of mergedT) await putTombstone(t);
+    await push('deletes', mergedT);
+    const deleted = new Set(mergedT.map((t) => t.key));
+    const isDeleted = (kind: 'history' | 'bets', id: string): boolean =>
+      deleted.has(`${kind}:${id}`);
+
     const [localH, remoteH] = await Promise.all([
       listHistory(100000),
       pull<HistoryRecord>('history'),
     ]);
-    const mergedH = mergeHistory(localH, remoteH ?? []);
+    const mergedH = mergeHistory(localH, remoteH ?? []).filter((r) => !isDeleted('history', r.id));
     for (const r of mergedH) await addHistory(r);
+    for (const r of localH) if (isDeleted('history', r.id)) await removeHistory(r.id);
     await push('history', mergedH);
 
     const [localB, remoteB] = await Promise.all([listBets(), pull<BetRecord>('bets')]);
-    const mergedB = mergeBets(localB, remoteB ?? []);
+    const mergedB = mergeBets(localB, remoteB ?? []).filter((b) => !isDeleted('bets', b.id));
     for (const b of mergedB) await putBet(b);
+    for (const b of localB) if (isDeleted('bets', b.id)) await removeBet(b.id);
     await push('bets', mergedB);
 
     // Refresh the in-memory bets store so the change is visible immediately.

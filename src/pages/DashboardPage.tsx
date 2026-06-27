@@ -12,6 +12,7 @@ import {
 import type { DashboardRow, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
+import { getProvider } from '@/data/providers/registry';
 import { buildDashboardRow, sortDashboardRows } from '@/services/analysisService';
 import { isMinorCompetition, isMajorCompetition } from '@/core/classification/competitions';
 import {
@@ -324,6 +325,10 @@ export function DashboardPage() {
               : ' · ordenados por BTTS=SIM'}
             {analyzing && ` · a analisar ${analyzedInBatch}/${batchTotal}…`}
             {showWaiting && ` · ${waiting} em espera`}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Fonte dos dados e análise:{' '}
+            <span className="font-medium text-foreground">{getProvider(providerId).label}</span>
           </p>
           <QuotaBadge className="mt-1" />
         </div>

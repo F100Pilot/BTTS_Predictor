@@ -48,6 +48,15 @@ export interface HistoryRecord {
   factorScores?: Record<string, number>;
 }
 
+/** A deletion marker so removals propagate across devices via sync. */
+export interface TombstoneRecord {
+  /** Composite key: `${kind}:${id}`. */
+  key: string;
+  id: string;
+  kind: 'history' | 'bets';
+  at: number; // epoch ms of deletion
+}
+
 interface BttsDB extends DBSchema {
   cache: {
     key: string;
@@ -72,10 +81,14 @@ interface BttsDB extends DBSchema {
     value: BetRecord;
     indexes: { createdAt: number };
   };
+  tombstones: {
+    key: string;
+    value: TombstoneRecord;
+  };
 }
 
 const DB_NAME = 'btts-analytics-pro';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<BttsDB>> | null = null;
 
@@ -100,6 +113,9 @@ export function getDb(): Promise<IDBPDatabase<BttsDB>> {
         if (!db.objectStoreNames.contains('bets')) {
           const bets = db.createObjectStore('bets', { keyPath: 'id' });
           bets.createIndex('createdAt', 'createdAt');
+        }
+        if (!db.objectStoreNames.contains('tombstones')) {
+          db.createObjectStore('tombstones', { keyPath: 'key' });
         }
       },
     });
