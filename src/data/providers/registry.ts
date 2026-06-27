@@ -2,18 +2,18 @@ import type { DataProvider } from './types';
 import { MockProvider } from './mock/MockProvider';
 import { FootballDataProvider } from './footballData/FootballDataProvider';
 import { ApiFootballProvider } from './apiFootball/ApiFootballProvider';
-import { SportmonksProvider } from './sportmonks/SportmonksProvider';
-import { TheSportsDbProvider } from './theSportsDb/TheSportsDbProvider';
-import { SofascoreProvider } from './sofascore/SofascoreProvider';
 
-/** Central registry of available data providers (Open/Closed: add here only). */
+/**
+ * Central registry of available data providers (Open/Closed: add here only).
+ * Only the two real sources with usable BTTS coverage are kept — Football-Data
+ * (free, per-minute limit, big leagues) and API-Football (deep team history).
+ * SportMonks (paid), TheSportsDB (thin coverage) and SofaScore (Cloudflare 403)
+ * were removed; "mock" stays as the offline/demo source.
+ */
 export const PROVIDERS: DataProvider[] = [
   new MockProvider(),
   new FootballDataProvider(),
   new ApiFootballProvider(),
-  new SportmonksProvider(),
-  new TheSportsDbProvider(),
-  new SofascoreProvider(),
 ];
 
 export const DEFAULT_PROVIDER_ID = 'mock';

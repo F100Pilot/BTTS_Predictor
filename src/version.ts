@@ -7,11 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.10.0';
+export const APP_VERSION = '0.2.11.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
-  'Nova fonte de dados experimental: SofaScore (sem chave de API). Seleciona-a em Definições → Fonte de dados.',
-  'Aviso: o SofaScore tem proteção anti-bot (Cloudflare) e pode responder 403 — pode simplesmente não funcionar. Precisa do mesmo proxy CORS (Worker) já configurado, que foi atualizado para encaminhar os pedidos do SofaScore.',
-  'Alternativa recomendada e estável: Football-Data.org (grátis, cobre as grandes ligas, limite por minuto em vez de por dia).',
+  'Fontes de dados simplificadas: ficam apenas a Football-Data.org e a API-Football (mais os dados de demonstração).',
+  'O SofaScore foi removido — a proteção anti-bot (Cloudflare) devolvia sempre 403. A SportMonks (paga) e a TheSportsDB (cobertura fraca) também saíram.',
+  'Se vires "dados insuficientes", é a fonte a não devolver histórico suficiente das equipas (mín. 3 jogos). A API-Football costuma ter histórico mais completo.',
 ];

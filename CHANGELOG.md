@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.11.0
+
+- **Fontes de dados reduzidas a Football-Data.org + API-Football** (mais o
+  `mock` de demonstração). Removidos os providers SportMonks (pago), TheSportsDB
+  (cobertura fraca) e SofaScore (bloqueado por Cloudflare com 403). Ficheiros
+  apagados; registo limpo.
+- Nota sobre "dados insuficientes": a previsão precisa de ≥3 jogos de histórico
+  por equipa (`last10.played < 3`). Se a fonte não devolver histórico suficiente
+  (ex.: seleções em fase de Mundial, ou cobertura limitada do plano), o jogo é
+  marcado como insuficiente. A API-Football tende a ter histórico mais completo.
+
 ## 0.2.10.0
 
 - **Nova fonte de dados experimental: SofaScore** (`SofascoreProvider`, sem
