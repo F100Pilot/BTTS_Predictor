@@ -235,6 +235,25 @@ export function SettingsPage() {
             </div>
           )}
 
+          {settings.providerId !== 'football-data' && (
+            <div className="space-y-1.5">
+              <Label htmlFor="fdlivekey">Chave Football-Data — resultados ao vivo</Label>
+              <Input
+                id="fdlivekey"
+                type="password"
+                autoComplete="off"
+                placeholder="Cole aqui a chave da Football-Data"
+                value={settings.apiKeys['football-data'] ?? ''}
+                onChange={(e) => settings.setApiKey('football-data', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                A página Ao Vivo usa sempre a Football-Data (limite por minuto, não gasta a quota
+                diária da fonte de análise). Indica aqui a chave dela, mesmo que a análise use outra
+                fonte. Guardada apenas neste dispositivo.
+              </p>
+            </div>
+          )}
+
           {!activeProvider.capabilities.worksOffline && (
             <div className="space-y-1.5">
               <Label htmlFor="corsproxy">Proxy CORS (opcional)</Label>
