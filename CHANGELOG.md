@@ -20,6 +20,16 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.19.0
+
+- Jogos com **dados insuficientes** (menos de 3 jogos de histórico por equipa)
+  passam a ser **sempre escondidos** do painel, em qualquer modo (antes só com
+  "Mostrar só jogos analisados"). O `hideNoData` passa a controlar apenas os
+  jogos ainda não analisados.
+- A página de análise guarda a previsão no cache do dia **mesmo quando é
+  insuficiente**, para que o painel a esconda e **não a volte a analisar**
+  (poupa pedidos — relevante no modo manual da API-Football).
+
 ## 0.2.18.0
 
 - Filtros do painel: o **Campeonato** passa a estar **limitado ao País** escolhido

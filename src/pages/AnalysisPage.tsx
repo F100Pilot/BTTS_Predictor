@@ -90,9 +90,10 @@ export function AnalysisPage() {
         if (cancelled) return;
         setBundle(result);
         // Cache into the per-day store so an individually-analysed game (e.g. in
-        // API-Football manual mode) shows up with its prediction back on the
-        // dashboard without a re-analysis.
-        if (result.prediction && !result.prediction.insufficientData) {
+        // API-Football manual mode) is remembered and not re-analysed — including
+        // insufficient-data games, which the dashboard then hides (so they
+        // "disappear" and never cost another request).
+        if (result.prediction) {
           const day = fixture.date.slice(0, 10);
           const sig = predictionSignature(weights, oddsCalibration, recalibration);
           void saveDayPrediction(day, sig, fixture.id, result.prediction);

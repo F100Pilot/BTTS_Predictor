@@ -36,9 +36,11 @@ export function applyFilters(rows: DashboardRow[], f: DashboardFilterState): Das
   const search = f.search.trim().toLowerCase();
   return rows.filter((row) => {
     const { fixture, prediction } = row;
-    // Show only games that have actually been analysed: hide rows still loading
-    // (no prediction yet) and rows the model can't compute (no team history).
-    if (f.hideNoData && (!prediction || prediction.insufficientData)) return false;
+    // Games the model can't compute (too little team history) are never useful —
+    // hide them always, in every mode, so they don't reappear.
+    if (prediction?.insufficientData) return false;
+    // "Show only analysed": also hide rows still loading / not yet analysed.
+    if (f.hideNoData && !prediction) return false;
     if (f.competition !== 'all' && fixture.competition.name !== f.competition) return false;
     if (f.country !== 'all' && fixture.competition.country !== f.country) return false;
     if (f.minBtts > 0 && (!prediction || prediction.probYes * 100 < f.minBtts)) return false;
