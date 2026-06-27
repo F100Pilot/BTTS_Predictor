@@ -1,6 +1,11 @@
 import { useMemo, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, ClipboardPaste, Check, AlertCircle } from 'lucide-react';
 import type { HeadToHead, TeamStats, VenueStats, WindowStats } from '@/domain/types';
+import {
+  parseFootystatsClub,
+  type ParsedFootystatsTeam,
+  type ParsedTeamSplit,
+} from '@/services/footystatsParser';
 import { predict } from '@/core/prediction/engine';
 import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
 import { predictMarkets } from '@/core/prediction/markets';
@@ -240,6 +245,40 @@ export function CalculatorPage() {
 
   const set = (key: keyof CalcForm) => (v: string) => setForm((prev) => ({ ...prev, [key]: v }));
 
+  // ---- FootyStats import ----
+  const [importHtml, setImportHtml] = useState('');
+  const imported = useMemo<ParsedFootystatsTeam | null>(
+    () => (importHtml.trim() ? parseFootystatsClub(importHtml) : null),
+    [importHtml],
+  );
+
+  const fmt = (v: number): string => (v ? String(v) : '');
+
+  // Prefer the venue split; fall back to the overall split when the venue has
+  // too few games (common early in a season).
+  const fillHome = (t: ParsedFootystatsTeam): void => {
+    const s: ParsedTeamSplit = t.home.played >= 1 ? t.home : t.overall;
+    setForm((prev) => ({
+      ...prev,
+      homeName: t.name || prev.homeName,
+      homeGoalsFor: fmt(s.goalsFor),
+      homeGoalsAgainst: fmt(s.goalsAgainst),
+      homeBttsPct: fmt(s.bttsPct),
+      homeGames: fmt(s.played),
+    }));
+  };
+  const fillAway = (t: ParsedFootystatsTeam): void => {
+    const s: ParsedTeamSplit = t.away.played >= 1 ? t.away : t.overall;
+    setForm((prev) => ({
+      ...prev,
+      awayName: t.name || prev.awayName,
+      awayGoalsFor: fmt(s.goalsFor),
+      awayGoalsAgainst: fmt(s.goalsAgainst),
+      awayBttsPct: fmt(s.bttsPct),
+      awayGames: fmt(s.played),
+    }));
+  };
+
   const homeGames = Math.max(0, Math.round(n(form.homeGames)));
   const awayGames = Math.max(0, Math.round(n(form.awayGames)));
   const hasEnoughData = homeGames >= 1 && awayGames >= 1;
@@ -293,6 +332,57 @@ export function CalculatorPage() {
           Limpar
         </Button>
       </div>
+
+      {/* ---- FootyStats import ---- */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <ClipboardPaste className="h-4 w-4" /> Importar do FootyStats
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Abre a página da equipa no FootyStats (footystats.org/clubs/…), copia o código-fonte da
+            página (Ctrl+U → Ctrl+A → Ctrl+C) e cola aqui. Depois preenche a equipa da casa ou de
+            fora — usa automaticamente as estatísticas em casa/fora (ou as gerais se houver poucos
+            jogos no recinto).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <textarea
+            value={importHtml}
+            onChange={(e) => setImportHtml(e.target.value)}
+            placeholder="Cola aqui o código-fonte da página da equipa…"
+            rows={3}
+            className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+          {importHtml.trim() && !imported && (
+            <p className="flex items-center gap-1.5 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Não reconheci uma página de equipa do FootyStats. Confirma que copiaste o código-fonte
+              completo da página de um clube.
+            </p>
+          )}
+          {imported && (
+            <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+              <p className="flex items-center gap-1.5 text-xs">
+                <Check className="h-3.5 w-3.5 text-primary" />
+                Detetado: <span className="font-semibold">{imported.name || 'equipa'}</span> · em
+                casa {round(imported.home.goalsFor, 2)}–{round(imported.home.goalsAgainst, 2)}{' '}
+                golos, BTTS {round(imported.home.bttsPct, 0)}% ({imported.home.played}j) · fora{' '}
+                {round(imported.away.goalsFor, 2)}–{round(imported.away.goalsAgainst, 2)} golos,
+                BTTS {round(imported.away.bttsPct, 0)}% ({imported.away.played}j)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => fillHome(imported)}>
+                  Preencher Equipa da Casa
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => fillAway(imported)}>
+                  Preencher Equipa de Fora
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* ---- LEFT: form ---- */}
