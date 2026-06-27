@@ -401,6 +401,10 @@ export function CalculatorPage() {
   // Which subject team is the home side. Flashscore lists them as [home, away]
   // but the user can swap if the fixture has them the other way around.
   const [flashSwap, setFlashSwap] = useState(false);
+  // Raw response text kept for debugging when parsing yields no form games — the
+  // user can copy it and share so we can align the parser to the real shape.
+  const [flashRaw, setFlashRaw] = useState<string>('');
+  const [flashCopied, setFlashCopied] = useState(false);
 
   // Accept a raw 6–12 char id, a "match_id=…" query, or a Flashscore URL.
   const extractMatchId = (raw: string): string | null => {
@@ -439,7 +443,18 @@ export function CalculatorPage() {
         },
       });
       if (!res.ok) throw new Error(String(res.status));
-      const json: unknown = await res.json();
+      const text = await res.text();
+      setFlashRaw(text);
+      let json: unknown;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        setFlashError(
+          'A resposta não é JSON válido (provavelmente o proxy devolveu um erro/HTML).',
+        );
+        setFlashResult(null);
+        return;
+      }
       const parsed = parseFlashscoreH2H(json);
       if (!parsed) {
         setFlashError('Recebi resposta mas não reconheci os jogos. Confirma o id do jogo.');
@@ -468,6 +483,16 @@ export function CalculatorPage() {
       }
     } catch {
       setFlashError('O browser não permitiu colar automaticamente. Cola o id manualmente.');
+    }
+  };
+
+  const copyFlashRaw = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(flashRaw);
+      setFlashCopied(true);
+      setTimeout(() => setFlashCopied(false), 2000);
+    } catch {
+      setFlashError('Não consegui copiar — seleciona e copia o texto da caixa abaixo manualmente.');
     }
   };
 
@@ -708,6 +733,37 @@ export function CalculatorPage() {
                 usa “Trocar casa/fora” antes de preencher.
               </p>
             </div>
+          )}
+          {flashRaw && (
+            <details className="rounded-md border border-border bg-muted/30 p-2 text-xs">
+              <summary className="cursor-pointer select-none font-medium text-muted-foreground">
+                Resposta da API (debug) — {(flashRaw.length / 1024).toFixed(0)} KB
+              </summary>
+              <div className="mt-2 space-y-2">
+                <p className="text-[10px] text-muted-foreground">
+                  Se as estatísticas vierem a 0, copia esta resposta e partilha para alinharmos a
+                  leitura ao formato real deste jogo.
+                </p>
+                <Button size="sm" variant="secondary" onClick={() => void copyFlashRaw()}>
+                  {flashCopied ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" /> Copiado
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardPaste className="mr-2 h-4 w-4" /> Copiar resposta
+                    </>
+                  )}
+                </Button>
+                <textarea
+                  readOnly
+                  value={flashRaw}
+                  rows={6}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="w-full resize-y rounded-md border border-input bg-background px-2 py-1.5 font-mono text-[10px] outline-none"
+                />
+              </div>
+            </details>
           )}
         </CardContent>
       </Card>
