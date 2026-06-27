@@ -44,6 +44,19 @@ describe('parseFootystatsClub', () => {
     expect(t.name).toBe('PEPO Lappeenranta');
   });
 
+  it('parses plain text copied on a phone (Select all)', () => {
+    // What a mobile "Select all → Copy" yields: visible text, no HTML tags.
+    const text = `PEPO Lappeenranta Stats
+      Stats Overall At Home At Away
+      Scored / Match 1.67 2.25 1.2
+      Conceded / Match 1 1 1
+      BTTS % 89% 100% 80%
+      Matches Played 9 4 5`;
+    const t = parseFootystatsClub(text)!;
+    expect(t.home).toEqual({ played: 4, goalsFor: 2.25, goalsAgainst: 1, bttsPct: 100 });
+    expect(t.away).toEqual({ played: 5, goalsFor: 1.2, goalsAgainst: 1, bttsPct: 80 });
+  });
+
   it('returns null for unrelated HTML', () => {
     expect(parseFootystatsClub('<html><body><p>hello</p></body></html>')).toBeNull();
   });

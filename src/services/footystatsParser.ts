@@ -60,30 +60,61 @@ function findRow(doc: Document, label: string): [number, number, number] | null 
   return null;
 }
 
+/**
+ * Find a stats row in PLAIN TEXT (the page's visible text, e.g. copied on a
+ * phone via "Select all"). Matches a label followed by three numbers, tolerating
+ * "%" suffixes and any whitespace (incl. newlines/tabs) between cells.
+ */
+function findRowText(text: string, label: string): [number, number, number] | null {
+  const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`${esc}\\s+(-?[\\d.]+)%?\\s+(-?[\\d.]+)%?\\s+(-?[\\d.]+)%?`, 'i');
+  const m = re.exec(text);
+  if (!m) return null;
+  return [num(m[1]), num(m[2]), num(m[3])];
+}
+
 /** Pick column `i` (0 overall, 1 home, 2 away) from a row, defaulting to 0. */
 function col(row: [number, number, number] | null, i: number): number {
   return row ? (row[i] ?? 0) : 0;
 }
 
 /**
- * Parse a FootyStats club page's HTML. Returns null when the document does not
- * look like a club page (no recognisable stats rows).
+ * Parse a FootyStats club page. Accepts EITHER the page source (HTML) — best on
+ * desktop via "view source" — OR the page's visible text copied with "Select
+ * all" (the practical route on a phone, where there's no view-source). Returns
+ * null when the input has no recognisable stats rows.
  */
-export function parseFootystatsClub(html: string): ParsedFootystatsTeam | null {
-  if (!html || typeof html !== 'string') return null;
-  const doc = new DOMParser().parseFromString(html, 'text/html');
+export function parseFootystatsClub(input: string): ParsedFootystatsTeam | null {
+  if (!input || typeof input !== 'string') return null;
+  const doc = new DOMParser().parseFromString(input, 'text/html');
+  // For the plain-text route, the rendered text (with its whitespace) is the
+  // original input itself; entities are already decoded there.
+  const text = input;
 
-  const scored = findRow(doc, 'Scored / Match');
-  const conceded = findRow(doc, 'Conceded / Match');
+  // Try the structured HTML row first, then fall back to plain-text matching.
+  const get = (...labels: string[]): [number, number, number] | null => {
+    for (const l of labels) {
+      const r = findRow(doc, l);
+      if (r) return r;
+    }
+    for (const l of labels) {
+      const r = findRowText(text, l);
+      if (r) return r;
+    }
+    return null;
+  };
+
+  const scored = get('Scored / Match');
+  const conceded = get('Conceded / Match');
   // The model only really needs goals; bail only when those are missing.
   if (!scored && !conceded) return null;
 
-  const btts = findRow(doc, 'BTTS %') ?? findRow(doc, 'BTTS');
-  const played = findRow(doc, 'Matches Played');
+  const btts = get('BTTS %', 'BTTS');
+  const played = get('Matches Played');
 
   // Team name: FootyStats sets `var zz = '<Team>'`; fall back to the OG title.
   let name = '';
-  const zz = /\bvar\s+zz\s*=\s*'([^']+)'/.exec(html);
+  const zz = /\bvar\s+zz\s*=\s*'([^']+)'/.exec(input);
   if (zz?.[1]) name = zz[1].trim();
   if (!name) {
     const og = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ?? '';

@@ -340,25 +340,35 @@ export function CalculatorPage() {
             <ClipboardPaste className="h-4 w-4" /> Importar do FootyStats
           </CardTitle>
           <CardDescription className="text-xs">
-            Abre a página da equipa no FootyStats (footystats.org/clubs/…), copia o código-fonte da
-            página (Ctrl+U → Ctrl+A → Ctrl+C) e cola aqui. Depois preenche a equipa da casa ou de
-            fora — usa automaticamente as estatísticas em casa/fora (ou as gerais se houver poucos
-            jogos no recinto).
+            Abre a página da equipa no FootyStats (footystats.org/clubs/…), copia o conteúdo e cola
+            aqui — funciona com o texto da página ou com o código-fonte. Depois preenche a equipa da
+            casa ou de fora (usa as estatísticas em casa/fora, ou as gerais se houver poucos jogos
+            no recinto).
+            <br />
+            <span className="mt-1 block">
+              📱 <span className="font-medium">No telemóvel:</span> carrega longamente na página →{' '}
+              <span className="font-medium">Selecionar tudo</span> →{' '}
+              <span className="font-medium">Copiar</span> → cola aqui.
+            </span>
+            <span className="block">
+              💻 <span className="font-medium">No computador:</span> Ctrl+U (ver código-fonte) →
+              Ctrl+A → Ctrl+C → cola aqui.
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <textarea
             value={importHtml}
             onChange={(e) => setImportHtml(e.target.value)}
-            placeholder="Cola aqui o código-fonte da página da equipa…"
+            placeholder="Cola aqui o texto (ou o código-fonte) da página da equipa…"
             rows={3}
             className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
           {importHtml.trim() && !imported && (
             <p className="flex items-center gap-1.5 text-xs text-destructive">
               <AlertCircle className="h-3.5 w-3.5" />
-              Não reconheci uma página de equipa do FootyStats. Confirma que copiaste o código-fonte
-              completo da página de um clube.
+              Não reconheci uma página de equipa do FootyStats. Confirma que copiaste o conteúdo
+              completo da página de um clube (texto ou código-fonte).
             </p>
           )}
           {imported && (
