@@ -84,6 +84,56 @@ describe('parseFlashscoreH2H', () => {
     expect(res?.h2h.played).toBe(2);
   });
 
+  it('reads scores from a top-level `scores` object with null status', () => {
+    // Newer endpoint shape: status is null and the score lives on `scores`,
+    // not on the team objects. Subject teams fall back to the frequency heuristic.
+    const newShape = [
+      {
+        match_id: 'n1',
+        timestamp: 100,
+        status: null,
+        tournament_name: 'WC',
+        home_team: { name: 'Croatia' },
+        away_team: { name: 'Italy' },
+        scores: { home: '1', away: '1' },
+      },
+      {
+        match_id: 'n2',
+        timestamp: 90,
+        status: null,
+        tournament_name: 'WC',
+        home_team: { name: 'Spain' },
+        away_team: { name: 'Croatia' },
+        scores: { home: '3', away: '0' },
+      },
+      {
+        match_id: 'n3',
+        timestamp: 95,
+        status: null,
+        tournament_name: 'WC',
+        home_team: { name: 'Ghana' },
+        away_team: { name: 'Mali' },
+        scores: { home: '1', away: '0' },
+      },
+      {
+        match_id: 'n4',
+        timestamp: 85,
+        status: null,
+        tournament_name: 'WC',
+        home_team: { name: 'Chad' },
+        away_team: { name: 'Ghana' },
+        scores: { home: '0', away: '5' },
+      },
+    ];
+    const res = parseFlashscoreH2H(newShape)!;
+    expect(res.teams.map((t) => t.name).sort()).toEqual(['Croatia', 'Ghana']);
+    const croatia = res.teams.find((t) => t.name === 'Croatia')!;
+    expect(croatia.overall.played).toBe(2);
+    expect(croatia.overall.goalsFor).toBe(0.5); // (1 + 0) / 2
+    expect(croatia.home.played).toBe(1);
+    expect(croatia.home.bttsPct).toBe(100); // Croatia 1–1 Italy at home
+  });
+
   it('matches teams despite surrounding whitespace in names', () => {
     const padded = DATA.map((d) => ({
       ...d,
