@@ -63,15 +63,24 @@ export async function clearHistory(): Promise<void> {
   const db = await getDb();
   await db.clear('history');
 }
-/** Set (or clear) the real BTTS outcome on a history record. */
+/** Delete a single history record by id. */
+export async function removeHistory(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('history', id);
+}
+/** Set (or clear) the real BTTS outcome (and optional final score) on a record. */
 export async function setHistoryResult(
   id: string,
   actual: 'yes' | 'no' | undefined,
+  actualScore?: string,
 ): Promise<void> {
   const db = await getDb();
   const record = await db.get('history', id);
   if (!record) return;
-  await db.put('history', { ...record, actual });
+  // Clearing the result also clears the stored score; keep an existing score
+  // when re-marking without a new one (e.g. manual SIM/NÃO).
+  const score = actual === undefined ? undefined : (actualScore ?? record.actualScore);
+  await db.put('history', { ...record, actual, actualScore: score });
 }
 
 /**

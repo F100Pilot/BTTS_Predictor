@@ -36,6 +36,8 @@ export interface HistoryRecord {
   createdAt: number;
   /** Real BTTS outcome once known (for backtesting & auto-calibration). */
   actual?: 'yes' | 'no';
+  /** Final scoreline once known, e.g. "2-1" (display only). */
+  actualScore?: string;
   /** Per-factor sub-scores at prediction time (for weight auto-tuning). */
   factorScores?: Record<string, number>;
 }

@@ -3,7 +3,12 @@ import { History, Trash2, Download, Calendar as CalendarIcon, X, RefreshCw } fro
 import { format, parseISO } from 'date-fns';
 import type { Bet, PredictionTier } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
-import { listHistory, clearHistory, setHistoryResult } from '@/data/cache/repositories';
+import {
+  listHistory,
+  clearHistory,
+  setHistoryResult,
+  removeHistory,
+} from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
 import { bttsFromGoals, settleBetAgainstBtts } from '@/services/settlementService';
 import { FinancialDashboard } from '@/components/history/FinancialDashboard';
@@ -119,6 +124,12 @@ export function HistoryPage() {
     await refreshCalibration();
   };
 
+  const handleDeleteRecord = async (id: string): Promise<void> => {
+    await removeHistory(id);
+    await load();
+    await refreshCalibration();
+  };
+
   const handleFetchResults = async (): Promise<void> => {
     setFetching(true);
     setFetchMsg(null);
@@ -156,11 +167,17 @@ export function HistoryPage() {
         return null;
       };
 
+      // Final scoreline (only from a finished result, not the live feed).
+      const scoreFor = (fixtureId: string): string | undefined => {
+        const res = resultById.get(fixtureId);
+        return res ? `${res.homeGoals}-${res.awayGoals}` : undefined;
+      };
+
       let updated = 0;
       for (const r of pendingRecords) {
         const outcome = outcomeFor(r.fixtureId!);
         if (outcome) {
-          await setHistoryResult(r.id, outcome);
+          await setHistoryResult(r.id, outcome, scoreFor(r.fixtureId!));
           updated += 1;
         }
       }
@@ -443,6 +460,8 @@ export function HistoryPage() {
                         <TableHead className="hidden sm:table-cell">Confiança</TableHead>
                         <TableHead className="hidden md:table-cell">Classificação</TableHead>
                         <TableHead>Resultado real</TableHead>
+                        <TableHead className="hidden sm:table-cell">Score</TableHead>
+                        <TableHead className="w-10 text-right" aria-label="Ações" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -517,6 +536,20 @@ export function HistoryPage() {
                                 </Button>
                               </div>
                             )}
+                          </TableCell>
+                          <TableCell className="hidden font-medium tabular-nums sm:table-cell">
+                            {r.actualScore ?? <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Apagar jogo"
+                              title="Apagar jogo"
+                              onClick={() => void handleDeleteRecord(r.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}

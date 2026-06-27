@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { TierBadge, ConfidenceMeter } from '@/components/common/PredictionWidgets';
+import { bttsVerdict } from '@/core/classification/classification';
 import { formatTime } from '@/lib/format';
 import { toPercent, round } from '@/lib/math';
 import { useCollections } from '@/store/collectionsStore';
@@ -94,9 +95,20 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
               </TableCell>
               <TableCell>
                 {row.prediction ? (
-                  <span className="font-semibold text-primary">
-                    {toPercent(row.prediction.probYes)}
-                  </span>
+                  (() => {
+                    // Show the dominant side with its (higher) probability so it's
+                    // unambiguous whether the model leans SIM or NÃO.
+                    const v = bttsVerdict(row.prediction.probYes);
+                    return (
+                      <span
+                        className={
+                          v.side === 'SIM' ? 'font-semibold text-primary' : 'font-semibold'
+                        }
+                      >
+                        {v.side} {toPercent(v.probability)}
+                      </span>
+                    );
+                  })()
                 ) : (
                   <span className="text-xs text-muted-foreground">
                     {row.predictionError ? 'indisp.' : '…'}

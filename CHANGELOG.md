@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.15.0
+
+- Painel: a coluna BTTS mostra agora o **lado dominante com etiqueta** (ex.:
+  "NÃO 68%") em vez da probabilidade de SIM crua ("32%"), eliminando a ambiguidade.
+- Histórico: **apagar jogos individualmente** (botão por linha) e nova coluna
+  **Score** com o resultado final, guardado ao liquidar via "Atualizar
+  resultados" (`actualScore` em `HistoryRecord`; `removeHistory` no repositório).
+
 ## 0.2.14.1
 
 - Definições → Fonte de Dados: nota a explicar **qual fornecedor usar** em cada
