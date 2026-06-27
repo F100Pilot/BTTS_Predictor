@@ -151,7 +151,7 @@ async function handleSync(request, env, url, allowOrigin) {
   const code = (url.searchParams.get('code') || '').trim();
   const kind = url.searchParams.get('kind') || '';
   if (code.length < 6) return syncJson({ error: 'bad-code' }, 400, allowOrigin);
-  if (kind !== 'history' && kind !== 'bets') {
+  if (kind !== 'history' && kind !== 'bets' && kind !== 'deletes') {
     return syncJson({ error: 'bad-kind' }, 400, allowOrigin);
   }
   const key = `sync:${await sha256Hex(code)}:${kind}`;
