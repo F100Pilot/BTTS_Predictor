@@ -16,7 +16,6 @@ import type { HistoryRecord } from '@/data/cache/db';
 import { upsertHistory } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
 import { createLogger } from '@/services/logger';
-import { routeThroughProxy } from '@/data/providers/util';
 import { Search } from 'lucide-react';
 import { predict } from '@/core/prediction/engine';
 import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
@@ -273,18 +272,25 @@ export function CalculatorPage() {
 
   // "Paste just the link": fetch the page through the configured CORS proxy and
   // feed its HTML into the same parse pipeline. Far easier than copy/paste on a
-  // phone — but needs a {url}-style CORS proxy (Settings) since the page is
-  // third-party.
+  // phone. Works with a {url}-style proxy OR an origin-prefix worker (we append
+  // the worker's generic ?url= endpoint), so no settings change is needed.
+  const proxyFor = (target: string): string | null => {
+    const p = corsProxy.trim();
+    if (!p) return null;
+    if (p.includes('{url}')) return p.replace('{url}', encodeURIComponent(target));
+    return p.replace(/\/+$/, '') + '/?url=' + encodeURIComponent(target);
+  };
+
   const fetchByUrl = async (): Promise<void> => {
     const target = fetchUrl.trim();
     if (!/^https?:\/\//i.test(target)) {
       setPasteError('Indica um link válido (começa por https://).');
       return;
     }
-    const proxied = routeThroughProxy(target, corsProxy);
-    if (proxied === target) {
+    const proxied = proxyFor(target);
+    if (!proxied) {
       setPasteError(
-        'Configura um Proxy CORS do tipo {url} em Definições (ex.: https://corsproxy.io/?url={url}) para a app poder ir buscar o link — ou usa “Colar conteúdo”.',
+        'Configura primeiro um Proxy CORS em Definições para a app poder ir buscar o link — ou usa “Colar conteúdo”.',
       );
       return;
     }
@@ -526,8 +532,8 @@ export function CalculatorPage() {
               </Button>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              A app vai buscar a página através do teu Proxy CORS (Definições). Precisa de um proxy
-              do tipo <code>{'{url}'}</code>. Se falhar, usa o método abaixo.
+              A app vai buscar a página através do teu Proxy CORS (Definições). Se o site bloquear o
+              pedido, usa o método abaixo.
             </p>
           </div>
 
@@ -592,12 +598,16 @@ export function CalculatorPage() {
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => fillHome(imported)}>
-                  Preencher Equipa da Casa
+                  Pôr {imported.name || 'esta equipa'} na Casa
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => fillAway(imported)}>
-                  Preencher Equipa de Fora
+                  Pôr {imported.name || 'esta equipa'} na Fora
                 </Button>
               </div>
+              <p className="text-[10px] text-muted-foreground">
+                Esta página é de <span className="font-medium">uma</span> equipa. Para a outra,
+                importa a página dela e usa o outro botão.
+              </p>
             </div>
           )}
         </CardContent>
