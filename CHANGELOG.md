@@ -20,6 +20,12 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.13.0
+
+- Painel: novo botão de ação **"Adicionar ao histórico"** (ícone +) em cada
+  jogo analisado, para guardar no Histórico sem abrir a análise. Mostra ✓ depois
+  de adicionado; desativado enquanto o jogo não tem previsão.
+
 ## 0.2.12.0 — correções da auditoria
 
 **Ciclo de apostas (o que faltava para a app servir):**

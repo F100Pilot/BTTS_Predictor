@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Eye } from 'lucide-react';
+import { Star, Eye, ListPlus, Check } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
+import type { HistoryRecord } from '@/data/cache/db';
 import {
   Table,
   TableBody,
@@ -14,12 +16,44 @@ import { TierBadge, ConfidenceMeter } from '@/components/common/PredictionWidget
 import { formatTime } from '@/lib/format';
 import { toPercent, round } from '@/lib/math';
 import { useCollections } from '@/store/collectionsStore';
+import { upsertHistory } from '@/data/cache/repositories';
 import { rowEdge } from '@/components/dashboard/filters';
+import { createLogger } from '@/services/logger';
 import { cn } from '@/lib/utils';
+
+const log = createLogger('GamesTable');
+
+/** Build a history record from an analysed dashboard row. */
+function toHistoryRecord(row: DashboardRow): HistoryRecord | null {
+  const { fixture, prediction } = row;
+  if (!prediction) return null;
+  return {
+    id: fixture.id,
+    fixtureId: fixture.id,
+    fixtureName: `${fixture.home.name} vs ${fixture.away.name}`,
+    competition: fixture.competition.name,
+    date: fixture.date,
+    probYes: prediction.probYes,
+    probNo: prediction.probNo,
+    confidence: prediction.confidence,
+    tier: prediction.tier,
+    createdAt: Date.now(),
+    factorScores: Object.fromEntries(prediction.factors.map((f) => [f.key, f.score])),
+  };
+}
 
 export function GamesTable({ rows }: { rows: DashboardRow[] }) {
   const navigate = useNavigate();
   const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
+  const [added, setAdded] = useState<Set<string>>(new Set());
+
+  const addToHistory = (row: DashboardRow): void => {
+    const record = toHistoryRecord(row);
+    if (!record) return;
+    void upsertHistory(record)
+      .then(() => setAdded((prev) => new Set(prev).add(row.fixture.id)))
+      .catch((err) => log.warn('add to history failed', err));
+  };
 
   return (
     <Table>
@@ -32,7 +66,7 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
           <TableHead className="hidden md:table-cell">Classificação</TableHead>
           <TableHead className="hidden lg:table-cell">Confiança</TableHead>
           <TableHead className="hidden sm:table-cell">Valor</TableHead>
-          <TableHead className="w-20 text-right">Ações</TableHead>
+          <TableHead className="w-28 text-right">Ações</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -110,6 +144,20 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
                     onClick={() => toggleWatchlist(row)}
                   >
                     <Eye className={cn('h-4 w-4', watched && 'text-primary')} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Adicionar ao histórico"
+                    title="Adicionar ao histórico"
+                    disabled={!row.prediction || added.has(row.fixture.id)}
+                    onClick={() => addToHistory(row)}
+                  >
+                    {added.has(row.fixture.id) ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <ListPlus className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </TableCell>
