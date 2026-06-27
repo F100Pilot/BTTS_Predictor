@@ -49,15 +49,21 @@ export async function buildAnalysis(
   options: AnalysisOptions = {},
 ): Promise<AnalysisBundle> {
   const t = options.throwOnDataError ?? false;
-  const [homeMatches, awayMatches, h2hMatches] = await Promise.all([
-    data.getTeamRecentMatches(fixture.home.id, 10, t),
-    data.getTeamRecentMatches(fixture.away.id, 10, t),
-    data.getHeadToHead(fixture.home.id, fixture.away.id, 10, t),
+  // Fetch each team's recent matches once (15 to give the windows + H2H enough
+  // data). H2H is derived locally from those instead of a 3rd API call — this
+  // cuts the per-fixture cost from 3 requests to 2 and avoids double-fetching.
+  const [homeMatches, awayMatches] = await Promise.all([
+    data.getTeamRecentMatches(fixture.home.id, 15, t),
+    data.getTeamRecentMatches(fixture.away.id, 15, t),
   ]);
 
   const homeStats = computeTeamStats(fixture.home, homeMatches);
   const awayStats = computeTeamStats(fixture.away, awayMatches);
-  const h2h = computeHeadToHead(fixture.home.id, fixture.away.id, h2hMatches);
+  // Direct encounters appear in both teams' histories; dedupe by match id.
+  const h2hPool = Array.from(
+    new Map([...homeMatches, ...awayMatches].map((m) => [m.id, m])).values(),
+  );
+  const h2h = computeHeadToHead(fixture.home.id, fixture.away.id, h2hPool);
   const modelPrediction = predict({
     home: homeStats,
     away: awayStats,

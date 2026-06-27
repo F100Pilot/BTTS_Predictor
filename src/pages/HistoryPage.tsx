@@ -3,8 +3,9 @@ import { History, Trash2, Download, Calendar as CalendarIcon, X, RefreshCw } fro
 import { format, parseISO } from 'date-fns';
 import type { Bet, PredictionTier } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
-import { listHistory, clearHistory, setHistoryResult, listBets } from '@/data/cache/repositories';
+import { listHistory, clearHistory, setHistoryResult } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
+import { bttsFromGoals, settleBetAgainstBtts } from '@/services/settlementService';
 import { FinancialDashboard } from '@/components/history/FinancialDashboard';
 import { AddHistoryDialog } from '@/components/history/AddHistoryDialog';
 import { EmptyState, Spinner } from '@/components/common/States';
@@ -64,21 +65,24 @@ export function HistoryPage() {
   const refreshCalibration = useCalibration((s) => s.refresh);
   const autoCalibrate = useSettings((s) => s.autoCalibrate);
   const initialBankroll = useMartingale((s) => s.initialBankroll);
+  // Read bets from the Martingale store so settlements made here (or there)
+  // stay in sync across pages instead of living in a separate local copy.
+  const bets = useMartingale((s) => s.bets);
+  const refreshBets = useMartingale((s) => s.refresh);
+  const setBetResult = useMartingale((s) => s.setResult);
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [calOpen, setCalOpen] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
-  const [bets, setBets] = useState<Bet[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [hist, betList] = await Promise.all([listHistory(), listBets()]);
+    const [hist] = await Promise.all([listHistory(), refreshBets()]);
     setRecords(dedupeByFixture(hist));
-    setBets(betList);
     setLoading(false);
-  }, []);
+  }, [refreshBets]);
 
   useEffect(() => {
     void load();
@@ -120,33 +124,66 @@ export function HistoryPage() {
     setFetchMsg(null);
     try {
       const today = todayIso();
-      const pending = records.filter(
+      const pendingRecords = records.filter(
         (r) => !r.actual && r.fixtureId && r.date.slice(0, 10) <= today,
       );
+      const pendingBets = bets.filter((b) => b.result === 'pending' && b.fixtureId);
+
       // BTTS=SIM is locked the moment both teams have scored, even mid-game —
-      // settle those early from the live feed before checking finished results.
+      // use the live feed to early-settle "yes". Final results settle both ways.
       const live = await data.getLiveMatches().catch(() => []);
       const liveById = new Map(live.map((l) => [l.id, l]));
+
+      // One result lookup per unique fixture (shared between predictions + bets).
+      const fixtureIds = Array.from(
+        new Set([
+          ...pendingRecords.map((r) => r.fixtureId!),
+          ...pendingBets.map((b) => b.fixtureId!),
+        ]),
+      );
+      const resultById = new Map<string, Awaited<ReturnType<typeof data.getMatchResultById>>>();
+      for (const id of fixtureIds) {
+        resultById.set(id, await data.getMatchResultById(id).catch(() => null));
+      }
+
+      // Resolve the BTTS outcome for a fixture: final result first, else an
+      // early "yes" from the live feed (a finished 1-0 only settles via result).
+      const outcomeFor = (fixtureId: string): 'yes' | 'no' | null => {
+        const res = resultById.get(fixtureId);
+        if (res) return bttsFromGoals(res.homeGoals, res.awayGoals);
+        const lm = liveById.get(fixtureId);
+        if (lm && lm.homeGoals > 0 && lm.awayGoals > 0) return 'yes';
+        return null;
+      };
+
       let updated = 0;
-      for (const r of pending) {
-        const result = await data.getMatchResultById(r.fixtureId);
-        if (result) {
-          const btts = result.homeGoals > 0 && result.awayGoals > 0 ? 'yes' : 'no';
-          await setHistoryResult(r.id, btts);
-          updated += 1;
-          continue;
-        }
-        const lm = liveById.get(r.fixtureId);
-        if (lm && lm.homeGoals > 0 && lm.awayGoals > 0) {
-          await setHistoryResult(r.id, 'yes');
+      for (const r of pendingRecords) {
+        const outcome = outcomeFor(r.fixtureId!);
+        if (outcome) {
+          await setHistoryResult(r.id, outcome);
           updated += 1;
         }
       }
+
+      let betsSettled = 0;
+      for (const b of pendingBets) {
+        const outcome = outcomeFor(b.fixtureId!);
+        if (!outcome) continue;
+        const graded = settleBetAgainstBtts(b, outcome);
+        if (graded) {
+          await setBetResult(b.id, graded);
+          betsSettled += 1;
+        }
+      }
+
       await load();
       await refreshCalibration();
+      const parts: string[] = [];
+      if (updated > 0) parts.push(`${updated} previsão(ões)`);
+      if (betsSettled > 0) parts.push(`${betsSettled} aposta(s)`);
       setFetchMsg(
-        updated > 0
-          ? `${updated} resultado(s) atualizado(s).`
+        parts.length > 0
+          ? `Atualizado: ${parts.join(' e ')}.`
           : 'Sem novos resultados disponíveis (fonte/plano podem não os fornecer).',
       );
     } catch (err) {
@@ -499,6 +536,17 @@ export function HistoryPage() {
             />
           ) : (
             <>
+              <div className="flex items-center justify-end gap-2">
+                {fetchMsg && <span className="text-sm text-muted-foreground">{fetchMsg}</span>}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFetchResults}
+                  disabled={fetching}
+                >
+                  <RefreshCw className={fetching ? 'animate-spin' : ''} /> Atualizar resultados
+                </Button>
+              </div>
               <FinancialDashboard bets={bets} initialBankroll={initialBankroll} />
               <div className="rounded-lg border bg-card">
                 <Table>

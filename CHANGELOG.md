@@ -20,6 +20,44 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.12.0 — correções da auditoria
+
+**Ciclo de apostas (o que faltava para a app servir):**
+
+- "Atualizar resultados" passa a **liquidar automaticamente as apostas**
+  (ganha/perdida + lucro) por `fixtureId`, além das previsões, e marca também
+  BTTS "NÃO" em jogos terminados. Lógica pura testada em `settlementService`.
+- O Histórico lê as apostas do `martingaleStore` (uma só fonte de verdade), por
+  isso as liquidações ficam sincronizadas entre páginas; botão "Atualizar
+  resultados" também no separador Apostas.
+
+**Camada de dados (menos "dados insuficientes"):**
+
+- Football-Data: removido o filtro `status=FINISHED` (rejeitado no plano grátis),
+  passa a sobre-obter e filtrar os terminados no cliente.
+- H2H calculado localmente a partir do histórico já obtido → **1 pedido a menos
+  por jogo** e fim do duplo fetch da equipa da casa.
+- Resultados vazios/erros temporários **deixam de ser gravados em cache** como
+  "sem dados" (histórico de equipas e H2H).
+
+**Motor de previsão:**
+
+- `formScore` agora é **Poisson casa/fora** (ataque em casa vs defesa fora, com
+  vantagem de casa), o split mais previsível para BTTS, com recurso à forma
+  recente quando há poucos jogos casa/fora.
+- Guarda de insuficiência consistente (`< 3 jogos` em todos os fatores).
+- Calibração protegida: previsões já liquidadas deixam de ser reescritas; jogos
+  "insuficientes" não entram no histórico/estatísticas.
+
+**Fiabilidade e segurança:**
+
+- PWA: a atualização passa a **avisar** ("Nova versão") em vez de recarregar a
+  meio da sessão. Removida a runtimeCaching de API obsoleta.
+- Worker CORS: deixou de ser um **proxy aberto** — só encaminha caminhos
+  `/v4/...` da Football-Data e só responde à origem da app; rota `/sofa` morta
+  removida.
+- Dashboard: a atualização da calibração já não apaga/recarrega a lista do dia.
+
 ## 0.2.11.1
 
 - O aviso de "dados insuficientes" (página de análise) passa a indicar o número

@@ -1,4 +1,11 @@
-import type { BttsPrediction, HeadToHead, PredictionFactor, TeamStats } from '@/domain/types';
+import type {
+  BttsPrediction,
+  HeadToHead,
+  PredictionFactor,
+  TeamStats,
+  VenueStats,
+  WindowStats,
+} from '@/domain/types';
 import { clamp, average, stdDev, round } from '@/lib/math';
 import { tierForProbability } from '@/core/classification/classification';
 import { DEFAULT_WEIGHTS, FACTOR_LABELS, normalizeWeights, type FactorKey } from './weights';
@@ -17,34 +24,53 @@ function probScores(expectedGoals: number): number {
 
 /** Neutral score used when a factor has no underlying data ("don't know"). */
 const NEUTRAL = 0.5;
+/** Minimum matches before a factor is trusted (else it returns NEUTRAL). */
+const MIN_MATCHES = 3;
+/** Mild home-scoring boost applied to the home team's expected goals. */
+const HOME_ADVANTAGE = 1.05;
+
+/** Average goals-for, preferring venue-specific data when it has enough games. */
+function venueGoalsFor(venue: VenueStats, fallback: WindowStats): number {
+  return venue.played >= MIN_MATCHES ? venue.avgGoalsFor : fallback.avgGoalsFor;
+}
+/** Average goals-against, preferring venue-specific data when it has enough games. */
+function venueGoalsAgainst(venue: VenueStats, fallback: WindowStats): number {
+  return venue.played >= MIN_MATCHES ? venue.avgGoalsAgainst : fallback.avgGoalsAgainst;
+}
 
 /**
- * FORM (30%): Poisson-based probability that BOTH teams score, using recent
- * attacking output vs the opponent's recent defensive frailty (last 5).
- * Neutral when either team has no recent matches (avoids fabricating 0%).
+ * FORM (30%): Poisson probability that BOTH teams score. Expected goals are
+ * built venue-aware — the home team's HOME attack vs the away team's AWAY
+ * defence (and vice-versa), with a mild home advantage — which is the most
+ * predictive split for BTTS. Falls back to overall recent form when a team has
+ * too few home/away games. Neutral when either side lacks data.
  */
 function formScore(home: TeamStats, away: TeamStats): number {
-  if (home.last5.played === 0 || away.last5.played === 0) return NEUTRAL;
-  const lambdaHome = (home.last5.avgGoalsFor + away.last5.avgGoalsAgainst) / 2;
-  const lambdaAway = (away.last5.avgGoalsFor + home.last5.avgGoalsAgainst) / 2;
+  if (home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES) return NEUTRAL;
+  const homeAttack = venueGoalsFor(home.home, home.last5);
+  const awayDefence = venueGoalsAgainst(away.away, away.last5);
+  const awayAttack = venueGoalsFor(away.away, away.last5);
+  const homeDefence = venueGoalsAgainst(home.home, home.last5);
+  const lambdaHome = ((homeAttack + awayDefence) / 2) * HOME_ADVANTAGE;
+  const lambdaAway = (awayAttack + homeDefence) / 2;
   return clamp(probScores(lambdaHome) * probScores(lambdaAway));
 }
 
 /** BTTS HISTORY (25%): mean of both teams' BTTS rate over the last 10. */
 function bttsHistoryScore(home: TeamStats, away: TeamStats): number {
-  if (home.last10.played === 0 || away.last10.played === 0) return NEUTRAL;
+  if (home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES) return NEUTRAL;
   return clamp((home.last10.bttsPct + away.last10.bttsPct) / 2);
 }
 
 /** ATTACK (15%): how reliably each team scores, averaged. */
 function attackScore(home: TeamStats, away: TeamStats): number {
-  if (home.last10.played === 0 || away.last10.played === 0) return NEUTRAL;
+  if (home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES) return NEUTRAL;
   return clamp(average([probScores(home.last10.avgGoalsFor), probScores(away.last10.avgGoalsFor)]));
 }
 
 /** DEFENSE (15%): how reliably each team concedes (weak defense ⇒ BTTS). */
 function defenseScore(home: TeamStats, away: TeamStats): number {
-  if (home.last10.played === 0 || away.last10.played === 0) return NEUTRAL;
+  if (home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES) return NEUTRAL;
   return clamp(
     average([probScores(home.last10.avgGoalsAgainst), probScores(away.last10.avgGoalsAgainst)]),
   );
@@ -129,7 +155,7 @@ export function predict(input: PredictInput): BttsPrediction {
   const dominant = Math.max(probYes, probNo);
 
   // Too few matches to trust the model — never show a "strong" tier on thin air.
-  const insufficientData = home.last10.played < 3 || away.last10.played < 3;
+  const insufficientData = home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES;
 
   return {
     probYes,

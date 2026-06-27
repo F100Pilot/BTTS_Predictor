@@ -12,7 +12,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': a new version waits until the user accepts (see
+      // PwaUpdatePrompt) instead of reloading mid-session.
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'robots.txt', 'icons/*.png'],
       manifest: {
         name: 'BTTS Analytics Pro',
@@ -39,22 +41,14 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallback: base + 'index.html',
-        // Take control immediately and drop stale precaches so a new deploy
-        // activates without the user having to confirm anything.
-        clientsClaim: true,
-        skipWaiting: true,
+        // Don't skip waiting / claim automatically — the update banner activates
+        // the new SW only when the user accepts, so work isn't interrupted.
+        clientsClaim: false,
+        skipWaiting: false,
         cleanupOutdatedCaches: true,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.(?:football-data|api-football|sportmonks)\..*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-data',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 6 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+        // No runtimeCaching for API hosts: requests go through a proxy/worker so
+        // the host varies, and API responses are already cached (with TTLs) in
+        // IndexedDB. Caching them at the SW layer risked storing opaque errors.
       },
     }),
   ],

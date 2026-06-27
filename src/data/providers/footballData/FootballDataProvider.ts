@@ -96,11 +96,19 @@ export class FootballDataProvider implements DataProvider {
     limit: number,
     ctx: ProviderContext,
   ): Promise<MatchResult[]> {
+    // NOTE: the free tier ignores/rejects the `status=FINISHED` filter, which
+    // made this return empty for many teams. Instead over-fetch recent matches
+    // and keep only the finished ones (normalizeResult drops those without a
+    // full-time score), newest first.
     const data = await this.request<{ matches: FdMatch[] }>(
-      `/teams/${teamId}/matches?status=FINISHED&limit=${limit}`,
+      `/teams/${teamId}/matches?limit=${Math.max(limit * 4, 40)}`,
       ctx,
     );
-    return (data.matches ?? []).map(normalizeResult).filter((m): m is MatchResult => m !== null);
+    return (data.matches ?? [])
+      .map(normalizeResult)
+      .filter((m): m is MatchResult => m !== null)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, limit);
   }
 
   async getHeadToHead(

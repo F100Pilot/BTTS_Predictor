@@ -23,12 +23,19 @@ function venue(partial: Partial<VenueStats>): VenueStats {
 }
 
 function team(name: string, w: Partial<WindowStats>): TeamStats {
+  // Mirror the window's goal averages into venue stats so the venue-aware form
+  // model sees a consistent scenario (real venue stats derive from the matches).
+  const vs = {
+    bttsPct: w.bttsPct,
+    avgGoalsFor: w.avgGoalsFor ?? 1.5,
+    avgGoalsAgainst: w.avgGoalsAgainst ?? 1.5,
+  };
   return {
     team: { id: name, name },
     last5: window(w),
     last10: window(w),
-    home: venue({ bttsPct: w.bttsPct }),
-    away: venue({ bttsPct: w.bttsPct }),
+    home: venue(vs),
+    away: venue(vs),
     recentForm: [],
   };
 }

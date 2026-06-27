@@ -66,9 +66,17 @@ export function DashboardPage() {
   const autoCalibrate = useSettings((s) => s.autoCalibrate);
   const platt = useCalibration((s) => s.platt);
   const calibrationReady = useCalibration((s) => s.ready);
-  const recalibration = autoCalibrate && calibrationReady ? platt : undefined;
+  // Memoise by the actual Platt coefficients (not object identity) so a routine
+  // calibration refresh elsewhere doesn't re-run the fetch effect and wipe rows.
+  const recalibration = useMemo(
+    () => (autoCalibrate && calibrationReady ? platt : undefined),
+    // Intentionally keyed by coefficients, not the `platt` object identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [autoCalibrate, calibrationReady, platt?.a, platt?.b],
+  );
   const hideAmateur = useSettings((s) => s.hideAmateur);
   const majorOnly = useSettings((s) => s.majorOnly);
+  const setMajorOnly = useSettings((s) => s.setMajorOnly);
   const batchSize = useSettings((s) => s.analysisBatchSize);
   const cacheFixtures = useFixtureCache((s) => s.put);
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
@@ -335,8 +343,15 @@ export function DashboardPage() {
               : waiting > 0
                 ? `Há ${waiting} jogo(s) por analisar. Usa "Analisar mais" para continuar.`
                 : majorOnly && fixtures.length === 0
-                  ? 'Sem grandes competições neste dia. Desliga "Só grandes competições" nos filtros para ver mais jogos, ou escolhe outra data.'
+                  ? 'Sem grandes competições neste dia (fora de época as ligas de clubes param). Mostra todas as competições ou escolhe outra data.'
                   : 'Experimente outra data ou reduza os filtros aplicados.'
+          }
+          action={
+            majorOnly && fixtures.length === 0 && !loadError ? (
+              <Button variant="outline" size="sm" onClick={() => setMajorOnly(false)}>
+                Mostrar todas as competições
+              </Button>
+            ) : undefined
           }
         />
       ) : (

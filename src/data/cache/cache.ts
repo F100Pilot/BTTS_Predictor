@@ -43,7 +43,12 @@ export async function cacheSet<T>(key: string, value: T, ttlMs: number): Promise
  * Cache-aside helper with in-flight de-duplication.
  * Returns cached value if fresh, otherwise runs `loader`, caches and returns it.
  */
-export async function cached<T>(key: string, ttlMs: number, loader: () => Promise<T>): Promise<T> {
+export async function cached<T>(
+  key: string,
+  ttlMs: number,
+  loader: () => Promise<T>,
+  opts?: { shouldCache?: (value: T) => boolean },
+): Promise<T> {
   const hit = await cacheGet<T>(key);
   if (hit !== undefined) {
     log.debug('cache hit', key);
@@ -56,7 +61,11 @@ export async function cached<T>(key: string, ttlMs: number, loader: () => Promis
   const promise = (async () => {
     try {
       const value = await loader();
-      await cacheSet(key, value, ttlMs);
+      // Allow callers to skip caching certain values (e.g. empty team history)
+      // so a transient failure isn't frozen as authoritative "no data".
+      if (!opts?.shouldCache || opts.shouldCache(value)) {
+        await cacheSet(key, value, ttlMs);
+      }
       return value;
     } finally {
       inflight.delete(key);
@@ -64,6 +73,11 @@ export async function cached<T>(key: string, ttlMs: number, loader: () => Promis
   })();
   inflight.set(key, promise);
   return promise;
+}
+
+/** True when a value is a non-empty result worth caching (arrays must have items). */
+export function isNonEmpty<T>(value: T): boolean {
+  return Array.isArray(value) ? value.length > 0 : value != null;
 }
 
 /** Delete a single cache entry by key (best-effort). */

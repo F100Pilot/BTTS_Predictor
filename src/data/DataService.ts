@@ -1,5 +1,5 @@
 import type { Fixture, LiveMatch, MatchResult } from '@/domain/types';
-import { cached, TTL } from './cache/cache';
+import { cached, isNonEmpty, TTL } from './cache/cache';
 import { getProvider, realProviders, DEFAULT_PROVIDER_ID } from './providers/registry';
 import { MockProvider } from './providers/mock/MockProvider';
 import type { BttsOdds, DataProvider, ProviderContext } from './providers/types';
@@ -121,6 +121,9 @@ export class DataService {
     mockRun: () => Promise<T>,
     allowMock = this.config.fallbackToMock,
     throwOnError = false,
+    /** When false, empty results are NOT cached (so a transient failure that
+     * returns [] doesn't freeze "no data" for the full TTL). */
+    cacheEmpty = true,
   ): Promise<T> {
     const provider = getProvider(this.providerId);
     const ctx = this.ctxFor(provider.id);
@@ -129,7 +132,9 @@ export class DataService {
       return emptyValue;
     }
     try {
-      return await cached(`${provider.id}:${cacheKey}`, ttl, () => run(provider, ctx));
+      return await cached(`${provider.id}:${cacheKey}`, ttl, () => run(provider, ctx), {
+        shouldCache: cacheEmpty ? undefined : isNonEmpty,
+      });
     } catch (err) {
       // Let callers that need to distinguish a real failure (e.g. 429) from
       // genuinely-empty data opt into surfacing the error instead of [].
@@ -236,6 +241,7 @@ export class DataService {
       () => mock.getTeamRecentMatches(teamId, limit),
       this.config.fallbackToMock,
       throwOnError,
+      false, // don't cache an empty history — retry on the next visit
     );
   }
 
@@ -253,6 +259,7 @@ export class DataService {
       () => mock.getHeadToHead(homeId, awayId, limit),
       this.config.fallbackToMock,
       throwOnError,
+      false, // don't cache an empty H2H
     );
   }
 }

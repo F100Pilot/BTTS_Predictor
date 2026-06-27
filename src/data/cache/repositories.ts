@@ -49,14 +49,15 @@ export async function addHistory(record: HistoryRecord): Promise<void> {
   await db.put('history', record);
 }
 /** One record per fixture: updates prediction fields but keeps the existing
- * real result (`actual`) and original creation time. */
+ * real result (`actual`) and original creation time. Once a real result is
+ * recorded, the prediction is FROZEN — re-opening analysis with different
+ * weights must not rewrite the probability the result was graded against
+ * (that would corrupt calibration/backtest stats). */
 export async function upsertHistory(record: HistoryRecord): Promise<void> {
   const db = await getDb();
   const existing = await db.get('history', record.id);
-  await db.put(
-    'history',
-    existing ? { ...record, actual: existing.actual, createdAt: existing.createdAt } : record,
-  );
+  if (existing?.actual) return; // settled — keep the graded prediction intact
+  await db.put('history', existing ? { ...record, createdAt: existing.createdAt } : record);
 }
 export async function clearHistory(): Promise<void> {
   const db = await getDb();

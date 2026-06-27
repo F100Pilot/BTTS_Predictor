@@ -86,19 +86,26 @@ export function AnalysisPage() {
         if (cancelled) return;
         setBundle(result);
         // Record the prediction in history (one record per fixture, best-effort).
-        upsertHistory({
-          id: fixture.id,
-          fixtureId: fixture.id,
-          fixtureName: `${fixture.home.name} vs ${fixture.away.name}`,
-          competition: fixture.competition.name,
-          date: fixture.date,
-          probYes: result.prediction.probYes,
-          probNo: result.prediction.probNo,
-          confidence: result.prediction.confidence,
-          tier: result.prediction.tier,
-          createdAt: Date.now(),
-          factorScores: Object.fromEntries(result.prediction.factors.map((f) => [f.key, f.score])),
-        }).catch((err) => log.warn('history save failed', err));
+        // Skip insufficient-data games — a ~50/50 placeholder would pollute the
+        // calibration/performance stats. upsertHistory freezes the prediction
+        // once a real result has been recorded.
+        if (!result.prediction.insufficientData) {
+          upsertHistory({
+            id: fixture.id,
+            fixtureId: fixture.id,
+            fixtureName: `${fixture.home.name} vs ${fixture.away.name}`,
+            competition: fixture.competition.name,
+            date: fixture.date,
+            probYes: result.prediction.probYes,
+            probNo: result.prediction.probNo,
+            confidence: result.prediction.confidence,
+            tier: result.prediction.tier,
+            createdAt: Date.now(),
+            factorScores: Object.fromEntries(
+              result.prediction.factors.map((f) => [f.key, f.score]),
+            ),
+          }).catch((err) => log.warn('history save failed', err));
+        }
       } catch (err) {
         log.error('analysis failed', err);
         if (!cancelled) setBundle(null);
