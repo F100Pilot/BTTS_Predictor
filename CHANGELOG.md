@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.17.0
+
+- **Modo manual para API-Football**: quando a fonte ativa é a API-Football, o
+  painel lista **todos** os jogos do dia (todas as competições) **sem analisar**,
+  para poupar a quota diária. O utilizador pesquisa e clica num jogo para o
+  analisar individualmente; a previsão fica guardada no cache do dia
+  (`saveDayPrediction` na página de análise) e reaparece na tabela.
+  - Esconde a UI de lotes ("Analisar mais"/"Reanalisar") e mostra jogos não
+    analisados (ignora "Mostrar só jogos analisados") neste modo.
+- Football-Data.org mantém o comportamento automático (sem alterações).
+
 ## 0.2.16.0 — correção de resultados trocados
 
 - **Bug corrigido:** os resultados podiam vir da fonte errada. Os IDs de jogo são

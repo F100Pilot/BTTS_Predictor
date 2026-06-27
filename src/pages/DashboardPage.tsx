@@ -80,6 +80,10 @@ export function DashboardPage() {
   const hideStarted = useSettings((s) => s.hideStarted);
   const setHideStarted = useSettings((s) => s.setHideStarted);
   const batchSize = useSettings((s) => s.analysisBatchSize);
+  const providerId = useSettings((s) => s.providerId);
+  // API-Football: list ALL fixtures and analyse on demand (click a game), to
+  // spare the daily quota. Other providers keep the automatic batch analysis.
+  const manualMode = providerId === 'api-football';
   const cacheFixtures = useFixtureCache((s) => s.put);
   const [filters, setFilters] = useState<DashboardFilterState>(() => defaultFilters(todayIso()));
   // `fixtures` is the kickoff-ordered list; it drives analysis priority (not display).
@@ -115,11 +119,17 @@ export function DashboardPage() {
       // hundreds of matches that never finish analysing. "Major only" is the
       // strongest filter (top leagues + world/continental cups); otherwise we
       // at least drop amateur/youth/friendly games.
-      const byCompetition = majorOnly
-        ? allFixtures.filter((f) => isMajorCompetition(f.competition.name, f.competition.country))
-        : hideAmateur
+      // In manual mode list ALL competitions (so any game is searchable); only
+      // drop amateur/youth if that filter is on. Otherwise apply "major only".
+      const byCompetition = manualMode
+        ? hideAmateur
           ? allFixtures.filter((f) => !isMinorCompetition(f.competition.name))
-          : allFixtures;
+          : allFixtures
+        : majorOnly
+          ? allFixtures.filter((f) => isMajorCompetition(f.competition.name, f.competition.country))
+          : hideAmateur
+            ? allFixtures.filter((f) => !isMinorCompetition(f.competition.name))
+            : allFixtures;
       // Drop games that have already kicked off — predicting a match in progress
       // or already finished is pointless and just wastes the API budget.
       const now = Date.now();
@@ -180,6 +190,7 @@ export function DashboardPage() {
     hideAmateur,
     majorOnly,
     hideStarted,
+    manualMode,
     batchSize,
   ]);
 
@@ -187,7 +198,9 @@ export function DashboardPage() {
   // Re-runs when the window grows ("Analisar mais"); cached/analysed games are
   // skipped via analyzedRef so growing the window only costs the new slice.
   useEffect(() => {
-    if (fixtures.length === 0) return;
+    // Manual mode (API-Football): never auto-analyse — the user analyses a game
+    // by opening it. Already-saved predictions still show (loaded in effect A).
+    if (manualMode || fixtures.length === 0) return;
     let cancelled = false;
     const sig = sigRef.current;
     const window = Number.isFinite(batchLimit) ? fixtures.slice(0, batchLimit) : fixtures;
@@ -218,7 +231,16 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [fixtures, batchLimit, data, weights, oddsCalibration, recalibration, filters.date]);
+  }, [
+    fixtures,
+    batchLimit,
+    data,
+    weights,
+    oddsCalibration,
+    recalibration,
+    filters.date,
+    manualMode,
+  ]);
 
   const handleReanalyze = useCallback(async () => {
     await clearDayPredictions(filters.date);
@@ -233,8 +255,13 @@ export function DashboardPage() {
 
   const favoriteCompetition = useSettings((s) => s.favoriteCompetition);
   const filtered = useMemo(
-    () => sortByFavourite(applyFilters(rows, filters), favoriteCompetition),
-    [rows, filters, favoriteCompetition],
+    () =>
+      sortByFavourite(
+        // Manual mode lists un-analysed games too, so ignore "only analysed".
+        applyFilters(rows, manualMode ? { ...filters, hideNoData: false } : filters),
+        favoriteCompetition,
+      ),
+    [rows, filters, favoriteCompetition, manualMode],
   );
   const competitions = useMemo(() => uniqueCompetitions(rows), [rows]);
   const countries = useMemo(() => uniqueCountries(rows), [rows]);
@@ -258,8 +285,9 @@ export function DashboardPage() {
     () => fixtures.filter((f) => !batchIds.has(f.id) && !predById.get(f.id)).length,
     [fixtures, batchIds, predById],
   );
-  const analyzing = batchTotal > 0 && analyzedInBatch < batchTotal;
+  const analyzing = !manualMode && batchTotal > 0 && analyzedInBatch < batchTotal;
   const nextBatch = Math.min(batchSize || waiting, waiting);
+  const showWaiting = !manualMode && waiting > 0;
 
   const handleExport = useCallback(
     async (kind: 'csv' | 'xlsx' | 'pdf') => {
@@ -282,21 +310,26 @@ export function DashboardPage() {
             {filters.date === todayIso() ? 'Jogos de Hoje' : 'Jogos'}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {formatDate(filters.date)} · {filtered.length} jogo(s) · ordenados por BTTS=SIM
+            {formatDate(filters.date)} · {filtered.length} jogo(s)
+            {manualMode
+              ? ' · modo manual: clica num jogo para analisar'
+              : ' · ordenados por BTTS=SIM'}
             {analyzing && ` · a analisar ${analyzedInBatch}/${batchTotal}…`}
-            {waiting > 0 && ` · ${waiting} em espera`}
+            {showWaiting && ` · ${waiting} em espera`}
           </p>
           <QuotaBadge className="mt-1" />
         </div>
         <div className="flex gap-2">
-          {waiting > 0 && (
+          {showWaiting && (
             <Button variant="outline" size="sm" onClick={loadMore} disabled={analyzing}>
               <PlusCircle /> Analisar mais {nextBatch}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => void handleReanalyze()}>
-            <RefreshCw /> Reanalisar
-          </Button>
+          {!manualMode && (
+            <Button variant="outline" size="sm" onClick={() => void handleReanalyze()}>
+              <RefreshCw /> Reanalisar
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -349,7 +382,7 @@ export function DashboardPage() {
           description={
             loadError
               ? 'A fonte de dados não respondeu. Tenta novamente daqui a pouco.'
-              : waiting > 0
+              : showWaiting
                 ? `Há ${waiting} jogo(s) por analisar. Usa "Analisar mais" para continuar.`
                 : fixtures.length === 0
                   ? 'Sem jogos por começar para os filtros atuais. Fora de época as ligas de clubes param, e os jogos que já começaram estão escondidos.'

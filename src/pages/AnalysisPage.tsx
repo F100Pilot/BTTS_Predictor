@@ -9,6 +9,7 @@ import { useFixtureCache, dateFromMockId } from '@/store/fixtureCacheStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { buildAnalysis } from '@/services/analysisService';
 import { upsertHistory } from '@/data/cache/repositories';
+import { saveDayPrediction, predictionSignature } from '@/services/dayPredictions';
 import { todayIso, formatDateTime } from '@/lib/format';
 import { tierMeta } from '@/core/classification/classification';
 import { createLogger } from '@/services/logger';
@@ -86,6 +87,14 @@ export function AnalysisPage() {
         });
         if (cancelled) return;
         setBundle(result);
+        // Cache into the per-day store so an individually-analysed game (e.g. in
+        // API-Football manual mode) shows up with its prediction back on the
+        // dashboard without a re-analysis.
+        if (result.prediction && !result.prediction.insufficientData) {
+          const day = fixture.date.slice(0, 10);
+          const sig = predictionSignature(weights, oddsCalibration, recalibration);
+          void saveDayPrediction(day, sig, fixture.id, result.prediction);
+        }
         // Record the prediction in history (one record per fixture, best-effort).
         // Skip insufficient-data games — a ~50/50 placeholder would pollute the
         // calibration/performance stats. upsertHistory freezes the prediction
