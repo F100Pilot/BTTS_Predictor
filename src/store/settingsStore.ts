@@ -15,7 +15,6 @@ interface SettingsState {
   /** Shared secret that namespaces this user's synced history/bets in the
    * worker's KV. Empty = sync off. Same code on every device = same data. */
   syncCode: string;
-  fallbackToMock: boolean;
   /** Try other configured providers automatically when the primary fails. */
   autoFallback: boolean;
   theme: ThemeMode;
@@ -44,7 +43,6 @@ interface SettingsState {
   setCorsProxy: (value: string) => void;
   setRapidApiKey: (value: string) => void;
   setSyncCode: (value: string) => void;
-  setFallbackToMock: (value: boolean) => void;
   setAutoFallback: (value: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   setFavoriteCompetition: (name: string) => void;
@@ -73,7 +71,6 @@ export const useSettings = create<SettingsState>()(
       corsProxy: '',
       rapidApiKey: '',
       syncCode: '',
-      fallbackToMock: true,
       autoFallback: true,
       theme: 'system',
       favoriteCompetition: '',
@@ -95,7 +92,6 @@ export const useSettings = create<SettingsState>()(
       setCorsProxy: (value) => set({ corsProxy: value.trim() }),
       setRapidApiKey: (value) => set({ rapidApiKey: sanitizeApiKey(value) }),
       setSyncCode: (value) => set({ syncCode: value.trim() }),
-      setFallbackToMock: (value) => set({ fallbackToMock: value }),
       setAutoFallback: (value) => set({ autoFallback: value }),
       setTheme: (theme) => set({ theme }),
       setFavoriteCompetition: (name) => set({ favoriteCompetition: name }),
@@ -121,12 +117,17 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: 'btts:settings',
-      version: 1,
+      version: 2,
       // v1: drop the per-day analysis cap — analyse all matching fixtures by
-      // default. Reset existing installs that still carry the old 20 limit.
+      //     default. Reset existing installs that still carry the old 20 limit.
+      // v2: the demo ("mock") source was removed — migrate anyone still on it to
+      //     the default real provider so the picker isn't left blank.
       migrate: (persisted, version) => {
-        const state = persisted as Partial<SettingsState> | undefined;
+        const state = persisted as (Partial<SettingsState> & { providerId?: string }) | undefined;
         if (state && version < 1) state.analysisBatchSize = 0;
+        if (state && version < 2 && state.providerId === 'mock') {
+          state.providerId = DEFAULT_PROVIDER_ID;
+        }
         return state as SettingsState;
       },
     },

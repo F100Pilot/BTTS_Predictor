@@ -5,7 +5,7 @@ import type { AnalysisBundle, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
 import { useCollections } from '@/store/collectionsStore';
-import { useFixtureCache, dateFromMockId } from '@/store/fixtureCacheStore';
+import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { buildAnalysis } from '@/services/analysisService';
 import { cacheDelete } from '@/data/cache/cache';
@@ -55,13 +55,8 @@ export function AnalysisPage() {
   const resolveFixture = useCallback(async (): Promise<Fixture | undefined> => {
     const cached = getCached(id);
     if (cached) return cached;
-    const dates = [dateFromMockId(id), todayIso()].filter((d): d is string => Boolean(d));
-    for (const date of dates) {
-      const fixtures = await data.getFixturesByDate(date);
-      const found = fixtures.find((f) => f.id === id);
-      if (found) return found;
-    }
-    return undefined;
+    const fixtures = await data.getFixturesByDate(todayIso());
+    return fixtures.find((f) => f.id === id);
   }, [data, getCached, id]);
 
   useEffect(() => {

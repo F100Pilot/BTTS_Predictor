@@ -181,7 +181,7 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Fonte de Dados</CardTitle>
           <CardDescription>
-            Escolha o fornecedor de dados. A fonte de demonstração funciona sem chave e offline.
+            Escolha o fornecedor de dados (requer chave e Proxy CORS).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -305,16 +305,6 @@ export function SettingsPage() {
             Se a fonte principal falhar ou esgotar o limite, a app tenta as outras fontes que
             tiverem chave configurada (jogos e resultados ao vivo).
           </p>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={settings.fallbackToMock}
-              onChange={(e) => settings.setFallbackToMock(e.target.checked)}
-              className="h-4 w-4 accent-[hsl(var(--primary))]"
-            />
-            Usar dados de demonstração quando nenhuma fonte está configurada
-          </label>
 
           {!activeProvider.capabilities.worksOffline && (
             <div className="space-y-3 border-t pt-4">

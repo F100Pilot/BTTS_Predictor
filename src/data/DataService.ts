@@ -1,12 +1,10 @@
 import type { Fixture, LiveMatch, MatchResult, SeasonStats } from '@/domain/types';
 import { cached, isNonEmpty, TTL } from './cache/cache';
 import { getProvider, realProviders, DEFAULT_PROVIDER_ID } from './providers/registry';
-import { MockProvider } from './providers/mock/MockProvider';
 import type { BttsOdds, DataProvider, ProviderContext } from './providers/types';
 import { createLogger } from '@/services/logger';
 
 const log = createLogger('DataService');
-const mock = new MockProvider();
 
 /** Split an inclusive ISO date range into windows of at most `maxDays` days. */
 export function chunkDateRange(
@@ -37,8 +35,6 @@ export interface DataServiceConfig {
   /** Per-provider API keys (device-local). */
   apiKeys: Record<string, string>;
   corsProxy?: string;
-  /** Fall back to mock data when no real provider is configured. */
-  fallbackToMock: boolean;
   /** Try other configured providers when the primary one fails (e.g. 429). */
   autoFallback: boolean;
 }
@@ -56,6 +52,9 @@ interface ChainEntry {
  * provider (primary first) when `autoFallback` is on. Team-scoped lookups
  * (history, H2H, results, odds) stay on the PRIMARY provider only — their ids
  * are provider-specific, so falling back to a different source would mismatch.
+ *
+ * There is no demo/mock source: when nothing is configured (or every provider
+ * fails) lookups return empty rather than fabricating fake games.
  */
 export class DataService {
   constructor(private readonly config: DataServiceConfig) {}
@@ -86,16 +85,10 @@ export class DataService {
     ttl: number,
     call: (provider: DataProvider, ctx: ProviderContext) => Promise<T>,
     emptyValue: T,
-    mockRun: () => Promise<T>,
-    allowMock: boolean,
     throwOnError = false,
   ): Promise<T> {
     const chain = this.fixturesChain();
-    if (chain.length === 0) {
-      // Nothing configured → demo data only when explicitly allowed.
-      if (allowMock) return cached(`mock:${cacheKey}`, ttl, mockRun);
-      return emptyValue;
-    }
+    if (chain.length === 0) return emptyValue; // nothing configured
     let lastErr: unknown;
     for (const { provider, ctx } of chain) {
       try {
@@ -105,8 +98,6 @@ export class DataService {
         log.warn(`provider ${provider.id} failed, trying next`, err);
       }
     }
-    // Every configured provider failed. NEVER fabricate demo data here — that
-    // would inject fake games. Demo data is only for the unconfigured case.
     log.error('all providers failed', lastErr);
     if (throwOnError && lastErr) throw lastErr;
     return emptyValue;
@@ -118,8 +109,6 @@ export class DataService {
     ttl: number,
     run: (provider: DataProvider, ctx: ProviderContext) => Promise<T>,
     emptyValue: T,
-    mockRun: () => Promise<T>,
-    allowMock = this.config.fallbackToMock,
     throwOnError = false,
     /** When false, empty results are NOT cached (so a transient failure that
      * returns [] doesn't freeze "no data" for the full TTL). */
@@ -127,10 +116,7 @@ export class DataService {
   ): Promise<T> {
     const provider = getProvider(this.providerId);
     const ctx = this.ctxFor(provider.id);
-    if (!provider.isConfigured(ctx)) {
-      if (allowMock) return cached(`mock:${cacheKey}`, ttl, mockRun);
-      return emptyValue;
-    }
+    if (!provider.isConfigured(ctx)) return emptyValue;
     try {
       return await cached(`${provider.id}:${cacheKey}`, ttl, () => run(provider, ctx), {
         shouldCache: cacheEmpty ? undefined : isNonEmpty,
@@ -139,7 +125,7 @@ export class DataService {
       // Let callers that need to distinguish a real failure (e.g. 429) from
       // genuinely-empty data opt into surfacing the error instead of [].
       if (throwOnError) throw err;
-      log.error('primary provider failed — returning empty (no mock substitution)', err);
+      log.error('primary provider failed — returning empty', err);
       return emptyValue;
     }
   }
@@ -150,17 +136,12 @@ export class DataService {
       TTL.fixtures,
       (provider, ctx) => provider.getFixturesByDate(date, ctx),
       [],
-      () => mock.getFixturesByDate(date),
-      this.config.fallbackToMock,
       true, // surface provider errors so the dashboard can show a notice
     );
   }
 
-  /**
-   * Fixtures across a date range, chunked into ≤10-day windows (free-tier safe).
-   * `allowMock` defaults to false: the calendar must reflect real sources only.
-   */
-  async getFixturesByRange(from: string, to: string, allowMock = false): Promise<Fixture[]> {
+  /** Fixtures across a date range, chunked into ≤10-day windows (free-tier safe). */
+  async getFixturesByRange(from: string, to: string): Promise<Fixture[]> {
     const windows = chunkDateRange(from, to, 10);
     const chunks = await Promise.all(
       windows.map((w) =>
@@ -172,18 +153,15 @@ export class DataService {
               ? provider.getFixturesByRange(w.from, w.to, ctx)
               : Promise.reject(new Error('range unsupported')),
           [] as Fixture[],
-          () => mock.getFixturesByRange(w.from, w.to),
-          allowMock,
         ),
       ),
     );
     return chunks.flat();
   }
 
-  /** Distinct ISO dates (yyyy-MM-dd) that have at least one fixture in the range.
-   * Does NOT fall back to mock — marks reflect the real source only. */
+  /** Distinct ISO dates (yyyy-MM-dd) that have at least one fixture in the range. */
   async getFixtureDatesInRange(from: string, to: string): Promise<string[]> {
-    const fixtures = await this.getFixturesByRange(from, to, false);
+    const fixtures = await this.getFixturesByRange(from, to);
     return Array.from(new Set(fixtures.map((f) => f.date.slice(0, 10))));
   }
 
@@ -197,8 +175,6 @@ export class DataService {
           ? provider.getLiveMatches(ctx)
           : Promise.reject(new Error('live unsupported')),
       [] as LiveMatch[],
-      () => mock.getLiveMatches(),
-      this.config.fallbackToMock,
     );
   }
 
@@ -259,8 +235,6 @@ export class DataService {
       TTL.teamHistory,
       (provider, ctx) => provider.getTeamRecentMatches(teamId, limit, ctx),
       [],
-      () => mock.getTeamRecentMatches(teamId, limit),
-      this.config.fallbackToMock,
       throwOnError,
       false, // don't cache an empty history — retry on the next visit
     );
@@ -277,8 +251,6 @@ export class DataService {
       TTL.h2h,
       (provider, ctx) => provider.getHeadToHead(homeId, awayId, limit, ctx),
       [],
-      () => mock.getHeadToHead(homeId, awayId, limit),
-      this.config.fallbackToMock,
       throwOnError,
       false, // don't cache an empty H2H
     );

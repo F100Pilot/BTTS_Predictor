@@ -7,11 +7,6 @@ import type {
   VenueStats,
   WindowStats,
 } from '@/domain/types';
-import {
-  parseFootystatsClub,
-  type ParsedFootystatsTeam,
-  type ParsedTeamSplit,
-} from '@/services/footystatsParser';
 import { parseFlashscoreH2H, type FlashH2HResult, type FlashSplit } from '@/services/flashscoreH2H';
 import { parseFlashscoreBttsOdds, type FlashBttsOdds } from '@/services/flashscoreOdds';
 import type { HistoryRecord } from '@/data/cache/db';
@@ -260,15 +255,7 @@ export function CalculatorPage() {
 
   const set = (key: keyof CalcForm) => (v: string) => setForm((prev) => ({ ...prev, [key]: v }));
 
-  // ---- FootyStats import ----
-  const [importHtml, setImportHtml] = useState('');
-  const imported = useMemo<ParsedFootystatsTeam | null>(
-    () => (importHtml.trim() ? parseFootystatsClub(importHtml) : null),
-    [importHtml],
-  );
-
   const corsProxy = useSettings((s) => s.corsProxy);
-  const [pasteError, setPasteError] = useState<string | null>(null);
 
   // Build a proxied URL for a target through the configured CORS proxy. Works
   // with a {url}-style proxy OR an origin-prefix worker (we append the worker's
@@ -280,62 +267,8 @@ export function CalculatorPage() {
     return p.replace(/\/+$/, '') + '/?url=' + encodeURIComponent(target);
   };
 
-  // On phones, long-pressing an empty field often shows "Autofill" instead of
-  // "Paste". Reading the clipboard from a button press sidesteps that entirely.
-  const pasteFromClipboard = async (): Promise<void> => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text.trim()) {
-        setImportHtml(text);
-        setPasteError(null);
-      } else {
-        setPasteError('A área de transferência está vazia — copia primeiro o conteúdo da página.');
-      }
-    } catch {
-      setPasteError(
-        'O browser não permitiu colar automaticamente. Toca na caixa abaixo e usa “Colar”.',
-      );
-    }
-  };
-
   const fmt = (v: number): string => (v ? String(v) : '');
   const [filledMsg, setFilledMsg] = useState<string | null>(null);
-
-  // After filling, wipe the import box so the NEXT team is pasted clean — this
-  // prevents accidentally reusing the first team (the parser reads the first
-  // match in the text, so a second paste appended to the first re-fills team 1).
-  const afterFill = (side: 'Casa' | 'Fora', name: string): void => {
-    setImportHtml('');
-    setPasteError(null);
-    setFilledMsg(`${name || 'Equipa'} colocada na ${side}. Importa agora a outra equipa.`);
-  };
-
-  // Prefer the venue split; fall back to the overall split when the venue has
-  // too few games (common early in a season).
-  const fillHome = (t: ParsedFootystatsTeam): void => {
-    const s: ParsedTeamSplit = t.home.played >= 1 ? t.home : t.overall;
-    setForm((prev) => ({
-      ...prev,
-      homeName: t.name || prev.homeName,
-      homeGoalsFor: fmt(s.goalsFor),
-      homeGoalsAgainst: fmt(s.goalsAgainst),
-      homeBttsPct: fmt(s.bttsPct),
-      homeGames: fmt(s.played),
-    }));
-    afterFill('Casa', t.name);
-  };
-  const fillAway = (t: ParsedFootystatsTeam): void => {
-    const s: ParsedTeamSplit = t.away.played >= 1 ? t.away : t.overall;
-    setForm((prev) => ({
-      ...prev,
-      awayName: t.name || prev.awayName,
-      awayGoalsFor: fmt(s.goalsFor),
-      awayGoalsAgainst: fmt(s.goalsAgainst),
-      awayBttsPct: fmt(s.bttsPct),
-      awayGames: fmt(s.played),
-    }));
-    afterFill('Fora', t.name);
-  };
 
   // ---- Flashscore import (RapidAPI) ----
   // Enter a match (id or Flashscore link) → one h2h call fills BOTH teams + H2H.
@@ -724,6 +657,12 @@ export function CalculatorPage() {
                   <RotateCcw className="mr-2 h-3.5 w-3.5" /> Trocar casa/fora
                 </Button>
               </div>
+              {filledMsg && (
+                <p className="flex items-center gap-1.5 text-xs text-primary">
+                  <Check className="h-3.5 w-3.5" />
+                  {filledMsg}
+                </p>
+              )}
               <p className="text-[10px] text-muted-foreground">
                 Usa a forma em casa da 1ª equipa e a forma fora da 2ª. Se o jogo estiver invertido,
                 usa “Trocar casa/fora” antes de preencher.
@@ -760,107 +699,6 @@ export function CalculatorPage() {
                 />
               </div>
             </details>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ---- FootyStats import ---- */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            <ClipboardPaste className="h-4 w-4" /> Importar do FootyStats
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Abre a página da equipa no FootyStats (footystats.org/clubs/…), copia o conteúdo e cola
-            aqui — funciona com o texto da página ou com o código-fonte. Depois preenche a equipa da
-            casa ou de fora (usa as estatísticas em casa/fora, ou as gerais se houver poucos jogos
-            no recinto).
-            <br />
-            <span className="mt-1 block">
-              📱 <span className="font-medium">No telemóvel:</span> carrega longamente na página →{' '}
-              <span className="font-medium">Selecionar tudo</span> →{' '}
-              <span className="font-medium">Copiar</span> → cola aqui.
-            </span>
-            <span className="block">
-              💻 <span className="font-medium">No computador:</span> Ctrl+U (ver código-fonte) →
-              Ctrl+A → Ctrl+C → cola aqui.
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={() => void pasteFromClipboard()}>
-              <ClipboardPaste className="mr-2 h-4 w-4" /> Colar conteúdo
-            </Button>
-            {importHtml.trim() && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setImportHtml('');
-                  setPasteError(null);
-                }}
-              >
-                Limpar
-              </Button>
-            )}
-            <span className="text-[10px] text-muted-foreground">
-              ou cola manualmente na caixa abaixo
-            </span>
-          </div>
-          {pasteError && (
-            <p className="flex items-center gap-1.5 text-xs text-destructive">
-              <AlertCircle className="h-3.5 w-3.5" />
-              {pasteError}
-            </p>
-          )}
-          <textarea
-            value={importHtml}
-            onChange={(e) => setImportHtml(e.target.value)}
-            placeholder="Cola aqui o texto (ou o código-fonte) da página da equipa…"
-            rows={3}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-          {importHtml.trim() && !imported && (
-            <p className="flex items-center gap-1.5 text-xs text-destructive">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Não reconheci uma página de equipa do FootyStats. Confirma que copiaste o conteúdo
-              completo da página de um clube (texto ou código-fonte).
-            </p>
-          )}
-          {filledMsg && !imported && (
-            <p className="flex items-center gap-1.5 text-xs text-primary">
-              <Check className="h-3.5 w-3.5" />
-              {filledMsg}
-            </p>
-          )}
-          {imported && (
-            <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
-              <p className="flex items-center gap-1.5 text-xs">
-                <Check className="h-3.5 w-3.5 text-primary" />
-                Detetado: <span className="font-semibold">{imported.name || 'equipa'}</span> · em
-                casa {round(imported.home.goalsFor, 2)}–{round(imported.home.goalsAgainst, 2)}{' '}
-                golos, BTTS {round(imported.home.bttsPct, 0)}% ({imported.home.played}j) · fora{' '}
-                {round(imported.away.goalsFor, 2)}–{round(imported.away.goalsAgainst, 2)} golos,
-                BTTS {round(imported.away.bttsPct, 0)}% ({imported.away.played}j)
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => fillHome(imported)}>
-                  Pôr {imported.name || 'esta equipa'} na Casa
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => fillAway(imported)}>
-                  Pôr {imported.name || 'esta equipa'} na Fora
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Esta página é de <span className="font-medium">uma</span> equipa. Para a outra,
-                importa a página dela e usa o outro botão.
-              </p>
-            </div>
           )}
         </CardContent>
       </Card>
