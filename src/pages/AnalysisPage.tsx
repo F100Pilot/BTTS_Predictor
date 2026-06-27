@@ -242,11 +242,21 @@ export function AnalysisPage() {
                   {fixture.away.name} {bundle.awayStats.last10.played} jogo(s)
                 </span>
                 . A previsão fica indicativa (~50/50) e não deve ser usada para apostar. Seleções
-                (Mundial/Euro) costumam ter pouco histórico — experimente uma liga de clubes ou a
-                API-Football.
+                (Mundial/Euro) costumam ter pouco histórico — na API-Football a análise tenta
+                complementar com estatísticas da época, mas se não existirem, o resultado mantém-se
+                inconclusivo.
               </span>
             </div>
           )}
+          {!prediction.insufficientData &&
+            (bundle.homeStats.seasonStats ?? bundle.awayStats.seasonStats) && (
+              <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
+                <span>
+                  Histórico recente insuficiente — previsão complementada com estatísticas da época
+                  atual (API-Football).
+                </span>
+              </div>
+            )}
         </CardContent>
       </Card>
 

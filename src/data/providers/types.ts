@@ -1,4 +1,4 @@
-import type { Fixture, LiveMatch, MatchResult } from '@/domain/types';
+import type { Fixture, LiveMatch, MatchResult, SeasonStats } from '@/domain/types';
 
 /** BTTS market odds returned by a provider (decimal odds). */
 export interface BttsOdds {
@@ -52,6 +52,17 @@ export interface DataProvider {
   getLiveMatches?(ctx: ProviderContext): Promise<LiveMatch[]>;
   /** Optional: fetch bookmaker BTTS odds for a single fixture. */
   getOdds?(fixtureId: string, ctx: ProviderContext): Promise<BttsOdds | null>;
+  /**
+   * Optional: fetch season-wide team statistics (goals, clean sheets, etc.).
+   * Used as a fallback when recent match history is insufficient (< 3 games).
+   * `season` is the start year of the season, e.g. "2026".
+   */
+  getTeamSeasonStats?(
+    teamId: string,
+    leagueId: string,
+    season: string,
+    ctx: ProviderContext,
+  ): Promise<SeasonStats | null>;
   getTeamRecentMatches(teamId: string, limit: number, ctx: ProviderContext): Promise<MatchResult[]>;
   getHeadToHead(
     homeId: string,

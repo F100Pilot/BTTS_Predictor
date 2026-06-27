@@ -7,9 +7,10 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.20.0';
+export const APP_VERSION = '0.2.21.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
   'Os filtros do painel ficam guardados quando abres um jogo e voltas — data, campeonato, país e pesquisa mantêm-se.',
+  'Melhoria da API-Football: quando o histórico recente é insuficiente (ex.: seleções no início de um torneio), a análise usa automaticamente as estatísticas da época atual para produzir uma previsão em vez de mostrar "dados insuficientes".',
 ];

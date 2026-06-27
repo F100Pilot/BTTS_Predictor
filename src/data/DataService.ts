@@ -1,4 +1,4 @@
-import type { Fixture, LiveMatch, MatchResult } from '@/domain/types';
+import type { Fixture, LiveMatch, MatchResult, SeasonStats } from '@/domain/types';
 import { cached, isNonEmpty, TTL } from './cache/cache';
 import { getProvider, realProviders, DEFAULT_PROVIDER_ID } from './providers/registry';
 import { MockProvider } from './providers/mock/MockProvider';
@@ -228,6 +228,27 @@ export class DataService {
       );
     } catch (err) {
       log.warn('getMatchResultById failed', err);
+      return null;
+    }
+  }
+
+  /** Season-wide team statistics for a given league+season (primary provider only). */
+  async getTeamSeasonStats(
+    teamId: string,
+    leagueId: string,
+    season: string,
+  ): Promise<SeasonStats | null> {
+    const provider = getProvider(this.providerId);
+    const ctx = this.ctxFor(provider.id);
+    if (!provider.getTeamSeasonStats || !provider.isConfigured(ctx)) return null;
+    try {
+      return await cached(
+        `${provider.id}:teamseason:${teamId}:${leagueId}:${season}`,
+        TTL.teamHistory,
+        () => provider.getTeamSeasonStats!(teamId, leagueId, season, ctx),
+      );
+    } catch (err) {
+      log.warn('getTeamSeasonStats failed', err);
       return null;
     }
   }

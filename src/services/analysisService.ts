@@ -57,8 +57,25 @@ export async function buildAnalysis(
     data.getTeamRecentMatches(fixture.away.id, 15, t),
   ]);
 
-  const homeStats = computeTeamStats(fixture.home, homeMatches);
-  const awayStats = computeTeamStats(fixture.away, awayMatches);
+  let homeStats = computeTeamStats(fixture.home, homeMatches);
+  let awayStats = computeTeamStats(fixture.away, awayMatches);
+
+  // When recent history is thin (< 3 games — happens for national teams early
+  // in a tournament), enrich with season-wide stats from the provider.
+  // Only fetched when needed to spare API quota.
+  const leagueId = fixture.competition.id;
+  const season = fixture.date.substring(0, 4);
+  const needsHome = homeStats.last10.played < 3;
+  const needsAway = awayStats.last10.played < 3;
+  if ((needsHome || needsAway) && leagueId !== 'unknown') {
+    const [homeSeason, awaySeason] = await Promise.all([
+      needsHome ? data.getTeamSeasonStats(fixture.home.id, leagueId, season) : null,
+      needsAway ? data.getTeamSeasonStats(fixture.away.id, leagueId, season) : null,
+    ]);
+    if (homeSeason) homeStats = { ...homeStats, seasonStats: homeSeason };
+    if (awaySeason) awayStats = { ...awayStats, seasonStats: awaySeason };
+  }
+
   // Direct encounters appear in both teams' histories; dedupe by match id.
   const h2hPool = Array.from(
     new Map([...homeMatches, ...awayMatches].map((m) => [m.id, m])).values(),

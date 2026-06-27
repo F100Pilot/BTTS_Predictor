@@ -63,6 +63,23 @@ export interface LiveMatch {
   date?: string;
 }
 
+/**
+ * Season-wide team statistics from the provider (e.g. API-Football
+ * /teams/statistics). Used as a fallback when recent match history is thin
+ * (e.g. national teams early in a tournament).
+ */
+export interface SeasonStats {
+  played: number;
+  avgGoalsFor: number;
+  avgGoalsAgainst: number;
+  avgGoalsForHome: number;
+  avgGoalsForAway: number;
+  avgGoalsAgainstHome: number;
+  avgGoalsAgainstAway: number;
+  cleanSheetPct: number; // 0..1
+  failedToScorePct: number; // 0..1
+}
+
 /** Aggregated statistics over a window of matches for a single team. */
 export interface WindowStats {
   played: number;
@@ -92,6 +109,9 @@ export interface TeamStats {
   away: VenueStats;
   /** Most recent results first (for form display & charts). */
   recentForm: FormEntry[];
+  /** Season-wide stats from the provider, when available. Used by the engine
+   * as a fallback when recent match history is thin (< 3 games). */
+  seasonStats?: SeasonStats;
 }
 
 export interface FormEntry {

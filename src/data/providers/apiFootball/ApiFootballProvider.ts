@@ -1,4 +1,4 @@
-import type { Competition, Fixture, LiveMatch, MatchResult, Team } from '@/domain/types';
+import type { Competition, Fixture, LiveMatch, MatchResult, SeasonStats, Team } from '@/domain/types';
 import {
   ProviderError,
   type BttsOdds,
@@ -191,5 +191,45 @@ export class ApiFootballProvider implements DataProvider {
       ctx,
     );
     return (data.response ?? []).map(toResult).filter((m): m is MatchResult => m !== null);
+  }
+
+  async getTeamSeasonStats(
+    teamId: string,
+    leagueId: string,
+    season: string,
+    ctx: ProviderContext,
+  ): Promise<SeasonStats | null> {
+    type AfGoalStat = {
+      total: { home: number; away: number; total: number };
+      average: { home: string; away: string; total: string };
+    };
+    type AfSeasonResponse = {
+      fixtures: {
+        played: { home: number; away: number; total: number };
+      };
+      goals: { for: AfGoalStat; against: AfGoalStat };
+      clean_sheet: { home: number; away: number; total: number };
+      failed_to_score: { home: number; away: number; total: number };
+    };
+    const data = await this.request<{ response: AfSeasonResponse | null }>(
+      `/teams/statistics?league=${leagueId}&season=${season}&team=${teamId}`,
+      ctx,
+    );
+    const r = data.response;
+    if (!r) return null;
+    const played = r.fixtures.played.total ?? 0;
+    if (played === 0) return null;
+    const safeAvg = (s: string | undefined) => Math.max(0, parseFloat(s ?? '0') || 0);
+    return {
+      played,
+      avgGoalsFor: safeAvg(r.goals.for.average.total),
+      avgGoalsAgainst: safeAvg(r.goals.against.average.total),
+      avgGoalsForHome: safeAvg(r.goals.for.average.home),
+      avgGoalsForAway: safeAvg(r.goals.for.average.away),
+      avgGoalsAgainstHome: safeAvg(r.goals.against.average.home),
+      avgGoalsAgainstAway: safeAvg(r.goals.against.average.away),
+      cleanSheetPct: (r.clean_sheet.total ?? 0) / played,
+      failedToScorePct: (r.failed_to_score.total ?? 0) / played,
+    };
   }
 }

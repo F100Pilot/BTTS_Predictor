@@ -24,7 +24,7 @@ function probScores(expectedGoals: number): number {
 
 /** Neutral score used when a factor has no underlying data ("don't know"). */
 const NEUTRAL = 0.5;
-/** Minimum matches before a factor is trusted (else it returns NEUTRAL). */
+/** Minimum matches before a factor is trusted (else season stats or NEUTRAL). */
 const MIN_MATCHES = 3;
 /** Mild home-scoring boost applied to the home team's expected goals. */
 const HOME_ADVANTAGE = 1.05;
@@ -39,40 +39,116 @@ function venueGoalsAgainst(venue: VenueStats, fallback: WindowStats): number {
 }
 
 /**
+ * A team has "sufficient data" when either recent match history or season-wide
+ * stats are available. Season stats (API-Football /teams/statistics) are used
+ * as a fallback for national teams with thin recent history.
+ */
+function hasSufficientData(stats: TeamStats): boolean {
+  return (
+    stats.last10.played >= MIN_MATCHES ||
+    (stats.seasonStats != null && stats.seasonStats.played >= MIN_MATCHES)
+  );
+}
+
+/** Expected goals-for at a given venue. Prefers recent history, falls back to season stats. */
+function effectiveGoalsFor(stats: TeamStats, venue: 'home' | 'away'): number {
+  if (stats.last10.played >= MIN_MATCHES) {
+    return venue === 'home'
+      ? venueGoalsFor(stats.home, stats.last5)
+      : venueGoalsFor(stats.away, stats.last5);
+  }
+  if (stats.seasonStats) {
+    return venue === 'home'
+      ? stats.seasonStats.avgGoalsForHome
+      : stats.seasonStats.avgGoalsForAway;
+  }
+  // Use whatever little recent data we have (0–2 games)
+  const vStats = venue === 'home' ? stats.home : stats.away;
+  return vStats.played > 0 ? vStats.avgGoalsFor : stats.last5.avgGoalsFor;
+}
+
+/** Expected goals-against at a given venue. Prefers recent history, falls back to season stats. */
+function effectiveGoalsAgainst(stats: TeamStats, venue: 'home' | 'away'): number {
+  if (stats.last10.played >= MIN_MATCHES) {
+    return venue === 'home'
+      ? venueGoalsAgainst(stats.home, stats.last5)
+      : venueGoalsAgainst(stats.away, stats.last5);
+  }
+  if (stats.seasonStats) {
+    return venue === 'home'
+      ? stats.seasonStats.avgGoalsAgainstHome
+      : stats.seasonStats.avgGoalsAgainstAway;
+  }
+  const vStats = venue === 'home' ? stats.home : stats.away;
+  return vStats.played > 0 ? vStats.avgGoalsAgainst : stats.last5.avgGoalsAgainst;
+}
+
+/** Overall avg goals-for. Prefers recent last10, falls back to season stats. */
+function effectiveAvgGoalsFor(stats: TeamStats): number {
+  if (stats.last10.played >= MIN_MATCHES) return stats.last10.avgGoalsFor;
+  if (stats.seasonStats) return stats.seasonStats.avgGoalsFor;
+  return stats.last10.avgGoalsFor;
+}
+
+/** Overall avg goals-against. Prefers recent last10, falls back to season stats. */
+function effectiveAvgGoalsAgainst(stats: TeamStats): number {
+  if (stats.last10.played >= MIN_MATCHES) return stats.last10.avgGoalsAgainst;
+  if (stats.seasonStats) return stats.seasonStats.avgGoalsAgainst;
+  return stats.last10.avgGoalsAgainst;
+}
+
+/**
+ * Team's BTTS rate. For season stats, approximated via independence:
+ * P(BTTS) ≈ P(scores) × P(concedes) = (1 − failToScore%) × (1 − cleanSheet%).
+ */
+function effectiveBttsPct(stats: TeamStats): number {
+  if (stats.last10.played >= MIN_MATCHES) return stats.last10.bttsPct;
+  if (stats.seasonStats) {
+    const pScores = 1 - stats.seasonStats.failedToScorePct;
+    const pConcedes = 1 - stats.seasonStats.cleanSheetPct;
+    return clamp(pScores * pConcedes);
+  }
+  return stats.last10.bttsPct;
+}
+
+/**
  * FORM (30%): Poisson probability that BOTH teams score. Expected goals are
  * built venue-aware — the home team's HOME attack vs the away team's AWAY
- * defence (and vice-versa), with a mild home advantage — which is the most
- * predictive split for BTTS. Falls back to overall recent form when a team has
- * too few home/away games. Neutral when either side lacks data.
+ * defence (and vice-versa), with a mild home advantage. Falls back to season
+ * stats for teams with little recent history (e.g. national teams in a
+ * tournament). Returns NEUTRAL only when no data at all is available.
  */
 function formScore(home: TeamStats, away: TeamStats): number {
-  if (home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES) return NEUTRAL;
-  const homeAttack = venueGoalsFor(home.home, home.last5);
-  const awayDefence = venueGoalsAgainst(away.away, away.last5);
-  const awayAttack = venueGoalsFor(away.away, away.last5);
-  const homeDefence = venueGoalsAgainst(home.home, home.last5);
-  const lambdaHome = ((homeAttack + awayDefence) / 2) * HOME_ADVANTAGE;
-  const lambdaAway = (awayAttack + homeDefence) / 2;
+  if (!hasSufficientData(home) || !hasSufficientData(away)) return NEUTRAL;
+  const lambdaHome =
+    ((effectiveGoalsFor(home, 'home') + effectiveGoalsAgainst(away, 'away')) / 2) * HOME_ADVANTAGE;
+  const lambdaAway =
+    (effectiveGoalsFor(away, 'away') + effectiveGoalsAgainst(home, 'home')) / 2;
   return clamp(probScores(lambdaHome) * probScores(lambdaAway));
 }
 
-/** BTTS HISTORY (25%): mean of both teams' BTTS rate over the last 10. */
+/** BTTS HISTORY (25%): mean of both teams' BTTS rate. Uses season stats as fallback. */
 function bttsHistoryScore(home: TeamStats, away: TeamStats): number {
-  if (home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES) return NEUTRAL;
-  return clamp((home.last10.bttsPct + away.last10.bttsPct) / 2);
+  if (!hasSufficientData(home) || !hasSufficientData(away)) return NEUTRAL;
+  return clamp((effectiveBttsPct(home) + effectiveBttsPct(away)) / 2);
 }
 
 /** ATTACK (15%): how reliably each team scores, averaged. */
 function attackScore(home: TeamStats, away: TeamStats): number {
-  if (home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES) return NEUTRAL;
-  return clamp(average([probScores(home.last10.avgGoalsFor), probScores(away.last10.avgGoalsFor)]));
+  if (!hasSufficientData(home) || !hasSufficientData(away)) return NEUTRAL;
+  return clamp(
+    average([probScores(effectiveAvgGoalsFor(home)), probScores(effectiveAvgGoalsFor(away))]),
+  );
 }
 
 /** DEFENSE (15%): how reliably each team concedes (weak defense ⇒ BTTS). */
 function defenseScore(home: TeamStats, away: TeamStats): number {
-  if (home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES) return NEUTRAL;
+  if (!hasSufficientData(home) || !hasSufficientData(away)) return NEUTRAL;
   return clamp(
-    average([probScores(home.last10.avgGoalsAgainst), probScores(away.last10.avgGoalsAgainst)]),
+    average([
+      probScores(effectiveAvgGoalsAgainst(home)),
+      probScores(effectiveAvgGoalsAgainst(away)),
+    ]),
   );
 }
 
@@ -105,10 +181,14 @@ function computeConfidence(
   h2h: HeadToHead,
 ): number {
   const idealMatches = 10;
+  // Use the larger of recent-match count and season-stats count as the measure
+  // of how well-supported each team's stats are.
+  const homePlayed = Math.max(home.last10.played, home.seasonStats?.played ?? 0);
+  const awayPlayed = Math.max(away.last10.played, away.seasonStats?.played ?? 0);
   const dataScore = clamp(
     average([
-      Math.min(home.last10.played, idealMatches) / idealMatches,
-      Math.min(away.last10.played, idealMatches) / idealMatches,
+      Math.min(homePlayed, idealMatches) / idealMatches,
+      Math.min(awayPlayed, idealMatches) / idealMatches,
       Math.min(h2h.played, 4) / 4,
     ]),
   );
@@ -154,8 +234,9 @@ export function predict(input: PredictInput): BttsPrediction {
   const probNo = clamp(1 - probYes);
   const dominant = Math.max(probYes, probNo);
 
-  // Too few matches to trust the model — never show a "strong" tier on thin air.
-  const insufficientData = home.last10.played < MIN_MATCHES || away.last10.played < MIN_MATCHES;
+  // A game is "insufficient" only when neither recent history nor season stats
+  // provide enough data for either team to trust the prediction.
+  const insufficientData = !hasSufficientData(home) || !hasSufficientData(away);
 
   return {
     probYes,

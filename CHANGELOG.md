@@ -20,6 +20,20 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.21.0
+
+- **API-Football: estatísticas da época** (`/teams/statistics`) usadas como
+  alternativa quando o histórico recente é insuficiente (< 3 jogos). Afeta
+  principalmente seleções no início de torneios (Mundial, Europeu): em vez de
+  mostrar "dados insuficientes", o motor usa as médias da época atual — golos
+  marcados/sofridos por jogo em casa e fora — para calcular uma previsão real.
+- O motor de previsão passa a considerar "suficiente" qualquer equipa com ≥ 3
+  jogos recentes **ou** com estatísticas da época disponíveis. O aviso
+  "insuficiente" aparece apenas quando nenhum dos dois conjuntos de dados
+  está disponível.
+- Na página de análise, uma nota discreta informa quando a previsão foi
+  complementada com dados da época.
+
 ## 0.2.20.0
 
 - Os filtros do painel (data, campeonato, país, pesquisa, etc.) ficam
