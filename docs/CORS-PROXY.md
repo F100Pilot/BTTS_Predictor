@@ -92,6 +92,21 @@ diretamente, sem proxy. Ver [`docs/APK.md`](./APK.md).
 
 ---
 
+## Importar do FootyStats por link (Calculadora)
+
+A Calculadora pode buscar as estatísticas de uma equipa só com o link, em vez de copiar a página.
+Para isso o proxy precisa do formato **marcador** `?url={url}` (o `{url}` é substituído pelo endereço
+alvo). O Worker incluído em [`worker/`](../worker/) já suporta isto — além do football-data
+(`/v4/...`), aceita `/?url=<alvo>` e busca a página com um *User-Agent* de browser, limitado a uma
+lista de domínios (footystats.org, betexplorer.com, api.football-data.org).
+
+Para ativar, em **Definições → Proxy CORS** usa o teu Worker no formato marcador:
+```
+https://btts-proxy.<o-teu-subdominio>.workers.dev/?url={url}
+```
+Assim **um único proxy** serve o football-data e o FootyStats/BetExplorer. Nota: alguns sites com
+proteção anti-bot podem na mesma bloquear o pedido do Worker — nesse caso usa "Colar conteúdo".
+
 ## Notas
 
 - O campo **Proxy CORS** aceita dois formatos:
