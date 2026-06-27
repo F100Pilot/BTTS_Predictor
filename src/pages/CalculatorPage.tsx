@@ -353,6 +353,9 @@ export function CalculatorPage() {
   const [flashCopied, setFlashCopied] = useState(false);
   // Market BTTS odds fetched alongside the h2h (null until/unless available).
   const [flashOdds, setFlashOdds] = useState<FlashBttsOdds | null>(null);
+  // The imported match id, carried onto saved history/bets so the result can be
+  // settled later straight from the Flashscore feed.
+  const [flashMatchId, setFlashMatchId] = useState<string>('');
 
   // Accept a raw 6–12 char id, a "match_id="/"mid=" query, or a Flashscore URL.
   const extractMatchId = (raw: string): string | null => {
@@ -411,6 +414,7 @@ export function CalculatorPage() {
       }
       setFlashResult(parsed);
       setFlashSwap(false);
+      setFlashMatchId(id);
 
       // Best-effort: also pull the market BTTS odds for this match. A failure
       // here never blocks the import — the form just keeps its current odds.
@@ -563,6 +567,9 @@ export function CalculatorPage() {
     tier: prediction.tier,
     createdAt: Date.now(),
     // No providerId: manual games can't be auto-settled from a data source.
+    // A Flashscore-imported game carries its match id so its result can be
+    // settled later from the Flashscore feed.
+    flashMatchId: flashMatchId || undefined,
     factorScores: Object.fromEntries(prediction.factors.map((f) => [f.key, f.score])),
   });
 
@@ -575,7 +582,13 @@ export function CalculatorPage() {
 
   const saveToBets = (): void => {
     if (!result || !canBet) return;
-    void addBet({ matchLabel, market: 'BTTS', selection, odds: selectionOdd })
+    void addBet({
+      matchLabel,
+      market: 'BTTS',
+      selection,
+      odds: selectionOdd,
+      flashMatchId: flashMatchId || undefined,
+    })
       .then(() => setSavedBet(true))
       .catch((err) => log.warn('manual bet add failed', err));
   };
