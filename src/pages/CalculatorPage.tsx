@@ -4,6 +4,11 @@ import type { HeadToHead, TeamStats, VenueStats, WindowStats } from '@/domain/ty
 import { predict } from '@/core/prediction/engine';
 import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
 import { predictMarkets } from '@/core/prediction/markets';
+import { applyPlatt, IDENTITY_PLATT } from '@/core/backtest/backtest';
+import { tierForProbability } from '@/core/classification/classification';
+import { clamp } from '@/lib/math';
+import { useSettings } from '@/store/settingsStore';
+import { useCalibration, MIN_CALIBRATION_SAMPLES } from '@/store/calibrationStore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -219,6 +224,20 @@ function MarketsDisplay({
 export function CalculatorPage() {
   const [form, setForm] = useState<CalcForm>(EMPTY);
 
+  // Mirror the exact pipeline used in buildAnalysis / AnalysisPage:
+  // custom weights (auto-tuned from history) + Platt recalibration.
+  const weights = useSettings((s) => s.weights);
+  const autoCalibrate = useSettings((s) => s.autoCalibrate);
+  const platt = useCalibration((s) => s.platt);
+  const calibrationReady = useCalibration((s) => s.ready);
+  const sampleSize = useCalibration((s) => s.sampleSize);
+  const recalibration = useMemo(
+    () => (autoCalibrate && calibrationReady ? platt : undefined),
+    // Keyed by coefficients so identity-platt doesn't cause unnecessary recalcs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [autoCalibrate, calibrationReady, platt?.a, platt?.b],
+  );
+
   const set = (key: keyof CalcForm) => (v: string) => setForm((prev) => ({ ...prev, [key]: v }));
 
   const homeGames = Math.max(0, Math.round(n(form.homeGames)));
@@ -230,16 +249,34 @@ export function CalculatorPage() {
     const home = buildHomeTeamStats(form);
     const away = buildAwayTeamStats(form);
     const h2h = buildH2H(form);
-    const raw = predict({ home, away, h2h });
+    // Step 1: predict with user's current weights (same as auto-analysis).
+    const raw = predict({ home, away, h2h, weights });
+    // Step 2: blend with bookmaker odds when provided.
     const implied = impliedBttsYes(
       n(form.oddYes) > 1 ? n(form.oddYes) : undefined,
       n(form.oddNo) > 1 ? n(form.oddNo) : undefined,
     );
     const weight = Math.min(1, Math.max(0, n(form.oddsWeight, 30) / 100));
-    const prediction = calibrate(raw, implied, weight);
+    const calibrated = calibrate(raw, implied, weight);
+    // Step 3: apply Platt recalibration learned from settled history (if active).
+    let prediction = calibrated;
+    if (
+      recalibration &&
+      !(recalibration.a === IDENTITY_PLATT.a && recalibration.b === IDENTITY_PLATT.b)
+    ) {
+      const probYes = clamp(applyPlatt(calibrated.probYes, recalibration));
+      const probNo = clamp(1 - probYes);
+      prediction = {
+        ...calibrated,
+        probYes,
+        probNo,
+        tier: calibrated.insufficientData ? 'weak' : tierForProbability(Math.max(probYes, probNo)),
+        recalibrated: true,
+      };
+    }
     const markets = predictMarkets(home, away);
     return { prediction, markets, home, away };
-  }, [form, hasEnoughData]);
+  }, [form, hasEnoughData, weights, recalibration]);
 
   return (
     <div className="space-y-6">
@@ -476,6 +513,21 @@ export function CalculatorPage() {
                       Dados insuficientes — previsão com baixa confiança.
                     </p>
                   )}
+                  <div className="space-y-1 border-t pt-3 text-xs text-muted-foreground">
+                    <p>
+                      Pesos: <span className="font-medium text-foreground">das Definições</span>
+                      {autoCalibrate && (
+                        <>
+                          {' · '}Auto-calibração:{' '}
+                          <span className="font-medium text-primary">
+                            {calibrationReady
+                              ? `ativa (${sampleSize} resultados)`
+                              : `inativa (mín. ${MIN_CALIBRATION_SAMPLES})`}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
