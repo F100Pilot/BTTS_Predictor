@@ -194,6 +194,9 @@ export interface Bet {
   fixtureId?: string;
   /** Data source that produced fixtureId (results must come from the same one). */
   providerId?: string;
+  /** Flashscore match id (when created from a Flashscore import) — enables
+   * settling the bet straight from the Flashscore live/results feed. */
+  flashMatchId?: string;
   matchLabel: string;
   market: string; // e.g. "BTTS"
   selection: string; // e.g. "SIM" / "NÃO"

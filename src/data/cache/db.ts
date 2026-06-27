@@ -41,6 +41,9 @@ export interface HistoryRecord {
   /** Data source that produced fixtureId — results must be fetched from the
    * same provider (ids are provider-specific). */
   providerId?: string;
+  /** Flashscore match id (when the game was imported from Flashscore) — lets us
+   * settle the result later straight from the Flashscore live/results feed. */
+  flashMatchId?: string;
   /** Per-factor sub-scores at prediction time (for weight auto-tuning). */
   factorScores?: Record<string, number>;
 }

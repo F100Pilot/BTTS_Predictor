@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { History, Trash2, Download, Calendar as CalendarIcon, X, RefreshCw } from 'lucide-react';
+import {
+  History,
+  Trash2,
+  Download,
+  Calendar as CalendarIcon,
+  X,
+  RefreshCw,
+  Zap,
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Bet, PredictionTier } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
@@ -11,6 +19,8 @@ import {
 } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
 import { bttsFromGoals, settleBetAgainstBtts } from '@/services/settlementService';
+import { fetchFlashscoreLive } from '@/services/flashscoreClient';
+import { flashOutcome, buildFixtureIndex } from '@/services/flashscoreSettle';
 import { FinancialDashboard } from '@/components/history/FinancialDashboard';
 import { AddHistoryDialog } from '@/components/history/AddHistoryDialog';
 import { EmptyState, Spinner } from '@/components/common/States';
@@ -70,6 +80,8 @@ export function HistoryPage() {
   const refreshCalibration = useCalibration((s) => s.refresh);
   const autoCalibrate = useSettings((s) => s.autoCalibrate);
   const providerId = useSettings((s) => s.providerId);
+  const corsProxy = useSettings((s) => s.corsProxy);
+  const rapidApiKey = useSettings((s) => s.rapidApiKey);
   const initialBankroll = useMartingale((s) => s.initialBankroll);
   // Read bets from the Martingale store so settlements made here (or there)
   // stay in sync across pages instead of living in a separate local copy.
@@ -81,6 +93,7 @@ export function HistoryPage() {
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [calOpen, setCalOpen] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [flashFetching, setFlashFetching] = useState(false);
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -240,6 +253,61 @@ export function HistoryPage() {
     }
   };
 
+  // Settle pending predictions/bets straight from the Flashscore live feed.
+  // Matches by the stored Flashscore match id (Calculator imports) first, then
+  // by team-name pair. Finished games settle both ways; in-play games can only
+  // lock an early "yes" once both teams have scored.
+  const handleFlashResults = async (): Promise<void> => {
+    if (!rapidApiKey.trim()) {
+      setFetchMsg('Configura a chave RapidAPI em Definições para usar o Flashscore.');
+      return;
+    }
+    setFlashFetching(true);
+    setFetchMsg(null);
+    try {
+      const fixtures = await fetchFlashscoreLive(rapidApiKey, corsProxy);
+      const idx = buildFixtureIndex(fixtures);
+
+      let updated = 0;
+      for (const r of records.filter((r) => !r.actual)) {
+        const f = idx.find(r.flashMatchId, r.fixtureName);
+        const o = f ? flashOutcome(f) : null;
+        if (o) {
+          await setHistoryResult(r.id, o.outcome, o.score);
+          updated += 1;
+        }
+      }
+
+      let betsSettled = 0;
+      for (const b of bets.filter((b) => b.result === 'pending')) {
+        const f = idx.find(b.flashMatchId, b.matchLabel);
+        const o = f ? flashOutcome(f) : null;
+        if (!o) continue;
+        const graded = settleBetAgainstBtts(b, o.outcome);
+        if (graded) {
+          await setBetResult(b.id, graded);
+          betsSettled += 1;
+        }
+      }
+
+      await load();
+      await refreshCalibration();
+      const parts: string[] = [];
+      if (updated > 0) parts.push(`${updated} previsão(ões)`);
+      if (betsSettled > 0) parts.push(`${betsSettled} aposta(s)`);
+      setFetchMsg(
+        parts.length > 0
+          ? `Atualizado via Flashscore: ${parts.join(' e ')}.`
+          : `Sem resultados aplicáveis agora (${idx.size} jogos ao vivo). O feed ao vivo só liquida jogos terminados ou já com golos de ambas as equipas.`,
+      );
+    } catch (err) {
+      log.error('flash results failed', err);
+      setFetchMsg('Falha ao buscar resultados do Flashscore (proxy, chave RapidAPI ou limite).');
+    } finally {
+      setFlashFetching(false);
+    }
+  };
+
   const markedDays = useMemo(
     () => Array.from(new Set(records.map((r) => dayKey(r.createdAt)))).map((d) => parseISO(d)),
     [records],
@@ -344,6 +412,14 @@ export function HistoryPage() {
                     disabled={fetching}
                   >
                     <RefreshCw className={fetching ? 'animate-spin' : ''} /> Atualizar resultados
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleFlashResults}
+                    disabled={flashFetching}
+                  >
+                    <Zap className={flashFetching ? 'animate-pulse' : ''} /> Via Flashscore
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleExport}>
                     <Download /> CSV
