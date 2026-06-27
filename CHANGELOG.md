@@ -20,6 +20,16 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.18.0
+
+- Filtros do painel: o **Campeonato** passa a estar **limitado ao País** escolhido
+  (lista filtrada por país; mudar de país repõe o campeonato). Pesquisa por jogo
+  continua na barra (equipa/competição), com placeholder mais claro.
+- **Removidos os campos Odds mín./máx.** (e a lógica associada) — não funcionavam
+  no painel porque as odds não são obtidas na listagem.
+- Página de análise: novo botão **"Reanalisar"** que limpa o histórico em cache
+  das duas equipas e recalcula a previsão com dados frescos.
+
 ## 0.2.17.0
 
 - **Modo manual para API-Football**: quando a fonte ativa é a API-Football, o

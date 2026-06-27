@@ -42,7 +42,7 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
     <div className="space-y-3 rounded-lg border bg-card p-4">
       <div className="flex flex-col gap-3 sm:flex-row">
         <Input
-          placeholder="Pesquisar equipa ou competição..."
+          placeholder="Pesquisar jogo (equipa ou competição)..."
           value={value.search}
           onChange={(e) => set({ search: e.target.value })}
           className="sm:max-w-xs"
@@ -117,7 +117,7 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-1.5">
           <Label>Data</Label>
           <Popover open={open} onOpenChange={setOpen}>
@@ -158,7 +158,11 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
 
         <div className="space-y-1.5">
           <Label>País</Label>
-          <Select value={value.country} onValueChange={(v) => set({ country: v })}>
+          {/* Changing the country resets the competition (it's locked to country). */}
+          <Select
+            value={value.country}
+            onValueChange={(v) => set({ country: v, competition: 'all' })}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -183,36 +187,6 @@ export function DashboardFilters({ value, competitions, countries, onChange }: P
             value={value.minBtts}
             onChange={(e) =>
               set({ minBtts: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
-            }
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="f-odds-min">Odds mín.</Label>
-          <Input
-            id="f-odds-min"
-            type="number"
-            min={0}
-            step="0.01"
-            value={value.minOdds || ''}
-            placeholder="—"
-            onChange={(e) =>
-              set({ minOdds: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
-            }
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="f-odds-max">Odds máx.</Label>
-          <Input
-            id="f-odds-max"
-            type="number"
-            min={0}
-            step="0.01"
-            value={value.maxOdds || ''}
-            placeholder="—"
-            onChange={(e) =>
-              set({ maxOdds: sanitizeNumber(e.target.value, { min: 0, max: 100, fallback: 0 }) })
             }
           />
         </div>

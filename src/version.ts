@@ -7,11 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.17.0';
+export const APP_VERSION = '0.2.18.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
-  'API-Football: modo manual no painel — lista TODOS os jogos do dia sem analisar (poupa quota). Pesquisa o jogo que queres e clica nele para o analisar individualmente.',
-  'O jogo analisado fica guardado e aparece com a previsão na tabela quando voltas ao painel.',
-  'Football-Data.org continua igual (análise automática dos jogos por começar).',
+  'Filtros do painel: o "Campeonato" fica agora limitado ao "País" selecionado, e a pesquisa por jogo (equipa/competição) está na barra de pesquisa.',
+  'Removidos os campos de Odds mín./máx. (não funcionavam no painel).',
+  'Ao abrir um jogo passas a ter um botão "Reanalisar" que vai buscar dados novos e recalcula a previsão.',
 ];

@@ -263,7 +263,11 @@ export function DashboardPage() {
       ),
     [rows, filters, favoriteCompetition, manualMode],
   );
-  const competitions = useMemo(() => uniqueCompetitions(rows), [rows]);
+  // Competition options are locked to the selected country.
+  const competitions = useMemo(
+    () => uniqueCompetitions(rows, filters.country),
+    [rows, filters.country],
+  );
   const countries = useMemo(() => uniqueCountries(rows), [rows]);
 
   // Batch progress: how many of the current window are done vs how many fixtures

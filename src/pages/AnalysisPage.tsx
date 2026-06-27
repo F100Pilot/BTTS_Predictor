@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Eye, Coins, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Star, Eye, Coins, AlertTriangle, RefreshCw } from 'lucide-react';
 import type { AnalysisBundle, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
@@ -8,6 +8,7 @@ import { useCollections } from '@/store/collectionsStore';
 import { useFixtureCache, dateFromMockId } from '@/store/fixtureCacheStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { buildAnalysis } from '@/services/analysisService';
+import { cacheDelete } from '@/data/cache/cache';
 import { upsertHistory } from '@/data/cache/repositories';
 import { saveDayPrediction, predictionSignature } from '@/services/dayPredictions';
 import { todayIso, formatDateTime } from '@/lib/format';
@@ -48,6 +49,7 @@ export function AnalysisPage() {
 
   const [bundle, setBundle] = useState<AnalysisBundle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const resolveFixture = useCallback(async (): Promise<Fixture | undefined> => {
     const cached = getCached(id);
@@ -127,7 +129,7 @@ export function AnalysisPage() {
     return () => {
       cancelled = true;
     };
-  }, [resolveFixture, data, weights, oddsCalibration, recalibration, providerId]);
+  }, [resolveFixture, data, weights, oddsCalibration, recalibration, providerId, refreshKey]);
 
   if (loading) return <Spinner label="A analisar o jogo..." />;
   if (!bundle)
@@ -146,6 +148,15 @@ export function AnalysisPage() {
   const { fixture, prediction } = bundle;
   const row = { fixture, prediction };
   const tier = tierMeta(prediction.tier);
+
+  const handleReanalyze = (): void => {
+    // Drop cached team history (limit 15, see analysisService) + odds so the next
+    // run re-fetches fresh data from the active provider.
+    void cacheDelete(`${providerId}:team:${fixture.home.id}:15`);
+    void cacheDelete(`${providerId}:team:${fixture.away.id}:15`);
+    void cacheDelete(`${providerId}:odds:${fixture.id}`);
+    setRefreshKey((k) => k + 1);
+  };
 
   const goToMartingale = (): void => {
     const selection = prediction.probYes >= 0.5 ? 'SIM' : 'NÃO';
@@ -200,6 +211,9 @@ export function AnalysisPage() {
               </Button>
               <Button variant="outline" size="sm" onClick={goToMartingale}>
                 <Coins className="h-4 w-4" /> Martingale
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleReanalyze}>
+                <RefreshCw className="h-4 w-4" /> Reanalisar
               </Button>
             </div>
           </div>
