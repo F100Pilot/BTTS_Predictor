@@ -58,9 +58,7 @@ function effectiveGoalsFor(stats: TeamStats, venue: 'home' | 'away'): number {
       : venueGoalsFor(stats.away, stats.last5);
   }
   if (stats.seasonStats) {
-    return venue === 'home'
-      ? stats.seasonStats.avgGoalsForHome
-      : stats.seasonStats.avgGoalsForAway;
+    return venue === 'home' ? stats.seasonStats.avgGoalsForHome : stats.seasonStats.avgGoalsForAway;
   }
   // Use whatever little recent data we have (0–2 games)
   const vStats = venue === 'home' ? stats.home : stats.away;
@@ -122,8 +120,7 @@ function formScore(home: TeamStats, away: TeamStats): number {
   if (!hasSufficientData(home) || !hasSufficientData(away)) return NEUTRAL;
   const lambdaHome =
     ((effectiveGoalsFor(home, 'home') + effectiveGoalsAgainst(away, 'away')) / 2) * HOME_ADVANTAGE;
-  const lambdaAway =
-    (effectiveGoalsFor(away, 'away') + effectiveGoalsAgainst(home, 'home')) / 2;
+  const lambdaAway = (effectiveGoalsFor(away, 'away') + effectiveGoalsAgainst(home, 'home')) / 2;
   return clamp(probScores(lambdaHome) * probScores(lambdaAway));
 }
 

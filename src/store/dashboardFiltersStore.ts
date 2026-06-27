@@ -5,9 +5,7 @@ import { defaultFilters, type DashboardFilterState } from '@/components/dashboar
 interface DashboardFiltersStore {
   filters: DashboardFilterState;
   setFilters: (
-    filtersOrUpdater:
-      | DashboardFilterState
-      | ((prev: DashboardFilterState) => DashboardFilterState),
+    filtersOrUpdater: DashboardFilterState | ((prev: DashboardFilterState) => DashboardFilterState),
   ) => void;
 }
 
@@ -21,8 +19,6 @@ export const useDashboardFilters = create<DashboardFiltersStore>()((set) => ({
   setFilters: (filtersOrUpdater) =>
     set((s) => ({
       filters:
-        typeof filtersOrUpdater === 'function'
-          ? filtersOrUpdater(s.filters)
-          : filtersOrUpdater,
+        typeof filtersOrUpdater === 'function' ? filtersOrUpdater(s.filters) : filtersOrUpdater,
     })),
 }));

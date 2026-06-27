@@ -1,4 +1,11 @@
-import type { Competition, Fixture, LiveMatch, MatchResult, SeasonStats, Team } from '@/domain/types';
+import type {
+  Competition,
+  Fixture,
+  LiveMatch,
+  MatchResult,
+  SeasonStats,
+  Team,
+} from '@/domain/types';
 import {
   ProviderError,
   type BttsOdds,
