@@ -267,70 +267,16 @@ export function CalculatorPage() {
   );
 
   const corsProxy = useSettings((s) => s.corsProxy);
-  const [fetchUrl, setFetchUrl] = useState('');
-  const [fetching, setFetching] = useState(false);
   const [pasteError, setPasteError] = useState<string | null>(null);
 
-  // "Paste just the link": fetch the page through the configured CORS proxy and
-  // feed its HTML into the same parse pipeline. Far easier than copy/paste on a
-  // phone. Works with a {url}-style proxy OR an origin-prefix worker (we append
-  // the worker's generic ?url= endpoint), so no settings change is needed.
+  // Build a proxied URL for a target through the configured CORS proxy. Works
+  // with a {url}-style proxy OR an origin-prefix worker (we append the worker's
+  // generic ?url= endpoint). Used by the Flashscore import.
   const proxyFor = (target: string): string | null => {
     const p = corsProxy.trim();
     if (!p) return null;
     if (p.includes('{url}')) return p.replace('{url}', encodeURIComponent(target));
     return p.replace(/\/+$/, '') + '/?url=' + encodeURIComponent(target);
-  };
-
-  const fetchByUrl = async (): Promise<void> => {
-    const target = fetchUrl.trim();
-    if (!/^https?:\/\//i.test(target)) {
-      setPasteError('Indica um link válido (começa por https://).');
-      return;
-    }
-    const proxied = proxyFor(target);
-    if (!proxied) {
-      setPasteError(
-        'Configura primeiro um Proxy CORS em Definições para a app poder ir buscar o link — ou usa “Colar conteúdo”.',
-      );
-      return;
-    }
-    setFetching(true);
-    setPasteError(null);
-    try {
-      const res = await fetch(proxied);
-      if (!res.ok) throw new Error(String(res.status));
-      const text = await res.text();
-      setImportHtml(text);
-      if (!parseFootystatsClub(text)) {
-        setPasteError(
-          'Busquei a página mas não reconheci as estatísticas. Confirma que é uma página de equipa, ou usa “Colar conteúdo”.',
-        );
-      }
-    } catch (err) {
-      log.warn('footystats fetch-by-url failed', err);
-      setPasteError(
-        'Não consegui buscar o link (bloqueio CORS ou anti-bot do site). Tenta outro proxy ou usa “Colar conteúdo”.',
-      );
-    } finally {
-      setFetching(false);
-    }
-  };
-
-  // Paste straight into the link field (same clipboard trick as the content
-  // box, but for the short URL).
-  const pasteLink = async (): Promise<void> => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text.trim()) {
-        setFetchUrl(text.trim());
-        setPasteError(null);
-      } else {
-        setPasteError('A área de transferência está vazia — copia primeiro o link.');
-      }
-    } catch {
-      setPasteError('O browser não permitiu colar automaticamente. Cola o link manualmente.');
-    }
   };
 
   // On phones, long-pressing an empty field often shows "Autofill" instead of
@@ -359,7 +305,6 @@ export function CalculatorPage() {
   // match in the text, so a second paste appended to the first re-fills team 1).
   const afterFill = (side: 'Casa' | 'Fora', name: string): void => {
     setImportHtml('');
-    setFetchUrl('');
     setPasteError(null);
     setFilledMsg(`${name || 'Equipa'} colocada na ${side}. Importa agora a outra equipa.`);
   };
@@ -792,48 +737,6 @@ export function CalculatorPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Fetch by link (easiest on mobile) */}
-          <div className="space-y-1">
-            <Label
-              htmlFor="fs-url"
-              className="flex items-center justify-between gap-2 text-xs font-medium"
-            >
-              <span>Opção rápida — cola só o link da equipa</span>
-              <button
-                type="button"
-                onClick={() => void pasteLink()}
-                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10"
-                aria-label="Colar link da área de transferência"
-              >
-                <ClipboardPaste className="h-3.5 w-3.5" /> Colar link
-              </button>
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="fs-url"
-                type="url"
-                inputMode="url"
-                placeholder="https://footystats.org/clubs/…"
-                value={fetchUrl}
-                onChange={(e) => setFetchUrl(e.target.value)}
-                className="h-8 text-sm"
-              />
-              <Button size="sm" onClick={() => void fetchByUrl()} disabled={fetching}>
-                <Search className="mr-2 h-4 w-4" />
-                {fetching ? 'A buscar…' : 'Buscar'}
-              </Button>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              A app vai buscar a página através do teu Proxy CORS (Definições). Se o site bloquear o
-              pedido, usa o método abaixo.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> ou copiar o conteúdo
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="secondary" onClick={() => void pasteFromClipboard()}>
               <ClipboardPaste className="mr-2 h-4 w-4" /> Colar conteúdo
