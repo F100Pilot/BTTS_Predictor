@@ -1,4 +1,14 @@
-import { Home, Star, Eye, History, Settings, Coins, Radio, type LucideIcon } from 'lucide-react';
+import {
+  Home,
+  Star,
+  Eye,
+  History,
+  Settings,
+  Coins,
+  Radio,
+  Calculator,
+  type LucideIcon,
+} from 'lucide-react';
 
 export interface NavItem {
   to: string;
@@ -13,5 +23,6 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/favorites', label: 'Favoritos', icon: Star },
   { to: '/watchlist', label: 'Watchlist', icon: Eye },
   { to: '/history', label: 'Histórico', icon: History },
+  { to: '/calculator', label: 'Calculadora', icon: Calculator },
   { to: '/settings', label: 'Definições', icon: Settings },
 ];

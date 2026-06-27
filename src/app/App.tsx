@@ -42,6 +42,9 @@ const LiveScorePage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
+const CalculatorPage = lazy(() =>
+  import('@/pages/CalculatorPage').then((m) => ({ default: m.CalculatorPage })),
+);
 
 export function App() {
   useThemeEffect();
@@ -76,6 +79,7 @@ export function App() {
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/martingale" element={<MartingalePage />} />
             <Route path="/live" element={<LiveScorePage />} />
+            <Route path="/calculator" element={<CalculatorPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

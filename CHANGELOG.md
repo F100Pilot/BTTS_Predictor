@@ -20,6 +20,15 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.22.0
+
+- **Calculadora manual**: nova aba que permite introduzir as estatísticas das
+  equipas (médias de golos, BTTS%, jogos disputados) e calcular um prognóstico
+  BTTS sem qualquer chamada à API. Inclui secção opcional para confrontos diretos
+  (H2H) e para calibração com as odds da casa de apostas. Resultados em tempo
+  real: veredicto BTTS, barra de probabilidade, confiança, decomposição dos
+  fatores e mercados Poisson (Over/Under 2.5, 1X2).
+
 ## 0.2.21.0
 
 - **API-Football: estatísticas da época** (`/teams/statistics`) usadas como
