@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.29.0';
+export const APP_VERSION = '0.2.29.1';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.29.1: Importação do Flashscore mais robusta — a pré-visualização passa a mostrar os golos/BTTS/jogos calculados antes de preencheres (para confires que os dados foram lidos), aceita respostas embrulhadas ({data:[…]}) ou em secções, e ignora espaços nos nomes das equipas.',
   'v0.2.29: Importar do Flashscore na Calculadora — cola o link (ou o id) de um jogo e a app preenche as duas equipas e o H2H com um só pedido (RapidAPI). Define a chave RapidAPI e o Proxy CORS em Definições. Inclui botão “Trocar casa/fora”.',
   'v0.2.28: Sincronização entre dispositivos — o histórico e as apostas passam a ficar guardados no teu Worker (Cloudflare KV). Define o mesmo “código de sincronização” em Definições no PC e no telemóvel e os dados aparecem em todo o lado. (Requer criar um KV namespace uma vez — ver worker/README.)',
   'v0.2.27: Barra inferior deslizável (sem letras sobrepostas), correção do “Failed to fetch” na API-Football quando se usa o proxy {url}, e importação do FootyStats só com o link.',

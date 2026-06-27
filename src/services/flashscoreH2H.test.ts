@@ -68,4 +68,30 @@ describe('parseFlashscoreH2H', () => {
     expect(parseFlashscoreH2H(null)).toBeNull();
     expect(parseFlashscoreH2H([])).toBeNull();
   });
+
+  it('unwraps an object payload ({data:[...]})', () => {
+    const res = parseFlashscoreH2H({ data: DATA });
+    expect(res?.teams.map((t) => t.name)).toEqual(['Sevilla', 'Real Madrid']);
+  });
+
+  it('concatenates sectioned object payloads', () => {
+    const sectioned = {
+      home_form: DATA.slice(0, 2),
+      away_form: DATA.slice(2, 4),
+      h2h: DATA.slice(4),
+    };
+    const res = parseFlashscoreH2H(sectioned);
+    expect(res?.h2h.played).toBe(2);
+  });
+
+  it('matches teams despite surrounding whitespace in names', () => {
+    const padded = DATA.map((d) => ({
+      ...d,
+      home_team: { ...d.home_team, name: `  ${d.home_team.name} ` },
+      away_team: { ...d.away_team, name: ` ${d.away_team.name}  ` },
+    }));
+    const res = parseFlashscoreH2H(padded)!;
+    expect(res.teams[0].name).toBe('Sevilla');
+    expect(res.teams[0].overall.played).toBe(4);
+  });
 });
