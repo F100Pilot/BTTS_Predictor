@@ -28,6 +28,7 @@ import {
 } from '@/services/notifications';
 import { exportProfile, importProfile } from '@/services/backupService';
 import { syncNow, isSyncConfigured } from '@/services/syncService';
+import { fetchFlashscoreQuota, type FlashscoreQuota } from '@/services/flashscoreClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +56,30 @@ export function SettingsPage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [quota, setQuota] = useState<FlashscoreQuota | null>(null);
+  const [quotaMsg, setQuotaMsg] = useState<string | null>(null);
+  const [quotaLoading, setQuotaLoading] = useState(false);
+
+  const handleCheckQuota = async (): Promise<void> => {
+    if (!settings.rapidApiKey.trim()) {
+      setQuotaMsg('Indica primeiro a chave RapidAPI.');
+      return;
+    }
+    setQuotaLoading(true);
+    setQuotaMsg(null);
+    setQuota(null);
+    try {
+      const q = await fetchFlashscoreQuota(settings.rapidApiKey, settings.corsProxy);
+      setQuota(q);
+      if (q.limit == null && q.remaining == null) {
+        setQuotaMsg('Pedido ok, mas o RapidAPI não devolveu cabeçalhos de quota neste plano.');
+      }
+    } catch {
+      setQuotaMsg('Falha ao verificar (Proxy CORS, chave ou limite atingido).');
+    } finally {
+      setQuotaLoading(false);
+    }
+  };
 
   const handleSyncNow = async (): Promise<void> => {
     setSyncing(true);
@@ -246,6 +271,25 @@ export function SettingsPage() {
               H2H) com um só pedido. Fica guardada apenas neste dispositivo. Requer o Proxy CORS
               acima apontado ao teu Worker.
             </p>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void handleCheckQuota()}
+                disabled={quotaLoading}
+              >
+                {quotaLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Verificar quota
+              </Button>
+              {quota && (quota.limit != null || quota.remaining != null) && (
+                <span className="text-xs text-muted-foreground">
+                  Restam{' '}
+                  <span className="font-semibold text-foreground">{quota.remaining ?? '?'}</span>
+                  {quota.limit != null ? ` de ${quota.limit}` : ''} pedidos no período.
+                </span>
+              )}
+            </div>
+            {quotaMsg && <p className="text-xs text-muted-foreground">{quotaMsg}</p>}
           </div>
 
           <label className="flex items-center gap-2 text-sm">
