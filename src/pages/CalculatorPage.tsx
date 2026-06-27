@@ -1,11 +1,21 @@
-import { useMemo, useState } from 'react';
-import { RotateCcw, ClipboardPaste, Check, AlertCircle } from 'lucide-react';
-import type { HeadToHead, TeamStats, VenueStats, WindowStats } from '@/domain/types';
+import { useEffect, useMemo, useState } from 'react';
+import { RotateCcw, ClipboardPaste, Check, AlertCircle, Save, Coins } from 'lucide-react';
+import type {
+  BttsPrediction,
+  HeadToHead,
+  TeamStats,
+  VenueStats,
+  WindowStats,
+} from '@/domain/types';
 import {
   parseFootystatsClub,
   type ParsedFootystatsTeam,
   type ParsedTeamSplit,
 } from '@/services/footystatsParser';
+import type { HistoryRecord } from '@/data/cache/db';
+import { upsertHistory } from '@/data/cache/repositories';
+import { useMartingale } from '@/store/martingaleStore';
+import { createLogger } from '@/services/logger';
 import { predict } from '@/core/prediction/engine';
 import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
 import { predictMarkets } from '@/core/prediction/markets';
@@ -26,6 +36,8 @@ import {
 } from '@/components/common/PredictionWidgets';
 import { FactorBreakdown } from '@/components/analysis/FactorBreakdown';
 import { toPercent, round } from '@/lib/math';
+
+const log = createLogger('CalculatorPage');
 
 // ---- form state ----
 
@@ -316,6 +328,51 @@ export function CalculatorPage() {
     const markets = predictMarkets(home, away);
     return { prediction, markets, home, away };
   }, [form, hasEnoughData, weights, recalibration]);
+
+  // ---- save to history / bets ----
+  const addBet = useMartingale((s) => s.addBet);
+  const [savedHistory, setSavedHistory] = useState(false);
+  const [savedBet, setSavedBet] = useState(false);
+  // Any change to the inputs invalidates the previous "saved" confirmations.
+  useEffect(() => {
+    setSavedHistory(false);
+    setSavedBet(false);
+  }, [form]);
+
+  const matchLabel = `${form.homeName || 'Casa'} vs ${form.awayName || 'Fora'}`;
+  // BTTS=SIM when the model leans yes; the matching odd powers the bet stake.
+  const selection: 'SIM' | 'NÃO' = result && result.prediction.probYes >= 0.5 ? 'SIM' : 'NÃO';
+  const selectionOdd = selection === 'SIM' ? n(form.oddYes) : n(form.oddNo);
+  const canBet = selectionOdd > 1;
+
+  const buildRecord = (prediction: BttsPrediction): HistoryRecord => ({
+    id: `manual-${Date.now()}`,
+    fixtureId: `manual-${Date.now()}`,
+    fixtureName: matchLabel,
+    competition: 'Manual',
+    date: new Date().toISOString(),
+    probYes: prediction.probYes,
+    probNo: prediction.probNo,
+    confidence: prediction.confidence,
+    tier: prediction.tier,
+    createdAt: Date.now(),
+    // No providerId: manual games can't be auto-settled from a data source.
+    factorScores: Object.fromEntries(prediction.factors.map((f) => [f.key, f.score])),
+  });
+
+  const saveToHistory = (): void => {
+    if (!result) return;
+    void upsertHistory(buildRecord(result.prediction))
+      .then(() => setSavedHistory(true))
+      .catch((err) => log.warn('manual history save failed', err));
+  };
+
+  const saveToBets = (): void => {
+    if (!result || !canBet) return;
+    void addBet({ matchLabel, market: 'BTTS', selection, odds: selectionOdd })
+      .then(() => setSavedBet(true))
+      .catch((err) => log.warn('manual bet add failed', err));
+  };
 
   return (
     <div className="space-y-6">
@@ -628,6 +685,44 @@ export function CalculatorPage() {
                       )}
                     </p>
                   </div>
+
+                  {/* Save actions */}
+                  <div className="flex flex-wrap gap-2 border-t pt-3">
+                    <Button
+                      size="sm"
+                      variant={savedHistory ? 'default' : 'outline'}
+                      onClick={saveToHistory}
+                      disabled={savedHistory}
+                    >
+                      {savedHistory ? (
+                        <Check className="mr-2 h-4 w-4" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      {savedHistory ? 'Guardado no histórico' : 'Guardar no histórico'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={savedBet ? 'default' : 'outline'}
+                      onClick={saveToBets}
+                      disabled={!canBet || savedBet}
+                      title={
+                        canBet ? undefined : 'Indica a odd BTTS ' + selection + ' para apostar'
+                      }
+                    >
+                      {savedBet ? (
+                        <Check className="mr-2 h-4 w-4" />
+                      ) : (
+                        <Coins className="mr-2 h-4 w-4" />
+                      )}
+                      {savedBet ? 'Adicionado às apostas' : `Apostar BTTS ${selection}`}
+                    </Button>
+                  </div>
+                  {!canBet && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Para criar a aposta, indica a odd BTTS {selection} nas “Odds do mercado”.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
