@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.14.1
+
+- Definições → Fonte de Dados: nota a explicar **qual fornecedor usar** em cada
+  altura (API-Football para seleções/Mundial, Football-Data.org para clubes) e
+  porque deve usar-se **uma fonte de cada vez** (IDs de equipa são por-fornecedor,
+  por isso jogos e histórico têm de vir da mesma fonte — um esquema híbrido
+  "jogos numa fonte, histórico noutra" trocaria equipas).
+
 ## 0.2.14.0
 
 - Painel: jogos **já começados/terminados** deixam de aparecer e de ser

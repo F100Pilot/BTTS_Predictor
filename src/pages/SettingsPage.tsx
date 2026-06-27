@@ -154,6 +154,13 @@ export function SettingsPage() {
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Qual escolher: <strong>API-Football</strong> para torneios de seleções (Mundial/Euro)
+              — tem histórico mais completo das seleções (limite: 100 pedidos/dia).{' '}
+              <strong>Football-Data.org</strong> para a época de clubes — limite por minuto (nunca
+              fica preso) e cobre as grandes ligas. Usa <em>uma</em> fonte de cada vez: cada
+              fornecedor tem IDs próprios, por isso jogos e histórico têm de vir da mesma fonte.
+            </p>
           </div>
 
           {!activeProvider.capabilities.worksOffline && !activeProvider.capabilities.keyless && (
