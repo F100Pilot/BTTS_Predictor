@@ -264,6 +264,25 @@ export function CalculatorPage() {
     [importHtml],
   );
 
+  const [pasteError, setPasteError] = useState<string | null>(null);
+  // On phones, long-pressing an empty field often shows "Autofill" instead of
+  // "Paste". Reading the clipboard from a button press sidesteps that entirely.
+  const pasteFromClipboard = async (): Promise<void> => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        setImportHtml(text);
+        setPasteError(null);
+      } else {
+        setPasteError('A área de transferência está vazia — copia primeiro o conteúdo da página.');
+      }
+    } catch {
+      setPasteError(
+        'O browser não permitiu colar automaticamente. Toca na caixa abaixo e usa “Colar”.',
+      );
+    }
+  };
+
   const fmt = (v: number): string => (v ? String(v) : '');
 
   // Prefer the venue split; fall back to the overall split when the venue has
@@ -414,11 +433,41 @@ export function CalculatorPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={() => void pasteFromClipboard()}>
+              <ClipboardPaste className="mr-2 h-4 w-4" /> Colar conteúdo
+            </Button>
+            {importHtml.trim() && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setImportHtml('');
+                  setPasteError(null);
+                }}
+              >
+                Limpar
+              </Button>
+            )}
+            <span className="text-[10px] text-muted-foreground">
+              ou cola manualmente na caixa abaixo
+            </span>
+          </div>
+          {pasteError && (
+            <p className="flex items-center gap-1.5 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {pasteError}
+            </p>
+          )}
           <textarea
             value={importHtml}
             onChange={(e) => setImportHtml(e.target.value)}
             placeholder="Cola aqui o texto (ou o código-fonte) da página da equipa…"
             rows={3}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
             className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
           {importHtml.trim() && !imported && (
