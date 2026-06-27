@@ -10,6 +10,8 @@ interface SettingsState {
   providerId: string;
   apiKeys: Record<string, string>; // providerId -> key (device-local only)
   corsProxy: string; // optional CORS proxy for providers without CORS headers
+  /** RapidAPI key for Flashscore import in the Calculator (device-local only). */
+  rapidApiKey: string;
   /** Shared secret that namespaces this user's synced history/bets in the
    * worker's KV. Empty = sync off. Same code on every device = same data. */
   syncCode: string;
@@ -40,6 +42,7 @@ interface SettingsState {
   setProvider: (id: string) => void;
   setApiKey: (providerId: string, key: string) => void;
   setCorsProxy: (value: string) => void;
+  setRapidApiKey: (value: string) => void;
   setSyncCode: (value: string) => void;
   setFallbackToMock: (value: boolean) => void;
   setAutoFallback: (value: boolean) => void;
@@ -68,6 +71,7 @@ export const useSettings = create<SettingsState>()(
       providerId: DEFAULT_PROVIDER_ID,
       apiKeys: {},
       corsProxy: '',
+      rapidApiKey: '',
       syncCode: '',
       fallbackToMock: true,
       autoFallback: true,
@@ -89,6 +93,7 @@ export const useSettings = create<SettingsState>()(
       setApiKey: (providerId, key) =>
         set((s) => ({ apiKeys: { ...s.apiKeys, [providerId]: sanitizeApiKey(key) } })),
       setCorsProxy: (value) => set({ corsProxy: value.trim() }),
+      setRapidApiKey: (value) => set({ rapidApiKey: sanitizeApiKey(value) }),
       setSyncCode: (value) => set({ syncCode: value.trim() }),
       setFallbackToMock: (value) => set({ fallbackToMock: value }),
       setAutoFallback: (value) => set({ autoFallback: value }),

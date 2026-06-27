@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { RotateCcw, ClipboardPaste, Check, AlertCircle, Save, Coins } from 'lucide-react';
+import { RotateCcw, ClipboardPaste, Check, AlertCircle, Save, Coins, Zap } from 'lucide-react';
 import type {
   BttsPrediction,
   HeadToHead,
@@ -12,6 +12,7 @@ import {
   type ParsedFootystatsTeam,
   type ParsedTeamSplit,
 } from '@/services/footystatsParser';
+import { parseFlashscoreH2H, type FlashH2HResult, type FlashSplit } from '@/services/flashscoreH2H';
 import type { HistoryRecord } from '@/data/cache/db';
 import { upsertHistory } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
@@ -390,6 +391,112 @@ export function CalculatorPage() {
     afterFill('Fora', t.name);
   };
 
+  // ---- Flashscore import (RapidAPI) ----
+  // Enter a match (id or Flashscore link) → one h2h call fills BOTH teams + H2H.
+  const rapidApiKey = useSettings((s) => s.rapidApiKey);
+  const [flashInput, setFlashInput] = useState('');
+  const [flashFetching, setFlashFetching] = useState(false);
+  const [flashError, setFlashError] = useState<string | null>(null);
+  const [flashResult, setFlashResult] = useState<FlashH2HResult | null>(null);
+  // Which subject team is the home side. Flashscore lists them as [home, away]
+  // but the user can swap if the fixture has them the other way around.
+  const [flashSwap, setFlashSwap] = useState(false);
+
+  // Accept a raw 6–12 char id, a "match_id=…" query, or a Flashscore URL.
+  const extractMatchId = (raw: string): string | null => {
+    const s = raw.trim();
+    if (!s) return null;
+    const q = s.match(/match_id=([A-Za-z0-9]{6,12})/);
+    if (q) return q[1] ?? null;
+    if (/^[A-Za-z0-9]{6,12}$/.test(s)) return s;
+    const tokens = s.match(/[A-Za-z0-9]{8}/g);
+    return tokens && tokens.length ? (tokens[tokens.length - 1] ?? null) : null;
+  };
+
+  const fetchFlash = async (): Promise<void> => {
+    const id = extractMatchId(flashInput);
+    if (!id) {
+      setFlashError('Indica o id do jogo (ou cola o link do Flashscore).');
+      return;
+    }
+    if (!rapidApiKey.trim()) {
+      setFlashError('Configura primeiro a chave RapidAPI em Definições.');
+      return;
+    }
+    const target = `https://flashscore4.p.rapidapi.com/api/flashscore/v2/matches/h2h?match_id=${id}`;
+    const proxied = proxyFor(target);
+    if (!proxied) {
+      setFlashError('Configura primeiro um Proxy CORS em Definições (o teu Worker).');
+      return;
+    }
+    setFlashFetching(true);
+    setFlashError(null);
+    try {
+      const res = await fetch(proxied, {
+        headers: {
+          'x-rapidapi-key': rapidApiKey.trim(),
+          'x-rapidapi-host': 'flashscore4.p.rapidapi.com',
+        },
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const json: unknown = await res.json();
+      const parsed = parseFlashscoreH2H(json);
+      if (!parsed) {
+        setFlashError('Recebi resposta mas não reconheci os jogos. Confirma o id do jogo.');
+        setFlashResult(null);
+        return;
+      }
+      setFlashResult(parsed);
+      setFlashSwap(false);
+    } catch (err) {
+      log.warn('flashscore h2h fetch failed', err);
+      setFlashError('Não consegui buscar o jogo (proxy, chave RapidAPI ou id inválido).');
+      setFlashResult(null);
+    } finally {
+      setFlashFetching(false);
+    }
+  };
+
+  const pasteFlash = async (): Promise<void> => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        setFlashInput(text.trim());
+        setFlashError(null);
+      } else {
+        setFlashError('A área de transferência está vazia — copia primeiro o link/id.');
+      }
+    } catch {
+      setFlashError('O browser não permitiu colar automaticamente. Cola o id manualmente.');
+    }
+  };
+
+  // Fill the whole form from a Flashscore h2h result: home team's home split,
+  // away team's away split, and the H2H BTTS. Respects the swap toggle.
+  const applyFlash = (r: FlashH2HResult): void => {
+    const [a, b] = r.teams;
+    const home = flashSwap ? b : a;
+    const away = flashSwap ? a : b;
+    const homeSplit: FlashSplit = home.home.played >= 1 ? home.home : home.overall;
+    const awaySplit: FlashSplit = away.away.played >= 1 ? away.away : away.overall;
+    setForm((prev) => ({
+      ...prev,
+      homeName: home.name,
+      homeGoalsFor: fmt(homeSplit.goalsFor),
+      homeGoalsAgainst: fmt(homeSplit.goalsAgainst),
+      homeBttsPct: fmt(homeSplit.bttsPct),
+      homeGames: fmt(homeSplit.played),
+      awayName: away.name,
+      awayGoalsFor: fmt(awaySplit.goalsFor),
+      awayGoalsAgainst: fmt(awaySplit.goalsAgainst),
+      awayBttsPct: fmt(awaySplit.bttsPct),
+      awayGames: fmt(awaySplit.played),
+      h2hBttsPct: r.h2h.played >= 1 ? fmt(r.h2h.bttsPct) : prev.h2hBttsPct,
+      h2hGames: r.h2h.played >= 1 ? fmt(r.h2h.played) : prev.h2hGames,
+    }));
+    setFilledMsg(`${home.name} (casa) e ${away.name} (fora) preenchidos a partir do Flashscore.`);
+  };
+
   const homeGames = Math.max(0, Math.round(n(form.homeGames)));
   const awayGames = Math.max(0, Math.round(n(form.awayGames)));
   const hasEnoughData = homeGames >= 1 && awayGames >= 1;
@@ -488,6 +595,93 @@ export function CalculatorPage() {
           Limpar
         </Button>
       </div>
+
+      {/* ---- Flashscore import (RapidAPI) ---- */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <Zap className="h-4 w-4" /> Importar do Flashscore (1 clique)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Cola o link do jogo no Flashscore (ou o id do jogo) e a app preenche{' '}
+            <span className="font-medium">as duas equipas e o H2H</span> com um só pedido — sem
+            copiar/colar página a página. Requer a chave RapidAPI e o Proxy CORS em Definições.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1">
+            <Label
+              htmlFor="flash-url"
+              className="flex items-center justify-between gap-2 text-xs font-medium"
+            >
+              <span>Link do jogo ou id (match_id)</span>
+              <button
+                type="button"
+                onClick={() => void pasteFlash()}
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10"
+                aria-label="Colar link da área de transferência"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5" /> Colar
+              </button>
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="flash-url"
+                type="text"
+                inputMode="url"
+                autoComplete="off"
+                placeholder="https://www.flashscore.com/match/… ou GCxZ2uHc"
+                value={flashInput}
+                onChange={(e) => setFlashInput(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <Button size="sm" onClick={() => void fetchFlash()} disabled={flashFetching}>
+                <Search className="mr-2 h-4 w-4" />
+                {flashFetching ? 'A buscar…' : 'Buscar'}
+              </Button>
+            </div>
+          </div>
+          {flashError && (
+            <p className="flex items-center gap-1.5 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {flashError}
+            </p>
+          )}
+          {flashResult && (
+            <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+              <p className="flex items-center gap-1.5 text-xs">
+                <Check className="h-3.5 w-3.5 text-primary" />
+                <span className="font-semibold">
+                  {(flashSwap ? flashResult.teams[1] : flashResult.teams[0]).name}
+                </span>{' '}
+                (casa) vs{' '}
+                <span className="font-semibold">
+                  {(flashSwap ? flashResult.teams[0] : flashResult.teams[1]).name}
+                </span>{' '}
+                (fora)
+                {flashResult.h2h.played >= 1 && (
+                  <>
+                    {' '}
+                    · H2H BTTS {flashResult.h2h.bttsPct}% ({flashResult.h2h.played}j)
+                  </>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => applyFlash(flashResult)}>
+                  Preencher casa e fora
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setFlashSwap((v) => !v)}>
+                  <RotateCcw className="mr-2 h-3.5 w-3.5" /> Trocar casa/fora
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Usa a forma em casa da 1ª equipa e a forma fora da 2ª. Se o jogo estiver invertido,
+                usa “Trocar casa/fora” antes de preencher.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ---- FootyStats import ---- */}
       <Card>

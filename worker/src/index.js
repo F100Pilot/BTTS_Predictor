@@ -32,6 +32,7 @@ const ALLOWED_TARGET_HOSTS = [
   'www.footystats.org',
   'betexplorer.com',
   'www.betexplorer.com',
+  'flashscore4.p.rapidapi.com',
 ];
 
 // Auth headers we forward upstream (and allow through CORS preflight).
