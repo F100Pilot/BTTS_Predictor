@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, Eye, ListPlus, Check } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
@@ -18,7 +18,7 @@ import { formatTime } from '@/lib/format';
 import { toPercent, round } from '@/lib/math';
 import { useCollections } from '@/store/collectionsStore';
 import { useSettings } from '@/store/settingsStore';
-import { upsertHistory } from '@/data/cache/repositories';
+import { upsertHistory, listHistory } from '@/data/cache/repositories';
 import { rowEdge } from '@/components/dashboard/filters';
 import { createLogger } from '@/services/logger';
 import { cn } from '@/lib/utils';
@@ -49,13 +49,28 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
   const navigate = useNavigate();
   const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
   const providerId = useSettings((s) => s.providerId);
-  const [added, setAdded] = useState<Set<string>>(new Set());
+  // Fixtures already saved to history (persisted from any session) plus those
+  // added in this one — so the "in history" check survives a reload.
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    void listHistory()
+      .then((records) => {
+        if (cancelled) return;
+        setSaved(new Set(records.map((r) => r.fixtureId || r.id)));
+      })
+      .catch((err) => log.warn('load history ids failed', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [rows]);
 
   const addToHistory = (row: DashboardRow): void => {
     const record = toHistoryRecord(row, providerId);
     if (!record) return;
     void upsertHistory(record)
-      .then(() => setAdded((prev) => new Set(prev).add(row.fixture.id)))
+      .then(() => setSaved((prev) => new Set(prev).add(row.fixture.id)))
       .catch((err) => log.warn('add to history failed', err));
   };
 
@@ -88,9 +103,14 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
                 {row.fixture.competition.name}
               </TableCell>
               <TableCell>
-                <div className="font-medium">
-                  {row.fixture.home.name} <span className="text-muted-foreground">vs</span>{' '}
-                  {row.fixture.away.name}
+                <div className="flex items-center gap-1.5 font-medium">
+                  {saved.has(row.fixture.id) && (
+                    <Check className="h-4 w-4 shrink-0 text-success" aria-label="No histórico" />
+                  )}
+                  <span>
+                    {row.fixture.home.name} <span className="text-muted-foreground">vs</span>{' '}
+                    {row.fixture.away.name}
+                  </span>
                 </div>
                 <div className="text-xs text-muted-foreground sm:hidden">
                   {row.fixture.competition.name}
@@ -163,12 +183,14 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Adicionar ao histórico"
-                    title="Adicionar ao histórico"
-                    disabled={!row.prediction || added.has(row.fixture.id)}
+                    aria-label={
+                      saved.has(row.fixture.id) ? 'Já no histórico' : 'Adicionar ao histórico'
+                    }
+                    title={saved.has(row.fixture.id) ? 'Já no histórico' : 'Adicionar ao histórico'}
+                    disabled={!row.prediction || saved.has(row.fixture.id)}
                     onClick={() => addToHistory(row)}
                   >
-                    {added.has(row.fixture.id) ? (
+                    {saved.has(row.fixture.id) ? (
                       <Check className="h-4 w-4 text-success" />
                     ) : (
                       <ListPlus className="h-4 w-4" />
