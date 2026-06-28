@@ -20,7 +20,7 @@ import { createLogger } from '@/services/logger';
 import { cn } from '@/lib/utils';
 
 const log = createLogger('LiveScorePage');
-const REFRESH_MS = 60_000;
+const REFRESH_MS = 600_000;
 
 type Outcome = 'W' | 'D' | 'L';
 interface SavedPred {
@@ -338,7 +338,7 @@ export function LiveScorePage() {
             <Radio className="h-5 w-5 text-destructive" /> Ao Vivo
           </h1>
           <p className="text-sm text-muted-foreground">
-            Atualização automática a cada 60s{updatedAt ? ` · ${updatedAt}` : ''}.
+            Atualização automática a cada 10 min{updatedAt ? ` · ${updatedAt}` : ''}.
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Fonte: <span className="font-medium text-foreground">Flashscore</span>

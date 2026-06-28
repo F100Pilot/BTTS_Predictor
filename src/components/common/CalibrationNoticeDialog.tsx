@@ -95,6 +95,15 @@ export function CalibrationNoticeDialog() {
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <p className="text-xs text-muted-foreground">Item afetado</p>
+            <p className="font-semibold">Probabilidade final de BTTS SIM</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              É uma calibração global da probabilidade — não altera os pesos individuais (Forma,
+              BTTS, Ataque…).
+            </p>
+          </div>
+
           <p className="text-muted-foreground">A calibração {justification}</p>
 
           <div className="rounded-lg border bg-muted/30 p-3">

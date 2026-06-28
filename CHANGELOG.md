@@ -20,6 +20,12 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.42.1
+
+- **Ao Vivo**: atualização automática passa de 60s para **10 minutos**.
+- **Popup da auto-calibração**: passa a indicar o **item afetado** — a
+  "Probabilidade final de BTTS SIM" (calibração global; não mexe nos pesos).
+
 ## 0.2.42.0
 
 - **Aviso de auto-calibração**: sempre que a calibração automática muda (novos

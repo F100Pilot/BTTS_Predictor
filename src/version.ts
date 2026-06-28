@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.42';
+export const APP_VERSION = '0.2.42.1';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.42.1: A página Ao Vivo passa a atualizar a cada 10 minutos (menos pedidos). O popup da auto-calibração passa a indicar o item afetado — a “Probabilidade final de BTTS SIM” (calibração global, não mexe nos pesos).',
   'v0.2.42: Sempre que a auto-calibração muda (novos resultados reais reajustam o modelo), aparece um pop-up a explicar o que mudou — com exemplos de como uma previsão passa a ser ajustada (ex.: 70% → 64%) e uma justificação simples (se o modelo estava a sobrestimar ou subestimar o BTTS). Só reaparece quando a calibração volta a mudar.',
   'v0.2.41: Página Ao Vivo redesenhada com o mesmo estilo da página de Jogos — cada jogo num banner com emblema (iniciais) das equipas, resultado ao vivo, barra de forma (últimos 5 resultados de cada equipa), prognóstico BTTS com percentagem e estado “ambas marcaram”. As opções passaram para um pop-up de ícones e foi adicionado um atalho para Definições. Na página de Jogos, o botão de Definições foi alinhado à direita do título.',
   'v0.2.40: Página de Jogos com novo visual minimalista — cada jogo num banner (hora, competição, equipas, selo BTTS e classificação) que abre a análise ao toque. Todas as opções da página passaram para um pop-up discreto, com ícones sem texto (o nome aparece ao passar o rato ou ao manter o dedo premido). As ações de cada jogo (favorito, watchlist, histórico) também ficaram em ícones com o mesmo comportamento.',
