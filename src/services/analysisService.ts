@@ -50,13 +50,17 @@ export async function buildAnalysis(
   options: AnalysisOptions = {},
 ): Promise<AnalysisBundle> {
   const t = options.throwOnDataError ?? false;
-  // Fetch each team's recent matches once (15 to give the windows + H2H enough
-  // data). H2H is derived locally from those instead of a 3rd API call — this
-  // cuts the per-fixture cost from 3 requests to 2 and avoids double-fetching.
-  const [homeMatches, awayMatches] = await Promise.all([
-    data.getTeamRecentMatches(fixture.home.id, MAX_RECENT_MATCHES, t),
-    data.getTeamRecentMatches(fixture.away.id, MAX_RECENT_MATCHES, t),
-  ]);
+  // Prefer a single per-fixture request when the provider supports it
+  // (Flashscore: both teams' form + H2H from one h2h call). Otherwise fetch each
+  // team's recent matches separately (15 to give the windows + H2H enough data);
+  // H2H is then derived locally instead of a 3rd request.
+  const bundle = (await data.getFixtureMatches?.(fixture, t)) ?? null;
+  const [homeMatches, awayMatches] = bundle
+    ? [bundle.home, bundle.away]
+    : await Promise.all([
+        data.getTeamRecentMatches(fixture.home.id, MAX_RECENT_MATCHES, t),
+        data.getTeamRecentMatches(fixture.away.id, MAX_RECENT_MATCHES, t),
+      ]);
 
   let homeStats = computeTeamStats(fixture.home, homeMatches);
   let awayStats = computeTeamStats(fixture.away, awayMatches);

@@ -200,40 +200,45 @@ export function SettingsPage() {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Qual escolher: <strong>API-Football</strong> para torneios de seleções (Mundial/Euro)
-              — tem histórico mais completo das seleções (limite: 100 pedidos/dia).{' '}
-              <strong>Football-Data.org</strong> para a época de clubes — limite por minuto (nunca
-              fica preso) e cobre as grandes ligas. Usa <em>uma</em> fonte de cada vez: cada
-              fornecedor tem IDs próprios, por isso jogos e histórico têm de vir da mesma fonte.
+              Qual escolher: <strong>Flashscore (RapidAPI)</strong> é a fonte recomendada — cobre
+              quase todas as ligas e faz a análise diária com ~1 pedido por jogo (forma das duas
+              equipas + H2H no mesmo pedido). Requer a chave RapidAPI e o Proxy CORS abaixo.{' '}
+              <strong>API-Football</strong> para torneios de seleções (Mundial/Euro) — histórico
+              mais completo das seleções (limite: 100 pedidos/dia).{' '}
+              <strong>Football-Data.org</strong> para a época de clubes — limite por minuto e
+              grandes ligas. Usa <em>uma</em> fonte de cada vez: cada fornecedor tem IDs próprios,
+              por isso jogos e histórico têm de vir da mesma fonte.
             </p>
           </div>
 
-          {!activeProvider.capabilities.worksOffline && !activeProvider.capabilities.keyless && (
-            <div className="space-y-1.5">
-              <Label htmlFor="apikey">Chave de API ({activeProvider.label})</Label>
-              <Input
-                id="apikey"
-                type="password"
-                autoComplete="off"
-                placeholder="Cole aqui a sua chave"
-                value={settings.apiKeys[settings.providerId] ?? ''}
-                onChange={(e) => settings.setApiKey(settings.providerId, e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                A chave é guardada apenas neste dispositivo (LocalStorage).{' '}
-                {activeProvider.docsUrl && (
-                  <a
-                    href={activeProvider.docsUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-primary hover:underline"
-                  >
-                    Obter chave <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-              </p>
-            </div>
-          )}
+          {!activeProvider.capabilities.worksOffline &&
+            !activeProvider.capabilities.keyless &&
+            settings.providerId !== 'flashscore' && (
+              <div className="space-y-1.5">
+                <Label htmlFor="apikey">Chave de API ({activeProvider.label})</Label>
+                <Input
+                  id="apikey"
+                  type="password"
+                  autoComplete="off"
+                  placeholder="Cole aqui a sua chave"
+                  value={settings.apiKeys[settings.providerId] ?? ''}
+                  onChange={(e) => settings.setApiKey(settings.providerId, e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  A chave é guardada apenas neste dispositivo (LocalStorage).{' '}
+                  {activeProvider.docsUrl && (
+                    <a
+                      href={activeProvider.docsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-primary hover:underline"
+                    >
+                      Obter chave <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </p>
+              </div>
+            )}
 
           {settings.providerId !== 'football-data' && (
             <div className="space-y-1.5">
@@ -286,9 +291,10 @@ export function SettingsPage() {
               onChange={(e) => settings.setRapidApiKey(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Usada na Calculadora para importar um jogo do Flashscore (forma das duas equipas +
-              H2H) com um só pedido. Fica guardada apenas neste dispositivo. Requer o Proxy CORS
-              acima apontado ao teu Worker.
+              É a chave da fonte <strong>Flashscore</strong>: alimenta a análise diária (forma das
+              duas equipas + H2H com um só pedido por jogo) e também a importação na Calculadora.
+              Fica guardada apenas neste dispositivo. Requer o Proxy CORS acima apontado ao teu
+              Worker.
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <Button
