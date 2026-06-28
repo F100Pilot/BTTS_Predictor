@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.38.1';
+export const APP_VERSION = '0.2.38.2';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.38.2: Página Ao Vivo deixa de mostrar jogos já terminados que o feed do Flashscore ainda marca como “em jogo” (acontece em ligas menores, com atraso após o apito final). Quando não há minuto real e já passaram mais de 130 min do início, o jogo sai do Ao Vivo (e liquida no Histórico).',
   'v0.2.38.1: Sincronização entre dispositivos muito mais poupada no Cloudflare KV — passa a escrever só quando os dados mudam mesmo (antes reescrevia tudo a cada 45s) e o intervalo passou para 5 min. Resolve o aviso de “limite diário do Workers KV” sem precisares de upgrade.',
   'v0.2.38: No Histórico (Previsões), as previsões passam a estar agrupadas por dia, com cada dia a poder ser colapsado/expandido (e um botão “Expandir/Colapsar tudo”). Além disso, como a atualização de resultados é sempre via Flashscore, deixou de haver dois botões: fica só “Atualizar resultados” (com o ícone de atualização).',
   'v0.2.37.4: Na página de Jogos, o “check” de jogo no histórico aparece só uma vez — no botão da coluna Ações (removida a marca duplicada ao lado do nome).',
