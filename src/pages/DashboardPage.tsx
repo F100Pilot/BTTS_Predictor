@@ -8,6 +8,9 @@ import {
   AlertTriangle,
   RefreshCw,
   PlusCircle,
+  SlidersHorizontal,
+  Trophy,
+  Clock,
 } from 'lucide-react';
 import type { DashboardRow, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
@@ -31,6 +34,8 @@ import {
 } from '@/components/dashboard/filters';
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { GamesTable } from '@/components/dashboard/GamesTable';
+import { IconAction } from '@/components/common/IconAction';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useDashboardFilters } from '@/store/dashboardFiltersStore';
 import { useCalibration } from '@/store/calibrationStore';
@@ -90,6 +95,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   // How many fixtures (in kickoff order) we are allowed to analyse. 0 batch size
   // means "analyse everything" (Infinity).
   const [batchLimit, setBatchLimit] = useState<number>(() => batchSize || Infinity);
@@ -305,40 +311,70 @@ export function DashboardPage() {
           </p>
           <QuotaBadge className="mt-1" />
         </div>
-        <div className="flex gap-2">
-          {showWaiting && (
-            <Button variant="outline" size="sm" onClick={loadMore} disabled={analyzing}>
-              <PlusCircle /> Analisar mais {nextBatch}
-            </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={() => void handleReanalyze()}>
-            <RefreshCw /> Reanalisar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!filtered.length}
-            onClick={() => handleExport('csv')}
-          >
-            <Download /> CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!filtered.length}
-            onClick={() => handleExport('xlsx')}
-          >
-            <FileSpreadsheet /> Excel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!filtered.length}
-            onClick={() => handleExport('pdf')}
-          >
-            <FileText /> PDF
-          </Button>
-        </div>
+        {/* All page options live behind a single discreet pop-up, as icon-only
+            controls; each reveals its label on hover or long-press. */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label="Opções"
+              className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-auto overflow-visible p-2">
+            <div className="grid max-w-[15rem] grid-cols-4 gap-2">
+              <IconAction
+                label="Filtros"
+                icon={<SlidersHorizontal className="h-4 w-4" />}
+                active={showFilters}
+                onClick={() => setShowFilters((v) => !v)}
+              />
+              <IconAction
+                label="Reanalisar"
+                icon={<RefreshCw className="h-4 w-4" />}
+                onClick={() => void handleReanalyze()}
+              />
+              <IconAction
+                label={`Analisar mais ${nextBatch || ''}`.trim()}
+                icon={<PlusCircle className="h-4 w-4" />}
+                disabled={!showWaiting || analyzing}
+                onClick={loadMore}
+              />
+              <IconAction
+                label={majorOnly ? 'Só grandes ligas (ativo)' : 'Só grandes ligas'}
+                icon={<Trophy className="h-4 w-4" />}
+                active={majorOnly}
+                onClick={() => setMajorOnly(!majorOnly)}
+              />
+              <IconAction
+                label={hideStarted ? 'Esconder começados (ativo)' : 'Esconder começados'}
+                icon={<Clock className="h-4 w-4" />}
+                active={hideStarted}
+                onClick={() => setHideStarted(!hideStarted)}
+              />
+              <IconAction
+                label="Exportar CSV"
+                icon={<Download className="h-4 w-4" />}
+                disabled={!filtered.length}
+                onClick={() => handleExport('csv')}
+              />
+              <IconAction
+                label="Exportar Excel"
+                icon={<FileSpreadsheet className="h-4 w-4" />}
+                disabled={!filtered.length}
+                onClick={() => handleExport('xlsx')}
+              />
+              <IconAction
+                label="Exportar PDF"
+                icon={<FileText className="h-4 w-4" />}
+                disabled={!filtered.length}
+                onClick={() => handleExport('pdf')}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {analyzing && (
@@ -354,12 +390,14 @@ export function DashboardPage() {
         </div>
       )}
 
-      <DashboardFilters
-        value={filters}
-        competitions={competitions}
-        countries={countries}
-        onChange={setFilters}
-      />
+      {showFilters && (
+        <DashboardFilters
+          value={filters}
+          competitions={competitions}
+          countries={countries}
+          onChange={setFilters}
+        />
+      )}
 
       {loadError && (
         <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
@@ -403,9 +441,7 @@ export function DashboardPage() {
           }
         />
       ) : (
-        <div className="rounded-lg border bg-card">
-          <GamesTable rows={filtered} />
-        </div>
+        <GamesTable rows={filtered} />
       )}
     </div>
   );
