@@ -9,6 +9,7 @@ import type {
 } from '@/domain/types';
 import { parseFlashscoreH2H, type FlashH2HResult, type FlashSplit } from '@/services/flashscoreH2H';
 import { parseFlashscoreBttsOdds, type FlashBttsOdds } from '@/services/flashscoreOdds';
+import { proxyFor as buildProxyUrl } from '@/services/corsProxy';
 import type { HistoryRecord } from '@/data/cache/db';
 import { upsertHistory } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
@@ -257,15 +258,9 @@ export function CalculatorPage() {
 
   const corsProxy = useSettings((s) => s.corsProxy);
 
-  // Build a proxied URL for a target through the configured CORS proxy. Works
-  // with a {url}-style proxy OR an origin-prefix worker (we append the worker's
-  // generic ?url= endpoint). Used by the Flashscore import.
-  const proxyFor = (target: string): string | null => {
-    const p = corsProxy.trim();
-    if (!p) return null;
-    if (p.includes('{url}')) return p.replace('{url}', encodeURIComponent(target));
-    return p.replace(/\/+$/, '') + '/?url=' + encodeURIComponent(target);
-  };
+  // Proxied URL through the configured CORS proxy (shared util). Used by the
+  // Flashscore import.
+  const proxyFor = (target: string): string | null => buildProxyUrl(corsProxy, target);
 
   const fmt = (v: number): string => (v ? String(v) : '');
   const [filledMsg, setFilledMsg] = useState<string | null>(null);

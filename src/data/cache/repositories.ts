@@ -24,6 +24,26 @@ export async function putTombstone(t: TombstoneRecord): Promise<void> {
   await db.put('tombstones', t);
 }
 
+/** Default tombstone lifetime: 120 days. Long enough that any device syncing
+ * within that window has applied the deletion; after that the marker is dropped
+ * to stop unbounded growth (the record is gone everywhere by then). */
+export const TOMBSTONE_TTL_MS = 120 * 24 * 60 * 60 * 1000;
+
+/** Drop tombstones older than the TTL. Returns how many were removed. */
+export async function purgeStaleTombstones(maxAgeMs = TOMBSTONE_TTL_MS): Promise<number> {
+  const db = await getDb();
+  const cutoff = Date.now() - maxAgeMs;
+  const all = await db.getAll('tombstones');
+  let removed = 0;
+  for (const t of all) {
+    if (t.at < cutoff) {
+      await db.delete('tombstones', t.key);
+      removed += 1;
+    }
+  }
+  return removed;
+}
+
 // ---- Favorites ----
 export async function listFavorites(): Promise<FavoriteRecord[]> {
   const db = await getDb();

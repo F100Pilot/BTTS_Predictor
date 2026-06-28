@@ -5,17 +5,12 @@
  */
 
 import { parseFlashscoreMatches, type FlashFixture } from './flashscoreMatches';
+import { proxyFor } from './corsProxy';
 import type { LiveMatch } from '@/domain/types';
 
 const HOST = 'flashscore4.p.rapidapi.com';
 
-/** Build a proxied URL for `target` via the configured CORS proxy ('' if none). */
-export function proxyFor(corsProxy: string, target: string): string | null {
-  const p = corsProxy.trim();
-  if (!p) return null;
-  if (p.includes('{url}')) return p.replace('{url}', encodeURIComponent(target));
-  return p.replace(/\/+$/, '') + '/?url=' + encodeURIComponent(target);
-}
+export { proxyFor };
 
 async function getJson(target: string, rapidApiKey: string, corsProxy: string): Promise<unknown> {
   const proxied = proxyFor(corsProxy, target);
