@@ -14,7 +14,7 @@ import { formatTime } from '@/lib/format';
 import { createLogger } from '@/services/logger';
 
 const log = createLogger('LiveScorePage');
-const REFRESH_MS = 30_000;
+const REFRESH_MS = 60_000;
 
 /** Minutes since kickoff (rough fallback when the feed omits the live minute). */
 function elapsedFromKickoff(dateIso?: string): number | null {
@@ -36,6 +36,20 @@ function looksFinished(m: LiveMatch): boolean {
   if (typeof m.minute === 'number') return false; // trust a real reported minute
   const elapsed = elapsedFromKickoff(m.date);
   return elapsed != null && elapsed > MAX_LIVE_MINUTES;
+}
+
+/**
+ * True when a kickoff time falls in the plausible live window — from ~10 min
+ * before kickoff to full time. Used to decide whether ANY tracked game could be
+ * in play right now; if none is, we skip the Flashscore call entirely (saves
+ * RapidAPI quota — no point polling live scores when nothing is playing).
+ */
+function inLiveWindow(dateIso: string | undefined, now: number): boolean {
+  if (!dateIso) return false;
+  const t = Date.parse(dateIso);
+  if (!Number.isFinite(t)) return false;
+  const mins = (now - t) / 60_000;
+  return mins >= -10 && mins <= MAX_LIVE_MINUTES;
 }
 
 function statusLabel(m: LiveMatch): string {
@@ -63,10 +77,16 @@ export function LiveScorePage() {
         const [history, bets] = await Promise.all([listHistory(), listBets()]);
 
         // Only show live games the user is tracking (in history or with a bet),
-        // matched by Flashscore id OR team-name pair. Only call Flashscore when
-        // there are tracked games and a key — saves RapidAPI quota.
+        // matched by Flashscore id OR team-name pair. Crucially, only call the
+        // Flashscore live feed when an UNSETTLED tracked game is actually in its
+        // play window right now — otherwise polling a list of finished/future
+        // games just burns RapidAPI quota for nothing.
+        const now = Date.now();
+        const anyLiveNow =
+          history.some((h) => !h.actual && inLiveWindow(h.date, now)) ||
+          bets.some((b) => b.result === 'pending' && inLiveWindow(b.kickoff, now));
         let shown: LiveMatch[] = [];
-        if (rapidApiKey.trim() && (history.length > 0 || bets.length > 0)) {
+        if (rapidApiKey.trim() && anyLiveNow) {
           const fixtures = await fetchFlashscoreLive(rapidApiKey, corsProxy).catch(
             () => [] as Awaited<ReturnType<typeof fetchFlashscoreLive>>,
           );
@@ -137,7 +157,7 @@ export function LiveScorePage() {
             <Radio className="h-5 w-5 text-destructive" /> Ao Vivo
           </h1>
           <p className="text-sm text-muted-foreground">
-            Atualização automática a cada 30s{updatedAt ? ` · ${updatedAt}` : ''}.
+            Atualização automática a cada 60s{updatedAt ? ` · ${updatedAt}` : ''}.
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Fonte: <span className="font-medium text-foreground">Flashscore</span>
