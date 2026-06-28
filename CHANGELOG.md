@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.42.0
+
+- **Aviso de auto-calibração**: sempre que a calibração automática muda (novos
+  resultados reais reajustam o Platt), surge um pop-up a explicar o que mudou —
+  exemplos do efeito numa previsão (ex.: 70% → 64%) e uma justificação simples
+  (modelo a sobrestimar/subestimar o BTTS). Guarda a calibração mostrada e só
+  reaparece quando volta a mudar (`CalibrationNoticeDialog`).
+
 ## 0.2.41.0
 
 - **Página Ao Vivo redesenhada** no mesmo estilo da Jogos: cada jogo num
