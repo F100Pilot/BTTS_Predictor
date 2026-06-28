@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Fragment, useEffect, useMemo, useState, useCallback } from 'react';
 import {
   History,
   Trash2,
@@ -6,7 +6,8 @@ import {
   Calendar as CalendarIcon,
   X,
   RefreshCw,
-  Zap,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Bet, PredictionTier } from '@/domain/types';
@@ -18,7 +19,7 @@ import {
   removeHistory,
 } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
-import { bttsFromGoals, settleBetAgainstBtts } from '@/services/settlementService';
+import { settleBetAgainstBtts } from '@/services/settlementService';
 import { fetchFlashscoreByDate } from '@/services/flashscoreClient';
 import type { FlashFixture } from '@/services/flashscoreMatches';
 import { flashOutcome, buildFixtureIndex } from '@/services/flashscoreSettle';
@@ -51,7 +52,6 @@ import {
   YAxis,
 } from 'recharts';
 import { evaluate, reliabilityCurve, type Sample } from '@/core/backtest/backtest';
-import { useDataService } from '@/hooks/useDataService';
 import { useCalibration, MIN_CALIBRATION_SAMPLES } from '@/store/calibrationStore';
 import { useSettings } from '@/store/settingsStore';
 import { todayIso, formatDateTime } from '@/lib/format';
@@ -77,10 +77,8 @@ function dedupeByFixture(records: HistoryRecord[]): HistoryRecord[] {
 }
 
 export function HistoryPage() {
-  const data = useDataService();
   const refreshCalibration = useCalibration((s) => s.refresh);
   const autoCalibrate = useSettings((s) => s.autoCalibrate);
-  const providerId = useSettings((s) => s.providerId);
   const corsProxy = useSettings((s) => s.corsProxy);
   const rapidApiKey = useSettings((s) => s.rapidApiKey);
   const initialBankroll = useMartingale((s) => s.initialBankroll);
@@ -93,7 +91,6 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [calOpen, setCalOpen] = useState(false);
-  const [fetching, setFetching] = useState(false);
   const [flashFetching, setFlashFetching] = useState(false);
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
 
@@ -156,107 +153,9 @@ export function HistoryPage() {
     await refreshCalibration();
   };
 
-  const handleFetchResults = async (): Promise<void> => {
-    setFetching(true);
-    setFetchMsg(null);
-    try {
-      const today = todayIso();
-      // Only settle games whose fixtureId came from the ACTIVE provider — ids are
-      // provider-specific, so fetching a result for an id created by another
-      // source returns a different match (wrong score). Mismatched/legacy
-      // (untagged) records are skipped and reported.
-      const isPlayable = (date: string): boolean => date.slice(0, 10) <= today;
-      const pendingRecords = records.filter(
-        (r) => !r.actual && r.fixtureId && isPlayable(r.date) && r.providerId === providerId,
-      );
-      const pendingBets = bets.filter(
-        (b) => b.result === 'pending' && b.fixtureId && b.providerId === providerId,
-      );
-      const skipped =
-        records.filter(
-          (r) => !r.actual && r.fixtureId && isPlayable(r.date) && r.providerId !== providerId,
-        ).length +
-        bets.filter((b) => b.result === 'pending' && b.fixtureId && b.providerId !== providerId)
-          .length;
-
-      // BTTS=SIM is locked the moment both teams have scored, even mid-game —
-      // use the live feed to early-settle "yes". Final results settle both ways.
-      const live = await data.getLiveMatches().catch(() => []);
-      const liveById = new Map(live.map((l) => [l.id, l]));
-
-      // One result lookup per unique fixture (shared between predictions + bets).
-      const fixtureIds = Array.from(
-        new Set([
-          ...pendingRecords.map((r) => r.fixtureId!),
-          ...pendingBets.map((b) => b.fixtureId!),
-        ]),
-      );
-      const resultById = new Map<string, Awaited<ReturnType<typeof data.getMatchResultById>>>();
-      for (const id of fixtureIds) {
-        resultById.set(id, await data.getMatchResultById(id).catch(() => null));
-      }
-
-      // Resolve the BTTS outcome for a fixture: final result first, else an
-      // early "yes" from the live feed (a finished 1-0 only settles via result).
-      const outcomeFor = (fixtureId: string): 'yes' | 'no' | null => {
-        const res = resultById.get(fixtureId);
-        if (res) return bttsFromGoals(res.homeGoals, res.awayGoals);
-        const lm = liveById.get(fixtureId);
-        if (lm && lm.homeGoals > 0 && lm.awayGoals > 0) return 'yes';
-        return null;
-      };
-
-      // Final scoreline (only from a finished result, not the live feed).
-      const scoreFor = (fixtureId: string): string | undefined => {
-        const res = resultById.get(fixtureId);
-        return res ? `${res.homeGoals}-${res.awayGoals}` : undefined;
-      };
-
-      let updated = 0;
-      for (const r of pendingRecords) {
-        const outcome = outcomeFor(r.fixtureId!);
-        if (outcome) {
-          await setHistoryResult(r.id, outcome, scoreFor(r.fixtureId!));
-          updated += 1;
-        }
-      }
-
-      let betsSettled = 0;
-      for (const b of pendingBets) {
-        const outcome = outcomeFor(b.fixtureId!);
-        if (!outcome) continue;
-        const graded = settleBetAgainstBtts(b, outcome);
-        if (graded) {
-          await setBetResult(b.id, graded);
-          betsSettled += 1;
-        }
-      }
-
-      await load();
-      await refreshCalibration();
-      const parts: string[] = [];
-      if (updated > 0) parts.push(`${updated} previsão(ões)`);
-      if (betsSettled > 0) parts.push(`${betsSettled} aposta(s)`);
-      const skipNote =
-        skipped > 0
-          ? ` ${skipped} jogo(s) de outra fonte ignorado(s) — apaga e volta a adicionar com a fonte atual.`
-          : '';
-      setFetchMsg(
-        (parts.length > 0
-          ? `Atualizado: ${parts.join(' e ')}.`
-          : 'Sem novos resultados disponíveis (fonte/plano podem não os fornecer).') + skipNote,
-      );
-    } catch (err) {
-      log.error('fetch results failed', err);
-      setFetchMsg('Falha ao buscar resultados.');
-    } finally {
-      setFetching(false);
-    }
-  };
-
-  // Settle pending predictions/bets from Flashscore. We fetch the day list for
-  // each pending game's date (finished games carry the final score; in-play ones
-  // are included too), match by the stored Flashscore match id (Calculator
+  // Update results from Flashscore (the only data source). We fetch the day list
+  // for each pending game's date (finished games carry the final score; in-play
+  // ones are included too), match by the stored Flashscore match id (Calculator
   // imports) first, then by team-name pair. Finished games settle both ways;
   // in-play games can only lock an early "yes" once both teams have scored.
   const handleFlashResults = async (): Promise<void> => {
@@ -330,6 +229,31 @@ export function HistoryPage() {
     () => (dateFilter ? records.filter((r) => dayKey(r.createdAt) === dateFilter) : records),
     [records, dateFilter],
   );
+
+  // Group the predictions by game day (newest day first) so each day can be
+  // collapsed/expanded independently.
+  const dayGroups = useMemo(() => {
+    const byDay = new Map<string, HistoryRecord[]>();
+    for (const r of filtered) {
+      const key = (r.date || new Date(r.createdAt).toISOString()).slice(0, 10);
+      const list = byDay.get(key);
+      if (list) list.push(r);
+      else byDay.set(key, [r]);
+    }
+    return Array.from(byDay.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [filtered]);
+
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  const toggleDay = (day: string): void =>
+    setCollapsedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  const allCollapsed = dayGroups.length > 0 && collapsedDays.size >= dayGroups.length;
+  const toggleAllDays = (): void =>
+    setCollapsedDays(allCollapsed ? new Set() : new Set(dayGroups.map(([d]) => d)));
 
   const handleClear = async (): Promise<void> => {
     await clearHistory();
@@ -419,21 +343,27 @@ export function HistoryPage() {
                       <X /> Todas
                     </Button>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleFetchResults}
-                    disabled={fetching}
-                  >
-                    <RefreshCw className={fetching ? 'animate-spin' : ''} /> Atualizar resultados
-                  </Button>
+                  {dayGroups.length > 1 && (
+                    <Button variant="outline" size="sm" onClick={toggleAllDays}>
+                      {allCollapsed ? (
+                        <>
+                          <ChevronDown /> Expandir tudo
+                        </>
+                      ) : (
+                        <>
+                          <ChevronRight /> Colapsar tudo
+                        </>
+                      )}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleFlashResults}
                     disabled={flashFetching}
                   >
-                    <Zap className={flashFetching ? 'animate-pulse' : ''} /> Via Flashscore
+                    <RefreshCw className={flashFetching ? 'animate-spin' : ''} /> Atualizar
+                    resultados
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleExport}>
                     <Download /> CSV
@@ -584,94 +514,124 @@ export function HistoryPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map((r) => (
-                        <TableRow key={r.id}>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {r.date ? formatDateTime(r.date) : '—'}
-                          </TableCell>
-                          <TableCell className="font-medium">{r.fixtureName}</TableCell>
-                          <TableCell>
-                            {(() => {
-                              const v = bttsVerdict(r.probYes);
-                              return (
-                                <span
-                                  className={
-                                    v.side === 'SIM'
-                                      ? 'font-semibold text-primary'
-                                      : 'font-semibold'
-                                  }
-                                >
-                                  {v.side} {toPercent(v.probability)}
-                                </span>
-                              );
-                            })()}
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">{r.confidence}/10</TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            <TierBadge tier={r.tier as PredictionTier} />
-                          </TableCell>
-                          <TableCell>
-                            {r.actual ? (
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={
-                                    r.actual === predictedSide(r.probYes)
-                                      ? 'font-semibold text-success'
-                                      : 'font-semibold text-destructive'
-                                  }
-                                >
-                                  BTTS {r.actual === 'yes' ? 'SIM' : 'NÃO'}
-                                  {r.actual === predictedSide(r.probYes) ? ' ✓' : ' ✗'}
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label="Limpar resultado"
-                                  onClick={() => void setResult(r.id, undefined)}
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                <span className="hidden text-xs text-muted-foreground sm:inline">
-                                  Marcar:
-                                </span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-2"
-                                  onClick={() => void setResult(r.id, 'yes')}
-                                >
-                                  BTTS SIM
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-2"
-                                  onClick={() => void setResult(r.id, 'no')}
-                                >
-                                  BTTS NÃO
-                                </Button>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="hidden font-medium tabular-nums sm:table-cell">
-                            {r.actualScore ?? <span className="text-muted-foreground">—</span>}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="Apagar jogo"
-                              title="Apagar jogo"
-                              onClick={() => void handleDeleteRecord(r.id)}
+                      {dayGroups.map(([day, dayRecords]) => {
+                        const collapsed = collapsedDays.has(day);
+                        return (
+                          <Fragment key={day}>
+                            <TableRow
+                              className="cursor-pointer bg-muted/40 hover:bg-muted/60"
+                              onClick={() => toggleDay(day)}
                             >
-                              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                              <TableCell colSpan={8} className="py-2">
+                                <div className="flex items-center gap-2 font-medium">
+                                  {collapsed ? (
+                                    <ChevronRight className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                  {format(parseISO(day), 'dd/MM/yyyy')}
+                                  <span className="text-xs font-normal text-muted-foreground">
+                                    {dayRecords.length} jogo(s)
+                                  </span>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {!collapsed &&
+                              dayRecords.map((r) => (
+                                <TableRow key={r.id}>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {r.date ? formatDateTime(r.date) : '—'}
+                                  </TableCell>
+                                  <TableCell className="font-medium">{r.fixtureName}</TableCell>
+                                  <TableCell>
+                                    {(() => {
+                                      const v = bttsVerdict(r.probYes);
+                                      return (
+                                        <span
+                                          className={
+                                            v.side === 'SIM'
+                                              ? 'font-semibold text-primary'
+                                              : 'font-semibold'
+                                          }
+                                        >
+                                          {v.side} {toPercent(v.probability)}
+                                        </span>
+                                      );
+                                    })()}
+                                  </TableCell>
+                                  <TableCell className="hidden sm:table-cell">
+                                    {r.confidence}/10
+                                  </TableCell>
+                                  <TableCell className="hidden md:table-cell">
+                                    <TierBadge tier={r.tier as PredictionTier} />
+                                  </TableCell>
+                                  <TableCell>
+                                    {r.actual ? (
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={
+                                            r.actual === predictedSide(r.probYes)
+                                              ? 'font-semibold text-success'
+                                              : 'font-semibold text-destructive'
+                                          }
+                                        >
+                                          BTTS {r.actual === 'yes' ? 'SIM' : 'NÃO'}
+                                          {r.actual === predictedSide(r.probYes) ? ' ✓' : ' ✗'}
+                                        </span>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          aria-label="Limpar resultado"
+                                          onClick={() => void setResult(r.id, undefined)}
+                                        >
+                                          <X className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-1">
+                                        <span className="hidden text-xs text-muted-foreground sm:inline">
+                                          Marcar:
+                                        </span>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7 px-2"
+                                          onClick={() => void setResult(r.id, 'yes')}
+                                        >
+                                          BTTS SIM
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7 px-2"
+                                          onClick={() => void setResult(r.id, 'no')}
+                                        >
+                                          BTTS NÃO
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="hidden font-medium tabular-nums sm:table-cell">
+                                    {r.actualScore ?? (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label="Apagar jogo"
+                                      title="Apagar jogo"
+                                      onClick={() => void handleDeleteRecord(r.id)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </Fragment>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -693,10 +653,10 @@ export function HistoryPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleFetchResults}
-                  disabled={fetching}
+                  onClick={handleFlashResults}
+                  disabled={flashFetching}
                 >
-                  <RefreshCw className={fetching ? 'animate-spin' : ''} /> Atualizar resultados
+                  <RefreshCw className={flashFetching ? 'animate-spin' : ''} /> Atualizar resultados
                 </Button>
               </div>
               <FinancialDashboard bets={bets} initialBankroll={initialBankroll} />
