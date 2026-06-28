@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.44.0
+
+- **Martingale associado ao jogo**: na página de análise, o botão "Martingale"
+  passa a abrir um pop-up (`MartingaleDialog`) em vez de navegar para a aba.
+  No pop-up escolhe-se a seleção BTTS (SIM/NÃO), a odd (pré-preenchida com a do
+  jogo) e vê-se a stake sugerida para o step atual da série, registando a aposta
+  via `addBet` sem sair do jogo. Inclui informação da série ativa (step, perda
+  acumulada, banca), aviso de step máximo e atalho "Abrir Martingale completo".
+- O pop-up carrega as apostas do IndexedDB (`refresh`) na primeira abertura, para
+  o step/perda da série estarem corretos mesmo sem ter visitado a aba Martingale.
+
 ## 0.2.43.0
 
 - **Otimização automática dos pesos**: com a auto-calibração ligada e ~20+ jogos
