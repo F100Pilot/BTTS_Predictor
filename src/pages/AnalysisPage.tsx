@@ -29,6 +29,7 @@ import { TeamStatsCard, HeadToHeadCard } from '@/components/analysis/StatsPanels
 import { MarketsCard, ValueCard } from '@/components/analysis/ExtraCards';
 import { AnalysisCharts } from '@/components/analysis/AnalysisCharts';
 import { MartingaleDialog } from '@/components/martingale/MartingaleDialog';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { cn } from '@/lib/utils';
 
 const log = createLogger('AnalysisPage');
@@ -53,6 +54,7 @@ export function AnalysisPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [martOpen, setMartOpen] = useState(false);
+  const [confirmReanalyze, setConfirmReanalyze] = useState(false);
 
   const resolveFixture = useCallback(async (): Promise<Fixture | undefined> => {
     const cached = getCached(id);
@@ -220,7 +222,7 @@ export function AnalysisPage() {
               <Button variant="outline" size="sm" onClick={() => setMartOpen(true)}>
                 <Coins className="h-4 w-4" /> Martingale
               </Button>
-              <Button variant="outline" size="sm" onClick={handleReanalyze}>
+              <Button variant="outline" size="sm" onClick={() => setConfirmReanalyze(true)}>
                 <RefreshCw className="h-4 w-4" /> Reanalisar
               </Button>
             </div>
@@ -304,6 +306,15 @@ export function AnalysisPage() {
           oddsNo: fixture.odds?.bttsNo,
           defaultSelection: prediction.probYes >= 0.5 ? 'SIM' : 'NÃO',
         }}
+      />
+
+      <ConfirmDialog
+        open={confirmReanalyze}
+        onOpenChange={setConfirmReanalyze}
+        title="Reanalisar jogo?"
+        description="Vai descartar a análise guardada e procurar dados frescos na fonte ativa, consumindo novos pedidos à API. Queres continuar?"
+        confirmLabel="Reanalisar"
+        onConfirm={handleReanalyze}
       />
     </div>
   );
