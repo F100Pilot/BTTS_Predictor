@@ -103,14 +103,9 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
                 {row.fixture.competition.name}
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-1.5 font-medium">
-                  {saved.has(row.fixture.id) && (
-                    <Check className="h-4 w-4 shrink-0 text-success" aria-label="No histórico" />
-                  )}
-                  <span>
-                    {row.fixture.home.name} <span className="text-muted-foreground">vs</span>{' '}
-                    {row.fixture.away.name}
-                  </span>
+                <div className="font-medium">
+                  {row.fixture.home.name} <span className="text-muted-foreground">vs</span>{' '}
+                  {row.fixture.away.name}
                 </div>
                 <div className="text-xs text-muted-foreground sm:hidden">
                   {row.fixture.competition.name}
