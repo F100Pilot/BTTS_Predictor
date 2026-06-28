@@ -56,4 +56,43 @@ describe('parseFlashscoreMatches', () => {
   it('returns [] for non-array input', () => {
     expect(parseFlashscoreMatches(null)).toEqual([]);
   });
+
+  it('parses the live minute from match_status (number or "67\'" string)', () => {
+    const data = [
+      {
+        name: 'X',
+        country_name: 'Y',
+        matches: [
+          {
+            match_id: 'M1',
+            timestamp: 1,
+            match_status: { is_in_progress: true, minute: 67 },
+            home_team: { team_id: 'h', name: 'A' },
+            away_team: { team_id: 'a', name: 'B' },
+            scores: { home: 0, away: 0 },
+          },
+          {
+            match_id: 'M2',
+            timestamp: 2,
+            match_status: { is_in_progress: true, time: "45'" },
+            home_team: { team_id: 'h', name: 'C' },
+            away_team: { team_id: 'a', name: 'D' },
+            scores: { home: 1, away: 0 },
+          },
+          {
+            match_id: 'M3',
+            timestamp: 3,
+            match_status: { is_in_progress: true },
+            home_team: { team_id: 'h', name: 'E' },
+            away_team: { team_id: 'a', name: 'F' },
+            scores: { home: 0, away: 0 },
+          },
+        ],
+      },
+    ];
+    const [a, b, c] = parseFlashscoreMatches(data);
+    expect(a!.minute).toBe(67);
+    expect(b!.minute).toBe(45);
+    expect(c!.minute).toBeNull();
+  });
 });

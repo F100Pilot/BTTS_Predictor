@@ -11,6 +11,7 @@ const fx = (over: Partial<FlashFixture>): FlashFixture => ({
   home: { id: 'h', name: 'Al-Hidd' },
   away: { id: 'a', name: 'Bahrain SC' },
   scores: { home: 1, away: 1 },
+  minute: null,
   ...over,
 });
 

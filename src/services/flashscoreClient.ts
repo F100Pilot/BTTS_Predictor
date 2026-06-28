@@ -114,6 +114,7 @@ export function fixtureToLiveMatch(f: FlashFixture): LiveMatch {
     homeGoals: f.scores.home ?? 0,
     awayGoals: f.scores.away ?? 0,
     status: f.status === 'live' ? 'IN_PLAY' : f.status.toUpperCase(),
-    date: undefined,
+    minute: f.minute ?? undefined,
+    date: f.timestamp ? new Date(f.timestamp * 1000).toISOString() : undefined,
   };
 }
