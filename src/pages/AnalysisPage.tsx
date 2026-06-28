@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Eye, Coins, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Star, Eye, Coins, AlertTriangle, RefreshCw, X } from 'lucide-react';
 import type { AnalysisBundle, Fixture } from '@/domain/types';
+import { calculateStake } from '@/core/martingale/martingale';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
 import { useCollections } from '@/store/collectionsStore';
@@ -11,26 +12,125 @@ import { buildAnalysis } from '@/services/analysisService';
 import { cacheDelete } from '@/data/cache/cache';
 import { upsertHistory } from '@/data/cache/repositories';
 import { saveDayPrediction, predictionSignature } from '@/services/dayPredictions';
-import { todayIso, formatDateTime } from '@/lib/format';
-import { tierMeta } from '@/core/classification/classification';
+import { todayIso, formatTime } from '@/lib/format';
 import { createLogger } from '@/services/logger';
 import { Spinner, EmptyState } from '@/components/common/States';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  VerdictPill,
-  ProbabilityBar,
-  ConfidenceMeter,
-  TierBadge,
-} from '@/components/common/PredictionWidgets';
+import { VerdictPill, ConfidenceMeter, TierBadge } from '@/components/common/PredictionWidgets';
 import { FactorBreakdown } from '@/components/analysis/FactorBreakdown';
 import { TeamStatsCard, HeadToHeadCard } from '@/components/analysis/StatsPanels';
 import { MarketsCard, ValueCard } from '@/components/analysis/ExtraCards';
 import { AnalysisCharts } from '@/components/analysis/AnalysisCharts';
+import { TeamAvatar } from '@/components/common/TeamAvatar';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const log = createLogger('AnalysisPage');
+
+/** A red→amber→green gradient bar with a marker at `value` (0..1). */
+function MeterBar({ label, value, sub }: { label: string; value: number; sub?: string }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value * 100)));
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-bold tabular-nums">
+          {pct}%{sub ? <span className="font-normal text-muted-foreground"> · {sub}</span> : null}
+        </span>
+      </div>
+      <div
+        className="relative h-2 rounded-full"
+        style={{
+          background:
+            'linear-gradient(90deg, hsl(0 72% 50%), hsl(38 92% 50%) 50%, hsl(152 72% 45%))',
+        }}
+      >
+        <span
+          className="absolute top-1/2 h-3.5 w-1.5 -translate-y-1/2 rounded-full bg-foreground ring-2 ring-background"
+          style={{ left: `calc(${pct}% - 3px)` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** A compact label/value stat for the match-header strip. */
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-sm font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function MField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Floating, translucent Martingale quick-calculator over the match. */
+function MartingalePanel({
+  defaultOdds,
+  onOpenFull,
+  onClose,
+}: {
+  defaultOdds?: number;
+  onOpenFull: () => void;
+  onClose: () => void;
+}) {
+  const [bank, setBank] = useState('100');
+  const [target, setTarget] = useState('10');
+  const [odds, setOdds] = useState(defaultOdds ? defaultOdds.toFixed(2) : '2.00');
+  const o = Number(odds);
+  const t = Number(target);
+  const b = Number(bank);
+  const stake = o > 1 && t > 0 ? calculateStake(0, t, o) : 0;
+  const pctOfBank = b > 0 ? (stake / b) * 100 : 0;
+  return (
+    <Card className="glass border-primary/30 shadow-xl">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 font-semibold">
+            <Coins className="h-4 w-4 text-primary" /> Martingale
+          </div>
+          <Button variant="ghost" size="icon" aria-label="Fechar" onClick={onClose}>
+            <X />
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <MField label="Banca (€)">
+            <Input inputMode="decimal" value={bank} onChange={(e) => setBank(e.target.value)} />
+          </MField>
+          <MField label="Lucro alvo (€)">
+            <Input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
+          </MField>
+          <MField label="Odd">
+            <Input inputMode="decimal" value={odds} onChange={(e) => setOdds(e.target.value)} />
+          </MField>
+          <MField label="Stake sugerida">
+            <div className="flex h-10 items-center rounded-md border border-primary/40 bg-primary/10 px-3 font-bold tabular-nums text-primary">
+              €{stake.toFixed(2)}
+            </div>
+          </MField>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Para o passo 1 da série, ao teu lucro alvo e odd.
+          {b > 0 && <> Representa {pctOfBank.toFixed(1)}% da banca.</>}
+        </p>
+        <Button className="w-full" onClick={onOpenFull}>
+          Abrir Martingale completo
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function AnalysisPage() {
   const { fixtureId = '' } = useParams();
@@ -51,6 +151,7 @@ export function AnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showMart, setShowMart] = useState(false);
 
   const resolveFixture = useCallback(async (): Promise<Fixture | undefined> => {
     const cached = getCached(id);
@@ -166,7 +267,6 @@ export function AnalysisPage() {
 
   const { fixture, prediction } = bundle;
   const row = { fixture, prediction };
-  const tier = tierMeta(prediction.tier);
 
   const handleReanalyze = (): void => {
     // Drop cached team history (limit 15, see analysisService) + odds so the next
@@ -197,56 +297,101 @@ export function AnalysisPage() {
         <ArrowLeft /> Voltar
       </Button>
 
-      <Card
-        className={cn(
-          'border-l-4',
-          tier.tier === 'very-strong' ? 'border-l-success' : 'border-l-primary',
-        )}
-      >
-        <CardHeader>
-          <div className="flex flex-col gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {fixture.competition.name} · {formatDateTime(fixture.date)}
-              </p>
-              <CardTitle className="mt-1 text-2xl">
-                {fixture.home.name} <span className="text-muted-foreground">vs</span>{' '}
-                {fixture.away.name}
-              </CardTitle>
-            </div>
-            <div className="flex flex-wrap gap-2">
+      <Card className="overflow-hidden">
+        {/* Match header — crest avatars, VS, kickoff, competition */}
+        <div className="border-b border-border bg-gradient-to-b from-primary/10 to-transparent p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className="truncate text-xs font-medium text-muted-foreground">
+              {fixture.competition.country ? `${fixture.competition.country} · ` : ''}
+              {fixture.competition.name}
+            </p>
+            <div className="flex">
               <Button
-                variant={isFavorite(fixture.id) ? 'default' : 'outline'}
-                size="sm"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label="Favorito"
                 onClick={() => toggleFavorite(row)}
               >
-                <Star className="h-4 w-4" /> Favorito
+                <Star
+                  className={cn('h-4 w-4', isFavorite(fixture.id) && 'fill-warning text-warning')}
+                />
               </Button>
               <Button
-                variant={isWatched(fixture.id) ? 'default' : 'outline'}
-                size="sm"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label="Watchlist"
                 onClick={() => toggleWatchlist(row)}
               >
-                <Eye className="h-4 w-4" /> Watchlist
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToMartingale}>
-                <Coins className="h-4 w-4" /> Martingale
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleReanalyze}>
-                <RefreshCw className="h-4 w-4" /> Reanalisar
+                <Eye className={cn('h-4 w-4', isWatched(fixture.id) && 'text-primary')} />
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-1 flex-col items-center gap-2 text-center">
+              <TeamAvatar name={fixture.home.name} size={56} />
+              <span className="line-clamp-2 text-sm font-semibold">{fixture.home.name}</span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5 px-2">
+              <span className="text-xs font-bold text-muted-foreground">VS</span>
+              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                {formatTime(fixture.date)}
+              </span>
+            </div>
+            <div className="flex flex-1 flex-col items-center gap-2 text-center">
+              <TeamAvatar name={fixture.away.name} size={56} />
+              <span className="line-clamp-2 text-sm font-semibold">{fixture.away.name}</span>
+            </div>
+          </div>
+        </div>
+        <CardContent className="space-y-4 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <VerdictPill prediction={prediction} />
             <div className="flex items-center gap-4">
               <TierBadge tier={prediction.tier} />
               <ConfidenceMeter confidence={prediction.confidence} />
             </div>
           </div>
-          <ProbabilityBar probYes={prediction.probYes} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <MeterBar label="Previsão BTTS SIM" value={prediction.probYes} />
+            <MeterBar
+              label="H2H BTTS"
+              value={bundle.h2h.bttsPct}
+              sub={`${bundle.h2h.played} jogos`}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-muted/30 p-3 sm:grid-cols-4">
+            <Stat label="Golos casa" value={bundle.homeStats.last10.avgGoalsFor.toFixed(1)} />
+            <Stat
+              label="Sofridos casa"
+              value={bundle.homeStats.last10.avgGoalsAgainst.toFixed(1)}
+            />
+            <Stat label="Golos fora" value={bundle.awayStats.last10.avgGoalsFor.toFixed(1)} />
+            <Stat
+              label="Sofridos fora"
+              value={bundle.awayStats.last10.avgGoalsAgainst.toFixed(1)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={showMart ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => setShowMart((v) => !v)}
+            >
+              <Coins className="h-4 w-4" /> Martingale
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleReanalyze}>
+              <RefreshCw className="h-4 w-4" /> Reanalisar
+            </Button>
+          </div>
+          {showMart && (
+            <MartingalePanel
+              defaultOdds={prediction.probYes >= 0.5 ? fixture.odds?.bttsYes : fixture.odds?.bttsNo}
+              onOpenFull={goToMartingale}
+              onClose={() => setShowMart(false)}
+            />
+          )}
           {prediction.insufficientData && (
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
