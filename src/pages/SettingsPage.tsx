@@ -32,6 +32,70 @@ import { round } from '@/lib/math';
 import { QuotaBadge } from '@/components/common/QuotaBadge';
 import { APP_VERSION } from '@/version';
 
+/**
+ * A weight slider showing the current value as a green fill and the previous
+ * value (before the last results-based optimization) as a red marker. When the
+ * two coincide, the red marker is dashed so it stays visible over the green.
+ */
+function WeightSlider({
+  label,
+  value,
+  prev,
+  displayPct,
+  onChange,
+}: {
+  label: string;
+  value: number; // 0..1 (raw)
+  prev: number | null; // 0..1 (raw) or null
+  displayPct: number; // normalized %
+  onChange: (v: number) => void;
+}) {
+  const cur = Math.max(0, Math.min(1, value));
+  const near = prev != null && Math.abs(prev - cur) < 0.02;
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <Label>{label}</Label>
+        <span className="tabular-nums text-muted-foreground">{displayPct}%</span>
+      </div>
+      <div className="relative h-5 select-none">
+        <div className="absolute left-0 top-1/2 h-1.5 w-full -translate-y-1/2 rounded-full bg-muted" />
+        <div
+          className="absolute left-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-primary"
+          style={{ width: `${cur * 100}%` }}
+        />
+        {prev != null && (
+          <div
+            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${prev * 100}%` }}
+            title={`Antes: ${Math.round(prev * 100)}%`}
+          >
+            {near ? (
+              <div className="h-4 border-l-2 border-dashed border-destructive" />
+            ) : (
+              <div className="h-4 w-[3px] rounded-full bg-destructive" />
+            )}
+          </div>
+        )}
+        <div
+          className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background"
+          style={{ left: `${cur * 100}%` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          aria-label={label}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function SettingsPage() {
   const settings = useSettings();
   const [cacheCleared, setCacheCleared] = useState(false);
@@ -372,27 +436,27 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {(Object.keys(FACTOR_LABELS) as FactorKey[]).map((key) => (
-            <div key={key} className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <Label htmlFor={`w-${key}`}>{FACTOR_LABELS[key]}</Label>
-                <span className="tabular-nums text-muted-foreground">
-                  {round(normalized[key] * 100)}%
-                </span>
-              </div>
-              <input
-                id={`w-${key}`}
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={settings.weights[key]}
-                onChange={(e) =>
-                  updateWeight(key, sanitizeNumber(e.target.value, { min: 0, max: 1, fallback: 0 }))
-                }
-                className="w-full accent-[hsl(var(--primary))]"
-              />
-            </div>
+            <WeightSlider
+              key={key}
+              label={FACTOR_LABELS[key]}
+              value={settings.weights[key]}
+              prev={settings.prevWeights ? (settings.prevWeights[key] ?? null) : null}
+              displayPct={round(normalized[key] * 100)}
+              onChange={(v) =>
+                updateWeight(key, sanitizeNumber(v, { min: 0, max: 1, fallback: 0 }))
+              }
+            />
           ))}
+          {settings.prevWeights && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-3 rounded-full bg-primary" /> Atual
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-3 w-[3px] rounded-full bg-destructive" /> Antes da otimização
+              </span>
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={settings.resetWeights}>
               <RotateCcw /> Repor pesos por defeito
@@ -419,7 +483,7 @@ export function SettingsPage() {
               <Button
                 size="sm"
                 onClick={() => {
-                  settings.setWeights(tuneResult.weights);
+                  settings.applyWeights(tuneResult.weights);
                   setTuneResult(null);
                   setTuneMsg('Pesos otimizados aplicados.');
                 }}
@@ -467,9 +531,10 @@ export function SettingsPage() {
             <span>
               Auto-calibração pelos resultados
               <span className="block text-xs font-normal text-muted-foreground">
-                A app aprende com os resultados que registar no Histórico e corrige o
-                excesso/defeito de confiança das previsões (recalibração estatística). Precisa de
-                pelo menos ~15 jogos com resultado real.
+                A app aprende com os resultados que registar no Histórico: corrige o excesso/defeito
+                de confiança das previsões (recalibração estatística, ~15+ jogos) e otimiza
+                automaticamente os pesos do modelo (~20+ jogos) — nos sliders acima, a barra
+                vermelha mostra o valor anterior a cada otimização.
               </span>
             </span>
           </label>

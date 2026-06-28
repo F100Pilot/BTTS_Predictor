@@ -20,6 +20,16 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.43.0
+
+- **Otimização automática dos pesos**: com a auto-calibração ligada e ~20+ jogos
+  com resultado real, os pesos do modelo (Forma, BTTS, …) são reotimizados pelos
+  resultados ao abrir a app (`maybeAutoTuneWeights`), guardando os pesos
+  anteriores.
+- **Sliders dos pesos** mostram o valor **atual a verde** e o **anterior à última
+  otimização a vermelho** (tracejado quando coincide). `applyWeights` regista o
+  conjunto anterior; "Repor pesos" limpa o marcador.
+
 ## 0.2.42.1
 
 - **Ao Vivo**: atualização automática passa de 60s para **10 minutos**.
