@@ -58,5 +58,73 @@ describe('computeHeadToHead', () => {
     expect(h2h.played).toBe(2);
     expect(h2h.bttsPct).toBeCloseTo(0.5, 5);
     expect(h2h.avgGoals).toBeCloseTo(2, 5); // (2 + 2) / 2
+    expect(h2h.bttsPctWeighted).toBeUndefined(); // only with adjust options
+  });
+
+  it('adds a recency-weighted BTTS rate without touching the raw one', () => {
+    const now = Date.parse('2026-06-01T00:00:00Z');
+    const recentYes = computeHeadToHead(
+      'a',
+      'b',
+      [
+        match('1', teamA, teamB, 1, 1, '2026-05-25'), // recent: btts
+        match('2', teamA, teamB, 2, 0, '2022-01-01'), // old: no btts
+      ],
+      10,
+      { now },
+    );
+    const recentNo = computeHeadToHead(
+      'a',
+      'b',
+      [
+        match('1', teamA, teamB, 2, 0, '2026-05-25'), // recent: no btts
+        match('2', teamA, teamB, 1, 1, '2022-01-01'), // old: btts
+      ],
+      10,
+      { now },
+    );
+    expect(recentYes.bttsPct).toBeCloseTo(0.5, 5); // raw unchanged
+    expect(recentYes.bttsPctWeighted ?? 0).toBeGreaterThan(recentNo.bttsPctWeighted ?? 1);
+  });
+});
+
+describe('computeTeamStats (adjusted)', () => {
+  const now = Date.parse('2026-06-01T00:00:00Z');
+
+  it('leaves raw windows untouched and adds an adjusted bundle', () => {
+    const stats = computeTeamStats(teamA, [match('1', teamA, teamB, 4, 0, '2026-06-01')], { now });
+    expect(stats.last5.avgGoalsFor).toBe(4); // raw stays the true average
+    const adj = stats.adjusted;
+    expect(adj).toBeDefined();
+    if (!adj) return;
+    // A single 4-goal game is shrunk toward the league prior (~1.35).
+    expect(adj.last5.avgGoalsFor).toBeLessThan(4);
+    expect(adj.last5.avgGoalsFor).toBeGreaterThan(1.35);
+    expect(adj.last5.played).toBe(1); // count preserved
+  });
+
+  it('weights recent matches more than old ones (recency decay)', () => {
+    const recentBtts = computeTeamStats(
+      teamA,
+      [
+        match('r', teamA, teamB, 1, 1, '2026-06-01'), // recent: btts yes
+        match('o', teamA, teamC, 3, 0, '2025-06-01'), // ~1y old: no btts
+      ],
+      { now },
+    ).adjusted;
+    const recentNoBtts = computeTeamStats(
+      teamA,
+      [
+        match('r', teamA, teamB, 3, 0, '2026-06-01'), // recent: no btts
+        match('o', teamA, teamC, 1, 1, '2025-06-01'), // old: btts yes
+      ],
+      { now },
+    ).adjusted;
+    expect((recentBtts?.last10.bttsPct ?? 0) > (recentNoBtts?.last10.bttsPct ?? 1)).toBe(true);
+  });
+
+  it('does not attach an adjusted bundle without options', () => {
+    const stats = computeTeamStats(teamA, [match('1', teamA, teamB, 2, 1, '2026-05-01')]);
+    expect(stats.adjusted).toBeUndefined();
   });
 });
