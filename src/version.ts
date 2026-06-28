@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.39';
+export const APP_VERSION = '0.2.39.1';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.39.1: Página Ao Vivo poupa muitos pedidos RapidAPI — só consulta o Flashscore quando há mesmo um jogo teu (não liquidado) dentro da janela de jogo (do início até ao fim); se não há nada a decorrer, não gasta pedidos. O intervalo de atualização passou de 30s para 60s.',
   'v0.2.39: No Histórico → Apostas, podes clicar numa aposta para abrir a análise do jogo, e a tabela passa a mostrar a hora de início do jogo (além da hora em que a aposta foi feita).',
   'v0.2.38.2: Página Ao Vivo deixa de mostrar jogos já terminados que o feed do Flashscore ainda marca como “em jogo” (acontece em ligas menores, com atraso após o apito final). Quando não há minuto real e já passaram mais de 130 min do início, o jogo sai do Ao Vivo (e liquida no Histórico).',
   'v0.2.38.1: Sincronização entre dispositivos muito mais poupada no Cloudflare KV — passa a escrever só quando os dados mudam mesmo (antes reescrevia tudo a cada 45s) e o intervalo passou para 5 min. Resolve o aviso de “limite diário do Workers KV” sem precisares de upgrade.',
