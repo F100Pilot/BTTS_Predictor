@@ -94,7 +94,11 @@ export function flashFixtureToFixture(f: FlashFixture): Fixture {
   return {
     id: f.matchId,
     date: f.timestamp ? new Date(f.timestamp * 1000).toISOString() : new Date().toISOString(),
-    competition: { id: f.tournament || 'flashscore', name: f.tournament || 'Flashscore', country: f.country },
+    competition: {
+      id: f.tournament || 'flashscore',
+      name: f.tournament || 'Flashscore',
+      country: f.country,
+    },
     home: { id: f.home.id, name: f.home.name },
     away: { id: f.away.id, name: f.away.name },
   };

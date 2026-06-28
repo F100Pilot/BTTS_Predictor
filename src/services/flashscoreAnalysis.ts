@@ -69,7 +69,8 @@ export function flashscoreFixtureMatches(
     const byId = new Map<string, MatchResult>();
     for (const m of all) {
       if (isFriendly(m)) continue;
-      const involved = normName(m.home_team.name) === teamName || normName(m.away_team.name) === teamName;
+      const involved =
+        normName(m.home_team.name) === teamName || normName(m.away_team.name) === teamName;
       if (!involved) continue;
       const r = toResult(m);
       if (r && !byId.has(r.id)) byId.set(r.id, r);
