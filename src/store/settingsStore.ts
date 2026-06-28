@@ -28,6 +28,9 @@ interface SettingsState {
   /** How many fixtures to analyse per batch (kickoff order). 0 = analyse all. */
   analysisBatchSize: number;
   weights: Record<FactorKey, number>;
+  /** Weights before the last results-based optimization (for the red "before"
+   * marker on the sliders). Null when there's no prior optimization to compare. */
+  prevWeights: Record<FactorKey, number> | null;
   /** Market-odds calibration weight (0 = pure model, 1 = pure market). */
   oddsCalibration: number;
   /** Auto-calibrate predictions from settled history (Platt recalibration). */
@@ -51,6 +54,8 @@ interface SettingsState {
   setHideStarted: (value: boolean) => void;
   setAnalysisBatchSize: (value: number) => void;
   setWeights: (weights: Record<FactorKey, number>) => void;
+  /** Apply results-based weights, remembering the current ones as `prevWeights`. */
+  applyWeights: (weights: Record<FactorKey, number>) => void;
   resetWeights: () => void;
   setOddsCalibration: (value: number) => void;
   setAutoCalibrate: (value: boolean) => void;
@@ -79,6 +84,7 @@ export const useSettings = create<SettingsState>()(
       hideStarted: true,
       analysisBatchSize: 0, // 0 = analyse all (no per-day limit)
       weights: { ...DEFAULT_WEIGHTS },
+      prevWeights: null,
       oddsCalibration: 0,
       autoCalibrate: false,
       notifyEnabled: false,
@@ -100,7 +106,8 @@ export const useSettings = create<SettingsState>()(
       setHideStarted: (value) => set({ hideStarted: value }),
       setAnalysisBatchSize: (value) => set({ analysisBatchSize: Math.max(0, Math.round(value)) }),
       setWeights: (weights) => set({ weights }),
-      resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS } }),
+      applyWeights: (weights) => set((s) => ({ prevWeights: s.weights, weights })),
+      resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS }, prevWeights: null }),
       setOddsCalibration: (value) => set({ oddsCalibration: Math.min(1, Math.max(0, value)) }),
       setAutoCalibrate: (value) => set({ autoCalibrate: value }),
       setNotify: (patch) =>

@@ -6,6 +6,7 @@ import { Spinner } from '@/components/common/States';
 import { PwaUpdatePrompt } from '@/components/common/PwaUpdatePrompt';
 import { WhatsNewDialog } from '@/components/common/WhatsNewDialog';
 import { CalibrationNoticeDialog } from '@/components/common/CalibrationNoticeDialog';
+import { maybeAutoTuneWeights } from '@/services/autoTune';
 import { useThemeEffect } from '@/hooks/useThemeEffect';
 import { useLiveNotifications } from '@/hooks/useLiveNotifications';
 import { usePregameReminders } from '@/hooks/usePregameReminders';
@@ -60,6 +61,7 @@ export function App() {
   useEffect(() => {
     (async () => {
       await refreshCollections();
+      await maybeAutoTuneWeights();
       await refreshCalibration();
       await purgeExpired();
       await purgeStaleTombstones().catch(() => 0);
