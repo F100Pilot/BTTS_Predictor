@@ -25,6 +25,19 @@ function elapsedFromKickoff(dateIso?: string): number | null {
   return mins >= 0 && mins < 240 ? mins : null;
 }
 
+// A match can't still be in play this long after kickoff (90' + half-time +
+// generous stoppage ≈ 120'). When the feed gives no real minute and the game
+// started this far back, it's finished and the live feed simply hasn't flipped
+// its status yet — drop it so a stale "live" card doesn't linger.
+const MAX_LIVE_MINUTES = 130;
+
+/** True when a match has clearly ended but the feed still flags it in-play. */
+function looksFinished(m: LiveMatch): boolean {
+  if (typeof m.minute === 'number') return false; // trust a real reported minute
+  const elapsed = elapsedFromKickoff(m.date);
+  return elapsed != null && elapsed > MAX_LIVE_MINUTES;
+}
+
 function statusLabel(m: LiveMatch): string {
   if (m.status === 'PAUSED') return 'Intervalo';
   if (typeof m.minute === 'number') return `${m.minute}'`;
@@ -67,7 +80,10 @@ export function LiveScorePage() {
             const f = idx.find(b.flashMatchId, b.matchLabel);
             if (f && f.status === 'live') matched.set(f.matchId, f);
           }
-          shown = [...matched.values()].filter(Boolean).map((f) => fixtureToLiveMatch(f!));
+          shown = [...matched.values()]
+            .filter(Boolean)
+            .map((f) => fixtureToLiveMatch(f!))
+            .filter((m) => !looksFinished(m));
         }
 
         setMatches(shown);
