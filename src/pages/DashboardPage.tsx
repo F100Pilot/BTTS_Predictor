@@ -37,6 +37,7 @@ import {
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { GamesTable } from '@/components/dashboard/GamesTable';
 import { IconAction } from '@/components/common/IconAction';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useDashboardFilters } from '@/store/dashboardFiltersStore';
@@ -98,6 +99,7 @@ export function DashboardPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [confirmReanalyze, setConfirmReanalyze] = useState(false);
   // How many fixtures (in kickoff order) we are allowed to analyse. 0 batch size
   // means "analyse everything" (Infinity).
   const [batchLimit, setBatchLimit] = useState<number>(() => batchSize || Infinity);
@@ -338,7 +340,7 @@ export function DashboardPage() {
                 <IconAction
                   label="Reanalisar"
                   icon={<RefreshCw className="h-4 w-4" />}
-                  onClick={() => void handleReanalyze()}
+                  onClick={() => setConfirmReanalyze(true)}
                 />
                 <IconAction
                   label={`Analisar mais ${nextBatch || ''}`.trim()}
@@ -456,6 +458,15 @@ export function DashboardPage() {
       ) : (
         <GamesTable rows={filtered} />
       )}
+
+      <ConfirmDialog
+        open={confirmReanalyze}
+        onOpenChange={setConfirmReanalyze}
+        title="Reanalisar jogos do dia?"
+        description="Vai descartar as análises guardadas deste dia e analisar tudo de novo a partir da fonte ativa, consumindo novos pedidos à API. Queres continuar?"
+        confirmLabel="Reanalisar"
+        onConfirm={() => void handleReanalyze()}
+      />
     </div>
   );
 }

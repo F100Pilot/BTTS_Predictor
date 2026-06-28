@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.44.1
+
+- **Reanalisar pede confirmação**: o botão "Reanalisar" (na lista de Jogos e na
+  análise de um jogo) passa a abrir um pop-up (`ConfirmDialog`) a avisar que vai
+  descartar a análise guardada e consumir novos pedidos à API, evitando
+  reanálises acidentais.
+- Novo componente reutilizável `src/components/common/ConfirmDialog.tsx`.
+
 ## 0.2.44.0
 
 - **Martingale associado ao jogo**: na página de análise, o botão "Martingale"
