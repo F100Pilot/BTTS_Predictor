@@ -117,20 +117,30 @@ interface DataProvider {
 }
 ```
 
-Implementações previstas:
+Implementação atual:
 
-- **Prioridade 1:** `FootballDataOrgProvider`, `ApiFootballProvider`, `SportMonksProvider`.
-- **Prioridade 2:** `FBrefProvider`, `UnderstatProvider`, `SoccerwayProvider` (via scraping/JSON — ver §9.2).
-- **Prioridade 3:** scraping legal genérico.
-- **`MockProvider`** — dados sintéticos determinísticos para desenvolvimento, demonstração e modo offline sem chaves. **Provider por defeito**, garantindo que a app funciona "out of the box" no GitHub Pages.
+- **`FlashscoreProvider`** (RapidAPI) — **a única fonte**. Cobre quase todas as
+  ligas e suporta o pipeline completo: jogos por data, forma das duas equipas +
+  H2H num só pedido por jogo (`getFixtureMatches`, endpoint `h2h`), jogos ao vivo
+  e resultados. Custo típico: 1 pedido/dia para a lista + ~1 pedido por jogo
+  analisado.
+- As fontes `FootballDataProvider` e `ApiFootballProvider` foram **removidas na
+  v0.2.37** (planos grátis com pouco retorno útil); a `MockProvider` (demo) foi
+  removida na v0.2.34. Histórico em [`CHANGELOG.md`](./CHANGELOG.md).
 
-Um **`ProviderRegistry`** mantém os providers disponíveis; um **`DataService`** orquestra: escolhe o provider ativo (config), aplica cache, rate limit e *fallback*.
+`getFixtureMatches` é o método-chave para fontes indexadas por jogo (não por
+equipa): devolve a forma de ambas as equipas + H2H de um só pedido, evitando dois
+`getTeamRecentMatches`. O `analysisService` usa-o quando existe.
+
+Um **`ProviderRegistry`** mantém os providers disponíveis; um **`DataService`**
+orquestra: escolhe o provider ativo (config), aplica cache e (quando há mais de
+uma fonte) *fallback* para lookups independentes (jogos/ao vivo).
 
 ### 5.2 Estratégia de chaves de API
 
 **Problema:** numa app estática não há backend para esconder chaves. Expor chaves no bundle é inaceitável.
 
-**Solução:** as chaves são fornecidas pelo **próprio utilizador** na página de *Settings* e guardadas em `localStorage` (apenas no dispositivo dele). O `MockProvider` permite uso completo sem qualquer chave. Documenta-se claramente que cada utilizador usa a sua própria chave/quota. Para produção séria recomenda-se (no plano futuro) um *proxy* serverless opcional.
+**Solução:** a chave (RapidAPI) é fornecida pelo **próprio utilizador** na página de *Settings* e guardada em `localStorage` (apenas no dispositivo dele). O browser não pode chamar o RapidAPI diretamente (CORS + cabeçalho da chave), por isso os pedidos passam por um **Proxy CORS** (um Cloudflare Worker do utilizador — ver [`docs/CORS-PROXY.md`](./docs/CORS-PROXY.md)). Cada utilizador usa a sua própria chave/quota.
 
 ---
 
@@ -211,17 +221,17 @@ Wrapper `idb` encapsula migrações de schema e versões da base de dados.
 **Problema:** GitHub Pages não tem rewrite de SPA; rotas profundas dão 404.
 **Solução:** `HashRouter` (`/#/analysis/...`). Adicionalmente fornece-se `404.html` de fallback. `base` do Vite configurado para o nome do repositório.
 
-### 9.2 CORS e scraping no browser
-**Problema:** FBref/Understat/Soccerway não expõem CORS; scraping direto do browser falha.
-**Solução:** abstrair atrás de `DataProvider`; estes providers ficam *documentados como dependentes de proxy* (plano futuro com função serverless/CORS proxy configurável). A app nunca quebra: cai para `MockProvider` ou provider configurado. APIs de Prioridade 1 (Football-Data.org, API-Football, SportMonks) suportam CORS/uso client-side com chave.
+### 9.2 CORS no browser
+**Problema:** o browser não pode chamar o RapidAPI diretamente (sem cabeçalhos CORS e a chave teria de ir no pedido).
+**Solução:** um **Cloudflare Worker** do utilizador serve de Proxy CORS — reencaminha os cabeçalhos `x-rapidapi-*` e responde com CORS para a origem da app. O mesmo Worker expõe ainda o endpoint `/sync` (Cloudflare KV) para a sincronização entre dispositivos. Ver [`docs/CORS-PROXY.md`](./docs/CORS-PROXY.md) e [`worker/`](./worker).
 
 ### 9.3 Segredos numa app estática
 **Problema:** não há onde esconder chaves. (Ver §5.2.)
-**Solução:** chaves por utilizador em LocalStorage + MockProvider por defeito + recomendação de proxy no roadmap.
+**Solução:** chave (RapidAPI) por utilizador em LocalStorage + Proxy CORS (Cloudflare Worker) que reencaminha os cabeçalhos da chave.
 
 ### 9.4 Limites de quota / Rate limiting
-**Problema:** APIs gratuitas têm limites apertados (ex.: Football-Data.org 10 req/min).
-**Solução:** **token-bucket** por provider em `data/rateLimit/`, **cache inteligente** com TTL por tipo de dado (fixtures: curto; resultados históricos: longo), *deduplicação* de pedidos em voo e *backoff* exponencial em 429.
+**Problema:** o plano RapidAPI tem um teto diário de pedidos (ex.: ~1000/dia).
+**Solução:** **cache** com TTL por tipo de dado (fixtures: curto; histórico/H2H: longo) e desenho que minimiza pedidos — 1 pedido por jogo (forma + H2H juntos), o Ao Vivo só consulta o feed quando há um jogo na janela de jogo, e a sincronização só escreve no KV quando os dados mudam. Botão "Verificar quota" em Definições lê os pedidos restantes dos cabeçalhos da resposta.
 
 ### 9.5 Dados em falta / amostras pequenas
 **Problema:** equipas com poucos jogos enviesam o modelo.
@@ -281,7 +291,7 @@ Wrapper `idb` encapsula migrações de schema e versões da base de dados.
 |---|---|---|---|
 | 1 | HashRouter | BrowserRouter | Evita 404 no GitHub Pages sem servidor. |
 | 2 | Chaves no LocalStorage do utilizador | Chave embebida | Segurança; app estática. |
-| 3 | MockProvider por defeito | Exigir API logo no arranque | Funciona "out of the box"; demo/offline. |
+| 3 | Flashscore (RapidAPI) como única fonte + Proxy CORS | Football-Data/API-Football (grátis) | Cobertura de ligas e ~1 pedido por jogo (forma + H2H juntos); os planos grátis davam pouco retorno útil. |
 | 4 | Zustand | Redux | Menos boilerplate para o âmbito atual. |
 | 5 | `idb` | Dexie | Dependência mínima, controlo de schema. |
 | 6 | Import dinâmico de xlsx/jsPDF | Bundle único | Performance/Lighthouse. |

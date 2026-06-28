@@ -1,8 +1,15 @@
-# Resolver o CORS da Football-Data.org (e outras APIs)
+# Proxy CORS (Cloudflare Worker) para o RapidAPI/Flashscore
 
-A Football-Data.org **não envia cabeçalhos CORS**. Por isso, quando a app corre no browser
-(GitHub Pages), o pedido direto a `https://api.football-data.org/...` é **bloqueado** e o
-dashboard fica vazio. Isto **não** é um bug da app — é uma política de segurança do browser.
+> **Nota (v0.2.37+):** a app usa o **Flashscore via RapidAPI** como única fonte. O
+> browser não pode chamar o RapidAPI diretamente (sem CORS e a chave teria de ir
+> no pedido), por isso é **obrigatório** um Proxy CORS. O Worker pronto a usar
+> está em [`worker/`](../worker) (reencaminha os cabeçalhos `x-rapidapi-*` e expõe
+> o endpoint `/sync` da sincronização) e faz deploy automático. O exemplo abaixo é
+> ilustrativo/genérico — para o Worker real e completo, vê a pasta `worker/`.
+
+Quando a app corre no browser, um pedido a uma API sem cabeçalhos CORS é
+**bloqueado** — não é um bug da app, é uma política de segurança do browser. Um
+Proxy CORS (o teu Worker) resolve isto.
 
 Tens 3 formas de resolver. A recomendada é a opção A.
 

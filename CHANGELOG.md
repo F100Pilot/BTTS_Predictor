@@ -20,6 +20,191 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.39.1
+
+- **Ao Vivo poupa pedidos RapidAPI**: o feed do Flashscore só é consultado quando
+  existe um jogo acompanhado (não liquidado) dentro da janela de jogo (de ~10 min
+  antes do início até ao full-time). Sem nada a decorrer → zero pedidos. Intervalo
+  de atualização 30s → 60s.
+
+## 0.2.39.0
+
+- **Histórico → Apostas**: clicar numa aposta abre a análise do jogo (quando tem
+  id de jogo Flashscore); nova coluna "Início do jogo" a par de "Aposta feita". As
+  apostas passam a guardar a hora de início (da análise → martingale); apostas
+  antigas usam a data da previsão correspondente.
+
+## 0.2.38.2
+
+- **Ao Vivo** deixa de mostrar jogos já terminados que o feed ainda marca como
+  "em jogo" (lag em ligas menores): sem minuto real e com início há mais de 130
+  min, o jogo sai do Ao Vivo (liquida no Histórico).
+
+## 0.2.38.1
+
+- **Sincronização mais poupada no Cloudflare KV**: escreve só quando os dados
+  mudam mesmo (antes reescrevia os 3 blobs a cada sync) e o intervalo passou para
+  5 min. Resolve o aviso de "limite diário do Workers KV" sem upgrade.
+
+## 0.2.38.0
+
+- **Histórico (Previsões)** agrupado por dia, com colapsar/expandir por dia e
+  botão "Expandir/Colapsar tudo". Atualização de resultados unificada num só botão
+  "Atualizar resultados" (via Flashscore), removido o botão duplicado.
+
+## 0.2.37.4
+
+- Na página de Jogos, o "check" de jogo-no-histórico aparece só uma vez (no botão
+  da coluna Ações); removida a marca duplicada ao lado do nome.
+
+## 0.2.37.3
+
+- "Testar ligação" corrigido para o Flashscore: verifica a forma das equipas pelo
+  pedido por jogo (h2h), como a análise faz, em vez do histórico por equipa (que o
+  Flashscore não usa). Deixa de dar falso erro com a chave correta.
+
+## 0.2.37.2
+
+- **Ao Vivo** mostra a hora de início e o tempo decorrido (minuto). Quando o feed
+  não traz o minuto exato, é estimado a partir da hora de início (marcado "~").
+
+## 0.2.37.1
+
+- Na página de Jogos, os jogos já no histórico ficam marcados com um "check"
+  verde, persistente após recarregar.
+
+## 0.2.37.0
+
+- **Removidas as fontes Football-Data e API-Football** — o **Flashscore
+  (RapidAPI)** passa a ser a única fonte para tudo: jogos, análise, Ao Vivo e
+  resultados. Removido o seletor de fonte (basta a chave RapidAPI + Proxy CORS);
+  migração automática de quem estava noutra fonte. O painel de Jogos analisa a
+  jornada automaticamente (~1 pedido por jogo).
+
+## 0.2.36.1
+
+- O aviso de "Novidades" mostra só as atualizações que o dispositivo ainda não
+  viu, em vez da lista completa.
+
+## 0.2.36.0
+
+- **Nova fonte Flashscore (RapidAPI)**, recomendada e por omissão: análise diária
+  quase só com o Flashscore — lista de jogos do dia (1 pedido) e, por jogo, a
+  forma das duas equipas + H2H num só pedido. (Football-Data e API-Football ainda
+  selecionáveis nesta versão.)
+
+## 0.2.35.1
+
+- Mais testes internos (pipeline de análise e cadeia de fontes). Total 115 testes.
+
+## 0.2.35.0
+
+- Melhorias da auditoria: instalação mais leve (~1,4 MB menos), Ao Vivo pausa
+  quando o separador está oculto, limpeza automática de tombstones antigas, botão
+  "Gerar" código de sincronização seguro, aviso ao exportar o perfil (contém
+  chaves) e mais testes.
+
+## 0.2.34.3
+
+- Ao Vivo volta a combinar Football-Data + Flashscore (o grátis da Football-Data
+  só cobre as grandes ligas; jogos de ligas menores aparecem via Flashscore).
+
+## 0.2.34.2
+
+- Nova chave "Football-Data — resultados ao vivo" em Definições. Barra inferior do
+  telemóvel voltou à deslocação horizontal.
+
+## 0.2.34.1
+
+- Página Ao Vivo passa a usar a Football-Data (limite por minuto) e deixa de
+  depender do Flashscore. Mostra os jogos do histórico/apostas por id ou nome.
+
+## 0.2.34.0
+
+- Removida a fonte de demonstração (dados fictícios) — só fontes reais. Removida a
+  importação do FootyStats na Calculadora. Menu inferior reorganizado em grelha.
+
+## 0.2.33.0
+
+- Correção da sincronização ao apagar: as eliminações propagam-se a todos os
+  dispositivos (tombstones) e deixam de reaparecer no refresh. Fonte de dados em
+  uso ficou explícita no painel de Jogos e no Ao Vivo.
+
+## 0.2.32.1
+
+- Botão "Verificar quota" para o Flashscore em Definições (lê os pedidos RapidAPI
+  restantes dos cabeçalhos da resposta).
+
+## 0.2.32.0
+
+- "Via Flashscore" no Histórico liquida também jogos já terminados (lista por
+  data). Ao Vivo mostra também os jogos ao vivo do Flashscore do histórico/apostas.
+
+## 0.2.31.0
+
+- Atualizar resultados via Flashscore: o botão "Via Flashscore" liquida previsões
+  e apostas a partir do feed do Flashscore (por id do Flashscore, ou nome).
+
+## 0.2.30.0
+
+- Importar do Flashscore traz também as odds BTTS do mercado (média das casas),
+  preenchendo "Odds BTTS Sim/Não" e entrando na calibração.
+
+## 0.2.29.4
+
+- Importação do FootyStats: removida a busca por URL (bloqueada pelo site); fica
+  só "Colar conteúdo".
+
+## 0.2.29.3
+
+- Correção da importação do Flashscore para o formato novo da API (campo "scores"
+  no topo e estado nulo).
+
+## 0.2.29.2
+
+- Importação do Flashscore: caixa "Resposta da API (debug)" com "Copiar resposta"
+  para alinhar a leitura ao formato real.
+
+## 0.2.29.1
+
+- Importação do Flashscore mais robusta: pré-visualização dos golos/BTTS/jogos,
+  aceita respostas embrulhadas/em secções e ignora espaços nos nomes.
+
+## 0.2.29.0
+
+- Importar do Flashscore na Calculadora: colar o link (ou id) de um jogo preenche
+  as duas equipas e o H2H num só pedido (RapidAPI). Botão "Trocar casa/fora".
+
+## 0.2.28.0
+
+- Sincronização entre dispositivos: histórico e apostas guardados no Worker
+  (Cloudflare KV), partilhados por um "código de sincronização".
+
+## 0.2.27.0
+
+- Barra inferior deslizável (sem sobreposição), correção do "Failed to fetch" na
+  API-Football com proxy `{url}`, e importação do FootyStats por link.
+
+## 0.2.26.0
+
+- Na Calculadora: guardar o jogo no histórico e/ou criar a aposta BTTS a partir do
+  resultado. Botão "Colar conteúdo" para importar do FootyStats no telemóvel.
+
+## 0.2.25.0
+
+- Importar do FootyStats na Calculadora: colar o conteúdo da página preenche
+  golos, BTTS% e jogos (casa/fora), sem CORS nem API.
+
+## 0.2.24.0
+
+- Barra de progresso no painel durante a análise em lote.
+
+## 0.2.23.0
+
+- Melhorias internas de qualidade: constantes de previsão centralizadas, validação
+  de tier no histórico, melhor tratamento de erros na análise (com nova tentativa)
+  e otimização de ordenação no painel.
+
 ## 0.2.22.0
 
 - **Calculadora manual**: nova aba que permite introduzir as estatísticas das

@@ -20,16 +20,18 @@ npm install
 npm run dev
 ```
 
-Abra `http://localhost:5173`. A app arranca com a fonte **Dados de Demonstração** — não precisa de chaves.
+Abra `http://localhost:5173`.
 
-## 4. Configurar uma fonte real (opcional)
+## 4. Configurar a fonte de dados (Flashscore via RapidAPI)
 
-1. Registe-se numa API (ex.: [Football-Data.org](https://www.football-data.org/client/register)) e obtenha a chave gratuita.
-2. Na app, vá a **Definições → Fonte de Dados**.
-3. Selecione o fornecedor e cole a chave (guardada apenas no seu dispositivo).
-4. Mantenha "Usar dados de demonstração quando a fonte falhar" ativo para resiliência.
+A app usa o **Flashscore (RapidAPI)** como fonte. É preciso uma chave RapidAPI e um Proxy CORS (o teu Cloudflare Worker).
 
-> **Nota CORS:** algumas APIs não permitem chamadas diretas do browser. Nesse caso use a versão APK (Capacitor) ou um proxy. Ver `ARCHITECTURE.md` §9.2.
+1. Subscreve a API do **Flashscore no [RapidAPI](https://rapidapi.com/)** e copia a tua `x-rapidapi-key`.
+2. Cria o **Proxy CORS** (Cloudflare Worker) — ver [`CORS-PROXY.md`](./CORS-PROXY.md). O mesmo Worker serve também a sincronização entre dispositivos.
+3. Na app, vai a **Definições → Fonte de Dados** e preenche a **chave RapidAPI** e o **Proxy CORS** (guardados apenas no teu dispositivo).
+4. Usa **"Testar ligação"** para confirmar (deve mostrar jogos do dia e a forma das equipas).
+
+> **CORS:** o browser não pode chamar o RapidAPI diretamente (CORS + cabeçalho da chave); por isso o Proxy CORS é obrigatório. Ver `ARCHITECTURE.md` §9.2.
 
 ## 5. Variáveis de ambiente (opcional)
 
@@ -62,6 +64,6 @@ npm test
 | Problema | Solução |
 |---|---|
 | Página em branco no GitHub Pages | Confirme `VITE_BASE=/<repo>/` no build. |
-| Sem jogos no painel | Verifique a data selecionada; a fonte mock gera jogos para qualquer data. |
+| Sem jogos no painel | Verifique a data selecionada, a chave RapidAPI e o Proxy CORS; use "Testar ligação" em Definições. |
 | Erros de CORS com API real | Use Capacitor (APK) ou um proxy; ver `ARCHITECTURE.md`. |
 | Ícones PWA em falta | Corra `node scripts/generate-icons.mjs`. |
