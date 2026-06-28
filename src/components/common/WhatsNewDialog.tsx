@@ -8,21 +8,28 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { APP_VERSION, WHATS_NEW } from '@/version';
+import { APP_VERSION, whatsNewSince } from '@/version';
 
 const STORAGE_KEY = 'btts:lastSeenVersion';
 
 /**
  * Shows a "what's new" popup once per version: on first launch after an update,
- * it lists the latest changes, then records the seen version so it won't repeat.
+ * it lists ONLY the changes newer than the version this device last saw (not the
+ * whole changelog), then records the seen version so it won't repeat.
  */
 export function WhatsNewDialog() {
   const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<string[]>([]);
 
   useEffect(() => {
     try {
       const seen = localStorage.getItem(STORAGE_KEY);
-      if (seen !== APP_VERSION && WHATS_NEW.length > 0) setOpen(true);
+      if (seen === APP_VERSION) return; // already up to date
+      const fresh = whatsNewSince(seen);
+      if (fresh.length > 0) {
+        setItems(fresh);
+        setOpen(true);
+      }
     } catch {
       // localStorage unavailable — skip silently.
     }
@@ -47,7 +54,7 @@ export function WhatsNewDialog() {
           <DialogDescription>O que mudou nesta atualização:</DialogDescription>
         </DialogHeader>
         <ul className="list-disc space-y-2 pl-5 text-sm">
-          {WHATS_NEW.map((item, i) => (
+          {items.map((item, i) => (
             <li key={i}>{item}</li>
           ))}
         </ul>

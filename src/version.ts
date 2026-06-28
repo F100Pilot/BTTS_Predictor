@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.36';
+export const APP_VERSION = '0.2.36.1';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.36.1: O aviso de “Novidades” passa a mostrar só as atualizações que este dispositivo ainda não viu (as mais recentes do que a última versão aberta aqui), em vez da lista completa de todas as versões.',
   'v0.2.36: Nova fonte de dados Flashscore (RapidAPI), agora a fonte recomendada e por omissão. Faz a análise diária quase só com o Flashscore — a lista de jogos do dia (1 pedido) e, por jogo, a forma das duas equipas + H2H num só pedido. Com ~1000 pedidos/dia cobres uma jornada inteira. Em Definições, escolhe “Flashscore (RapidAPI)” como fornecedor e usa a chave RapidAPI já existente (a Football-Data e a API-Football continuam disponíveis como alternativa).',
   'v0.2.35.1: Mais testes internos (pipeline de análise e cadeia de fontes de dados) — sem alterações visíveis; só robustez. Total 115 testes.',
   'v0.2.35: Melhorias da auditoria — app mais leve no telemóvel (instalação ~1,4 MB menor), página Ao Vivo poupa quota (pausa quando o separador está oculto), limpeza automática de marcas de eliminação antigas, botão “Gerar” código de sincronização seguro, aviso ao exportar o perfil (contém chaves), e mais testes internos.',
@@ -36,3 +37,38 @@ export const WHATS_NEW: string[] = [
   'v0.2.23: Melhorias internas de qualidade — constantes de previsão centralizadas, validação de tier no histórico, melhor tratamento de erros na análise (com botão de nova tentativa), e otimização de ordenação no painel.',
   'v0.2.22: Nova aba Calculadora: introduz as estatísticas das equipas manualmente e obtém um prognóstico BTTS instantâneo, sem chamadas à API. Inclui decomposição dos fatores e outros mercados (Over/Under 2.5, 1X2).',
 ];
+
+/** Parse a "0.2.36" / "v0.2.35.1" version string into numeric segments. */
+export function parseVersion(v: string): number[] {
+  return v
+    .replace(/^v/, '')
+    .split('.')
+    .map((n) => Number.parseInt(n, 10) || 0);
+}
+
+/** Compare two version strings segment-by-segment. <0 if a<b, 0 if equal, >0 if a>b. */
+export function compareVersions(a: string, b: string): number {
+  const pa = parseVersion(a);
+  const pb = parseVersion(b);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+/** Extract the leading version from a WHATS_NEW entry ("v0.2.36: …" → "0.2.36"). */
+function entryVersion(entry: string): string {
+  return entry.match(/^v([\d.]+):/)?.[1] ?? '0';
+}
+
+/**
+ * The WHATS_NEW entries newer than the version the device last saw — i.e. only
+ * the updates this device doesn't yet know about. When `seen` is null (first
+ * launch ever) only the latest entry is shown, not the whole changelog.
+ */
+export function whatsNewSince(seen: string | null): string[] {
+  if (!seen) return WHATS_NEW.slice(0, 1);
+  return WHATS_NEW.filter((entry) => compareVersions(entryVersion(entry), seen) > 0);
+}
