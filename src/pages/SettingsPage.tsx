@@ -1,25 +1,12 @@
 import { useRef, useState } from 'react';
-import {
-  ExternalLink,
-  RotateCcw,
-  Trash2,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  Download,
-  Upload,
-} from 'lucide-react';
+import { RotateCcw, Trash2, CheckCircle2, XCircle, Loader2, Download, Upload } from 'lucide-react';
 import { useSettings } from '@/store/settingsStore';
 import { PROVIDERS } from '@/data/providers/registry';
 import { FACTOR_LABELS, normalizeWeights, type FactorKey } from '@/core/prediction/weights';
 import { tuneWeights, type TuneResult, type TuneSample } from '@/core/backtest/tuneWeights';
 import { listHistory } from '@/data/cache/repositories';
 import { clearCache } from '@/data/cache/cache';
-import {
-  runFootballDataDiagnostics,
-  runProviderTest,
-  type DiagCheck,
-} from '@/services/diagnostics';
+import { runProviderTest, type DiagCheck } from '@/services/diagnostics';
 import {
   notificationsSupported,
   notificationPermission,
@@ -128,14 +115,10 @@ export function SettingsPage() {
     setChecks(null);
     try {
       const ctx = {
-        apiKey: settings.apiKeys[settings.providerId],
+        apiKey: settings.rapidApiKey,
         corsProxy: settings.corsProxy,
       };
-      const result =
-        settings.providerId === 'football-data'
-          ? await runFootballDataDiagnostics(ctx)
-          : await runProviderTest(settings.providerId, ctx);
-      setChecks(result);
+      setChecks(await runProviderTest(settings.providerId, ctx));
     } finally {
       setTesting(false);
     }
@@ -181,107 +164,43 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Fonte de Dados</CardTitle>
           <CardDescription>
-            Escolha o fornecedor de dados (requer chave e Proxy CORS).
+            A app usa o Flashscore (RapidAPI) para tudo: jogos, análise, ao vivo e resultados.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
             <Label>Fornecedor ativo</Label>
-            <Select value={settings.providerId} onValueChange={settings.setProvider}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROVIDERS.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-medium">
+              {activeProvider.label}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Qual escolher: <strong>Flashscore (RapidAPI)</strong> é a fonte recomendada — cobre
-              quase todas as ligas e faz a análise diária com ~1 pedido por jogo (forma das duas
-              equipas + H2H no mesmo pedido). Requer a chave RapidAPI e o Proxy CORS abaixo.{' '}
-              <strong>API-Football</strong> para torneios de seleções (Mundial/Euro) — histórico
-              mais completo das seleções (limite: 100 pedidos/dia).{' '}
-              <strong>Football-Data.org</strong> para a época de clubes — limite por minuto e
-              grandes ligas. Usa <em>uma</em> fonte de cada vez: cada fornecedor tem IDs próprios,
-              por isso jogos e histórico têm de vir da mesma fonte.
+              O <strong>Flashscore (RapidAPI)</strong> cobre quase todas as ligas e faz a análise
+              diária com ~1 pedido por jogo (forma das duas equipas + H2H no mesmo pedido), mais 1
+              pedido para a lista de jogos do dia. Preenche a chave RapidAPI e o Proxy CORS abaixo.
             </p>
           </div>
 
-          {!activeProvider.capabilities.worksOffline &&
-            !activeProvider.capabilities.keyless &&
-            settings.providerId !== 'flashscore' && (
-              <div className="space-y-1.5">
-                <Label htmlFor="apikey">Chave de API ({activeProvider.label})</Label>
-                <Input
-                  id="apikey"
-                  type="password"
-                  autoComplete="off"
-                  placeholder="Cole aqui a sua chave"
-                  value={settings.apiKeys[settings.providerId] ?? ''}
-                  onChange={(e) => settings.setApiKey(settings.providerId, e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  A chave é guardada apenas neste dispositivo (LocalStorage).{' '}
-                  {activeProvider.docsUrl && (
-                    <a
-                      href={activeProvider.docsUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-primary hover:underline"
-                    >
-                      Obter chave <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </p>
-              </div>
-            )}
-
-          {settings.providerId !== 'football-data' && (
-            <div className="space-y-1.5">
-              <Label htmlFor="fdlivekey">Chave Football-Data — resultados ao vivo</Label>
-              <Input
-                id="fdlivekey"
-                type="password"
-                autoComplete="off"
-                placeholder="Cole aqui a chave da Football-Data"
-                value={settings.apiKeys['football-data'] ?? ''}
-                onChange={(e) => settings.setApiKey('football-data', e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                A página Ao Vivo usa sempre a Football-Data (limite por minuto, não gasta a quota
-                diária da fonte de análise). Indica aqui a chave dela, mesmo que a análise use outra
-                fonte. Guardada apenas neste dispositivo.
-              </p>
-            </div>
-          )}
-
-          {!activeProvider.capabilities.worksOffline && (
-            <div className="space-y-1.5">
-              <Label htmlFor="corsproxy">Proxy CORS (opcional)</Label>
-              <Input
-                id="corsproxy"
-                type="text"
-                autoComplete="off"
-                placeholder="https://o-meu-worker.workers.dev"
-                value={settings.corsProxy}
-                onChange={(e) => settings.setCorsProxy(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                A Football-Data.org não envia cabeçalhos CORS, por isso o browser bloqueia o pedido
-                direto. Indique aqui um proxy. Formatos aceites: prefixo de origem (ex.:{' '}
-                <code>https://o-meu-worker.workers.dev</code>) ou com marcador{' '}
-                <code>{'https://corsproxy.io/?url={url}'}</code>. Veja{' '}
-                <code>docs/CORS-PROXY.md</code> para um Cloudflare Worker gratuito.
-              </p>
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="corsproxy">Proxy CORS</Label>
+            <Input
+              id="corsproxy"
+              type="text"
+              autoComplete="off"
+              placeholder="https://o-meu-worker.workers.dev"
+              value={settings.corsProxy}
+              onChange={(e) => settings.setCorsProxy(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              O browser não pode chamar o RapidAPI diretamente (CORS + cabeçalho da chave), por isso
+              os pedidos passam por um proxy. Formatos aceites: prefixo de origem (ex.:{' '}
+              <code>https://o-meu-worker.workers.dev</code>) ou com marcador{' '}
+              <code>{'https://corsproxy.io/?url={url}'}</code>. Veja <code>docs/CORS-PROXY.md</code>{' '}
+              para um Cloudflare Worker gratuito.
+            </p>
+          </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rapidapikey">Chave RapidAPI — Flashscore (opcional)</Label>
+            <Label htmlFor="rapidapikey">Chave RapidAPI — Flashscore</Label>
             <Input
               id="rapidapikey"
               type="password"
