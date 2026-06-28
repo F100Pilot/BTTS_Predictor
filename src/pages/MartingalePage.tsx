@@ -48,6 +48,7 @@ interface PrefillState {
   selection?: string;
   odds?: number;
   fixtureId?: string;
+  kickoff?: string;
 }
 
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -86,6 +87,7 @@ export function MartingalePage() {
   const [selection, setSelection] = useState(prefill.selection ?? 'SIM');
   const [odds, setOdds] = useState(prefill.odds ? String(prefill.odds) : '');
   const [fixtureId] = useState(prefill.fixtureId);
+  const [kickoff] = useState(prefill.kickoff);
 
   useEffect(() => {
     void refresh();
@@ -121,6 +123,7 @@ export function MartingalePage() {
       selection: sanitizeText(selection, 16) || 'SIM',
       odds: oddsVal,
       fixtureId,
+      kickoff,
     });
     setMatchLabel('');
     setOdds('');

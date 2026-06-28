@@ -186,6 +186,7 @@ export function AnalysisPage() {
         selection,
         odds,
         fixtureId: fixture.id,
+        kickoff: fixture.date,
       },
     });
   };

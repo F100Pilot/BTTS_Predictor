@@ -14,6 +14,8 @@ export interface NewBetInput {
   fixtureId?: string;
   /** Flashscore match id, when the bet came from a Flashscore import. */
   flashMatchId?: string;
+  /** Kickoff date-time (ISO) of the game, when known. */
+  kickoff?: string;
 }
 
 interface MartingaleState {
@@ -101,6 +103,7 @@ export const useMartingale = create<MartingaleState>()(
           providerId: input.fixtureId ? useSettings.getState().providerId : undefined,
           flashMatchId: input.flashMatchId,
           matchLabel: input.matchLabel,
+          kickoff: input.kickoff,
           market: input.market,
           selection: input.selection,
           odds: input.odds,
