@@ -18,6 +18,8 @@ export interface FlashFixture {
   home: FlashFixtureTeam;
   away: FlashFixtureTeam;
   scores: { home: number | null; away: number | null };
+  /** Elapsed match minute for a live game, when the feed reports it. */
+  minute: number | null;
   /** Match-winner (1X2) odds when present — NOT BTTS odds. */
   odds?: { home: number; draw: number; away: number };
 }
@@ -35,6 +37,22 @@ function status(m: {
 function num(v: unknown): number | null {
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Best-effort elapsed match minute from the live `match_status` object. Field
+ * names vary across the feed, so probe the common ones (number or "67'" string).
+ */
+function liveMinute(ms: Record<string, unknown>): number | null {
+  for (const key of ['minute', 'match_time', 'time', 'minutes', 'current_minute', 'elapsed']) {
+    const v = ms[key];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && /\d/.test(v)) {
+      const n = Number.parseInt(v.replace(/[^\d]/g, ''), 10);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return null;
 }
 
 function parseOdds(raw: unknown): FlashFixture['odds'] | undefined {
@@ -82,6 +100,7 @@ export function parseFlashscoreMatches(input: unknown): FlashFixture[] {
         home: { id: m.home_team.team_id ?? '', name: m.home_team.name },
         away: { id: m.away_team.team_id ?? '', name: m.away_team.name },
         scores: { home: num(m.scores?.home), away: num(m.scores?.away) },
+        minute: liveMinute(m.match_status ?? {}),
         odds: parseOdds(m.odds),
       });
     }

@@ -10,15 +10,26 @@ import { fetchFlashscoreLive, fixtureToLiveMatch } from '@/services/flashscoreCl
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner, EmptyState } from '@/components/common/States';
-import { formatTime, formatDateTime } from '@/lib/format';
+import { formatTime } from '@/lib/format';
 import { createLogger } from '@/services/logger';
 
 const log = createLogger('LiveScorePage');
 const REFRESH_MS = 30_000;
 
+/** Minutes since kickoff (rough fallback when the feed omits the live minute). */
+function elapsedFromKickoff(dateIso?: string): number | null {
+  if (!dateIso) return null;
+  const start = Date.parse(dateIso);
+  if (!Number.isFinite(start)) return null;
+  const mins = Math.floor((Date.now() - start) / 60_000);
+  return mins >= 0 && mins < 240 ? mins : null;
+}
+
 function statusLabel(m: LiveMatch): string {
   if (m.status === 'PAUSED') return 'Intervalo';
   if (typeof m.minute === 'number') return `${m.minute}'`;
+  const elapsed = elapsedFromKickoff(m.date);
+  if (elapsed != null) return `~${elapsed}'`;
   return 'Ao vivo';
 }
 
@@ -158,7 +169,7 @@ export function LiveScorePage() {
                   </div>
                   {m.date && (
                     <p className="mt-1 text-center text-xs text-muted-foreground">
-                      Início: {formatDateTime(m.date)}
+                      Início: {formatTime(m.date)} · {statusLabel(m)} decorridos
                     </p>
                   )}
                   <div className="mt-2 text-center">
