@@ -11,7 +11,9 @@ import {
   SlidersHorizontal,
   Trophy,
   Clock,
+  Settings,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { DashboardRow, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
@@ -311,70 +313,81 @@ export function DashboardPage() {
           </p>
           <QuotaBadge className="mt-1" />
         </div>
-        {/* All page options live behind a single discreet pop-up, as icon-only
+        {/* Right side, aligned with the title: options pop-up + Definições. */}
+        <div className="flex items-center gap-2 self-start">
+          {/* All page options live behind a single discreet pop-up, as icon-only
             controls; each reveals its label on hover or long-press. */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              aria-label="Opções"
-              className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-auto overflow-visible p-2">
-            <div className="grid max-w-[15rem] grid-cols-4 gap-2">
-              <IconAction
-                label="Filtros"
-                icon={<SlidersHorizontal className="h-4 w-4" />}
-                active={showFilters}
-                onClick={() => setShowFilters((v) => !v)}
-              />
-              <IconAction
-                label="Reanalisar"
-                icon={<RefreshCw className="h-4 w-4" />}
-                onClick={() => void handleReanalyze()}
-              />
-              <IconAction
-                label={`Analisar mais ${nextBatch || ''}`.trim()}
-                icon={<PlusCircle className="h-4 w-4" />}
-                disabled={!showWaiting || analyzing}
-                onClick={loadMore}
-              />
-              <IconAction
-                label={majorOnly ? 'Só grandes ligas (ativo)' : 'Só grandes ligas'}
-                icon={<Trophy className="h-4 w-4" />}
-                active={majorOnly}
-                onClick={() => setMajorOnly(!majorOnly)}
-              />
-              <IconAction
-                label={hideStarted ? 'Esconder começados (ativo)' : 'Esconder começados'}
-                icon={<Clock className="h-4 w-4" />}
-                active={hideStarted}
-                onClick={() => setHideStarted(!hideStarted)}
-              />
-              <IconAction
-                label="Exportar CSV"
-                icon={<Download className="h-4 w-4" />}
-                disabled={!filtered.length}
-                onClick={() => handleExport('csv')}
-              />
-              <IconAction
-                label="Exportar Excel"
-                icon={<FileSpreadsheet className="h-4 w-4" />}
-                disabled={!filtered.length}
-                onClick={() => handleExport('xlsx')}
-              />
-              <IconAction
-                label="Exportar PDF"
-                icon={<FileText className="h-4 w-4" />}
-                disabled={!filtered.length}
-                onClick={() => handleExport('pdf')}
-              />
-            </div>
-          </PopoverContent>
-        </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="Opções"
+                className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-auto overflow-visible p-2">
+              <div className="grid max-w-[15rem] grid-cols-4 gap-2">
+                <IconAction
+                  label="Filtros"
+                  icon={<SlidersHorizontal className="h-4 w-4" />}
+                  active={showFilters}
+                  onClick={() => setShowFilters((v) => !v)}
+                />
+                <IconAction
+                  label="Reanalisar"
+                  icon={<RefreshCw className="h-4 w-4" />}
+                  onClick={() => void handleReanalyze()}
+                />
+                <IconAction
+                  label={`Analisar mais ${nextBatch || ''}`.trim()}
+                  icon={<PlusCircle className="h-4 w-4" />}
+                  disabled={!showWaiting || analyzing}
+                  onClick={loadMore}
+                />
+                <IconAction
+                  label={majorOnly ? 'Só grandes ligas (ativo)' : 'Só grandes ligas'}
+                  icon={<Trophy className="h-4 w-4" />}
+                  active={majorOnly}
+                  onClick={() => setMajorOnly(!majorOnly)}
+                />
+                <IconAction
+                  label={hideStarted ? 'Esconder começados (ativo)' : 'Esconder começados'}
+                  icon={<Clock className="h-4 w-4" />}
+                  active={hideStarted}
+                  onClick={() => setHideStarted(!hideStarted)}
+                />
+                <IconAction
+                  label="Exportar CSV"
+                  icon={<Download className="h-4 w-4" />}
+                  disabled={!filtered.length}
+                  onClick={() => handleExport('csv')}
+                />
+                <IconAction
+                  label="Exportar Excel"
+                  icon={<FileSpreadsheet className="h-4 w-4" />}
+                  disabled={!filtered.length}
+                  onClick={() => handleExport('xlsx')}
+                />
+                <IconAction
+                  label="Exportar PDF"
+                  icon={<FileText className="h-4 w-4" />}
+                  disabled={!filtered.length}
+                  onClick={() => handleExport('pdf')}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Link
+            to="/settings"
+            aria-label="Definições"
+            title="Definições"
+            className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       {analyzing && (

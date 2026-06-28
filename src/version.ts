@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.40';
+export const APP_VERSION = '0.2.41';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.41: Página Ao Vivo redesenhada com o mesmo estilo da página de Jogos — cada jogo num banner com emblema (iniciais) das equipas, resultado ao vivo, barra de forma (últimos 5 resultados de cada equipa), prognóstico BTTS com percentagem e estado “ambas marcaram”. As opções passaram para um pop-up de ícones e foi adicionado um atalho para Definições. Na página de Jogos, o botão de Definições foi alinhado à direita do título.',
   'v0.2.40: Página de Jogos com novo visual minimalista — cada jogo num banner (hora, competição, equipas, selo BTTS e classificação) que abre a análise ao toque. Todas as opções da página passaram para um pop-up discreto, com ícones sem texto (o nome aparece ao passar o rato ou ao manter o dedo premido). As ações de cada jogo (favorito, watchlist, histórico) também ficaram em ícones com o mesmo comportamento.',
   'v0.2.39.1: Página Ao Vivo poupa muitos pedidos RapidAPI — só consulta o Flashscore quando há mesmo um jogo teu (não liquidado) dentro da janela de jogo (do início até ao fim); se não há nada a decorrer, não gasta pedidos. O intervalo de atualização passou de 30s para 60s.',
   'v0.2.39: No Histórico → Apostas, podes clicar numa aposta para abrir a análise do jogo, e a tabela passa a mostrar a hora de início do jogo (além da hora em que a aposta foi feita).',
