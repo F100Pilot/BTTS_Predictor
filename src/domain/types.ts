@@ -198,6 +198,8 @@ export interface Bet {
    * settling the bet straight from the Flashscore live/results feed. */
   flashMatchId?: string;
   matchLabel: string;
+  /** Kickoff date-time (ISO) of the game, when known (for display/navigation). */
+  kickoff?: string;
   market: string; // e.g. "BTTS"
   selection: string; // e.g. "SIM" / "NÃO"
   odds: number;

@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useFixtureCache } from '@/store/fixtureCacheStore';
 import {
   History,
   Trash2,
@@ -77,6 +79,8 @@ function dedupeByFixture(records: HistoryRecord[]): HistoryRecord[] {
 }
 
 export function HistoryPage() {
+  const navigate = useNavigate();
+  const cacheFixtures = useFixtureCache((s) => s.put);
   const refreshCalibration = useCalibration((s) => s.refresh);
   const autoCalibrate = useSettings((s) => s.autoCalibrate);
   const corsProxy = useSettings((s) => s.corsProxy);
@@ -288,6 +292,40 @@ export function HistoryPage() {
 
   const betProfit = (b: Bet): number =>
     b.result === 'won' ? winProfit(b.stake, b.odds) : b.result === 'lost' ? -b.stake : 0;
+
+  // Kickoff time for a bet: the value stored on the bet, else borrowed from a
+  // matching prediction record (same fixture). Lets older bets show a kickoff too.
+  const historyDateByFixture = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of records) if (r.fixtureId && r.date) m.set(r.fixtureId, r.date);
+    return m;
+  }, [records]);
+  const betKickoff = (b: Bet): string | undefined =>
+    b.kickoff ?? (b.fixtureId ? historyDateByFixture.get(b.fixtureId) : undefined);
+
+  // A bet opens its analysis when it carries a real (Flashscore) match id —
+  // manual Calculator/Martingale bets ("manual-…") have no fixture to analyse.
+  const betAnalysisId = (b: Bet): string | null => {
+    if (b.flashMatchId) return b.flashMatchId;
+    if (b.fixtureId && !b.fixtureId.startsWith('manual-')) return b.fixtureId;
+    return null;
+  };
+  const openBetAnalysis = (b: Bet): void => {
+    const id = betAnalysisId(b);
+    if (!id) return;
+    const [home, away] = b.matchLabel.split(' vs ');
+    // Seed the cache so the analysis page can resolve this fixture by id.
+    cacheFixtures([
+      {
+        id,
+        date: betKickoff(b) ?? new Date().toISOString(),
+        competition: { id: '', name: '' },
+        home: { id: '', name: home ?? b.matchLabel },
+        away: { id: '', name: away ?? '' },
+      },
+    ]);
+    navigate(`/analysis/${encodeURIComponent(id)}`);
+  };
 
   if (loading) return <Spinner />;
 
@@ -664,8 +702,9 @@ export function HistoryPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Quando</TableHead>
+                      <TableHead>Início do jogo</TableHead>
                       <TableHead>Jogo</TableHead>
+                      <TableHead className="hidden sm:table-cell">Aposta feita</TableHead>
                       <TableHead className="hidden sm:table-cell">Seleção</TableHead>
                       <TableHead>Odd</TableHead>
                       <TableHead>Stake</TableHead>
@@ -676,12 +715,21 @@ export function HistoryPage() {
                   <TableBody>
                     {bets.map((b) => {
                       const profit = betProfit(b);
+                      const kickoff = betKickoff(b);
+                      const clickable = betAnalysisId(b) != null;
                       return (
-                        <TableRow key={b.id}>
+                        <TableRow
+                          key={b.id}
+                          className={clickable ? 'cursor-pointer' : undefined}
+                          onClick={clickable ? () => openBetAnalysis(b) : undefined}
+                        >
                           <TableCell className="text-xs text-muted-foreground">
-                            {formatDateTime(new Date(b.createdAt).toISOString())}
+                            {kickoff ? formatDateTime(kickoff) : '—'}
                           </TableCell>
                           <TableCell className="font-medium">{b.matchLabel}</TableCell>
+                          <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                            {formatDateTime(new Date(b.createdAt).toISOString())}
+                          </TableCell>
                           <TableCell className="hidden sm:table-cell text-muted-foreground">
                             {b.market} {b.selection}
                           </TableCell>
