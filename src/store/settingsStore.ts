@@ -117,15 +117,24 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: 'btts:settings',
-      version: 2,
+      version: 3,
       // v1: drop the per-day analysis cap — analyse all matching fixtures by
       //     default. Reset existing installs that still carry the old 20 limit.
       // v2: the demo ("mock") source was removed — migrate anyone still on it to
       //     the default real provider so the picker isn't left blank.
+      // v3: Football-Data and API-Football were removed — Flashscore is the sole
+      //     source now, so migrate anyone still on them to it.
       migrate: (persisted, version) => {
         const state = persisted as (Partial<SettingsState> & { providerId?: string }) | undefined;
         if (state && version < 1) state.analysisBatchSize = 0;
         if (state && version < 2 && state.providerId === 'mock') {
+          state.providerId = DEFAULT_PROVIDER_ID;
+        }
+        if (
+          state &&
+          version < 3 &&
+          (state.providerId === 'football-data' || state.providerId === 'api-football')
+        ) {
           state.providerId = DEFAULT_PROVIDER_ID;
         }
         return state as SettingsState;
