@@ -17,7 +17,7 @@ BTTS Analytics Pro recolhe dados estatísticos de futebol, calcula probabilidade
 - **Favoritos**, **Watchlist** e **Histórico** de previsões (IndexedDB).
 - **Exportação** para Excel (.xlsx), CSV e PDF.
 - **PWA**: instalável, offline-first, Service Worker com aviso de atualização.
-- **Camada de dados modular**: troque/adicione fontes (Football-Data.org incluído) sem alterar a app. **Dados de demonstração** funcionam sem qualquer chave.
+- **Camada de dados modular** (Strategy Pattern): a fonte é o **Flashscore (RapidAPI)** — cobre quase todas as ligas e faz a análise diária com ~1 pedido por jogo. Adicionar outra fonte é criar uma classe `DataProvider` e registá-la.
 - **Tema claro/escuro**, responsivo (mobile-first).
 
 ---
@@ -33,7 +33,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-A app arranca com a fonte **"Dados de Demonstração"** (offline, determinística) — nenhuma chave de API é necessária para experimentar.
+A app usa o **Flashscore (RapidAPI)** como fonte de dados. Em _Definições_, indica a tua **chave RapidAPI** e um **Proxy CORS** (o teu Cloudflare Worker — ver [`docs/CORS-PROXY.md`](./docs/CORS-PROXY.md)).
 
 ### Scripts
 
@@ -69,16 +69,17 @@ Os pesos são **ajustáveis** em *Definições* e o motor é uma **função pura
 
 ## 🔌 Fontes de dados
 
-A app define uma interface `DataProvider` (Strategy Pattern). Estão incluídos:
+A app define uma interface `DataProvider` (Strategy Pattern). Fonte ativa:
 
 | Provider | Chave necessária | Notas |
 |---|---|---|
-| **Dados de Demonstração** (`mock`) | Não | Offline, determinístico, por defeito. |
-| **Football-Data.org** | Sim (grátis) | Configure a chave em *Definições*. Ver nota CORS abaixo. |
+| **Flashscore (RapidAPI)** | Sim (RapidAPI) | Única fonte. Cobre quase todas as ligas; faz a análise diária com ~1 pedido por jogo (forma das duas equipas + H2H no mesmo pedido `h2h`), mais 1 pedido para a lista do dia. Também alimenta o Ao Vivo e os resultados. Requer Proxy CORS (Worker). |
 
-> **Adicionar uma fonte** (API-Football, SportMonks, FBref, …): crie uma classe que implemente `DataProvider` em `src/data/providers/` e registe-a em `src/data/providers/registry.ts`. Nada mais precisa de mudar.
+> As fontes **Football-Data.org** e **API-Football** foram removidas na v0.2.37 (os planos grátis davam pouco retorno útil para os cálculos).
 
-> **Chaves de API**: numa app estática não há backend para as esconder. Cada utilizador insere a **sua própria chave**, guardada apenas no dispositivo (LocalStorage). Algumas APIs (ex.: Football-Data.org) não enviam cabeçalhos CORS, pelo que funcionam melhor no invólucro nativo (Capacitor) ou atrás de um proxy — ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) §9.2.
+> **Adicionar uma fonte**: crie uma classe que implemente `DataProvider` em `src/data/providers/` e registe-a em `src/data/providers/registry.ts`. Nada mais precisa de mudar.
+
+> **Chave de API**: numa app estática não há backend para a esconder. Cada utilizador insere a **sua própria chave RapidAPI**, guardada apenas no dispositivo (LocalStorage). O browser não pode chamar o RapidAPI diretamente (CORS + cabeçalho da chave), por isso os pedidos passam pelo **Proxy CORS** (o teu Cloudflare Worker) — ver [`docs/CORS-PROXY.md`](./docs/CORS-PROXY.md).
 
 ---
 
@@ -87,7 +88,7 @@ A app define uma interface `DataProvider` (Strategy Pattern). Estão incluídos:
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — arquitetura completa, problemas técnicos e soluções.
 - [`docs/INSTALLATION.md`](./docs/INSTALLATION.md) — guia de instalação detalhado.
 - [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — deploy no GitHub Pages.
-- [`docs/CORS-PROXY.md`](./docs/CORS-PROXY.md) — resolver o CORS da Football-Data.org (proxy / Cloudflare Worker).
+- [`docs/CORS-PROXY.md`](./docs/CORS-PROXY.md) — Proxy CORS para o RapidAPI/Flashscore (Cloudflare Worker) + sincronização (KV).
 - [`docs/APK.md`](./docs/APK.md) — conversão para APK/IPA com Capacitor.
 - [`docs/ROADMAP.md`](./docs/ROADMAP.md) — plano de evolução futura.
 
