@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Spinner } from '@/components/common/States';
 import { PwaUpdatePrompt } from '@/components/common/PwaUpdatePrompt';
 import { WhatsNewDialog } from '@/components/common/WhatsNewDialog';
+import { CalibrationNoticeDialog } from '@/components/common/CalibrationNoticeDialog';
 import { useThemeEffect } from '@/hooks/useThemeEffect';
 import { useLiveNotifications } from '@/hooks/useLiveNotifications';
 import { usePregameReminders } from '@/hooks/usePregameReminders';
@@ -107,6 +108,7 @@ export function App() {
       </ErrorBoundary>
       <PwaUpdatePrompt />
       <WhatsNewDialog />
+      <CalibrationNoticeDialog />
     </AppShell>
   );
 }
