@@ -33,13 +33,24 @@ export async function runProviderTest(
       ok: true,
       detail: `OK — ${fixtures.length} jogo(s) hoje`,
     });
-    const team = fixtures[0]?.home;
-    if (team?.id) {
-      const recent = await provider.getTeamRecentMatches(team.id, 5, ctx);
+    const fixture = fixtures[0];
+    if (fixture && provider.getFixtureMatches) {
+      // Match-keyed sources (Flashscore): the analysis reads both teams' form +
+      // H2H from one per-fixture request, so test THAT, not getTeamRecentMatches
+      // (which such providers leave empty by design).
+      const bundle = await provider.getFixtureMatches(fixture, ctx);
+      const total = bundle.home.length + bundle.away.length;
+      checks.push({
+        label: 'Forma das equipas (previsões)',
+        ok: total > 0,
+        detail: `${fixture.home.name} / ${fixture.away.name}: ${bundle.home.length}+${bundle.away.length} jogos`,
+      });
+    } else if (fixture?.home.id) {
+      const recent = await provider.getTeamRecentMatches(fixture.home.id, 5, ctx);
       checks.push({
         label: 'Histórico de equipa (previsões)',
         ok: recent.length > 0,
-        detail: `${team.name}: ${recent.length} jogo(s) recentes`,
+        detail: `${fixture.home.name}: ${recent.length} jogo(s) recentes`,
       });
     }
   } catch (err) {

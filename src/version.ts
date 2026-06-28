@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.37.2';
+export const APP_VERSION = '0.2.37.3';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.37.3: “Testar ligação” em Definições corrigido para o Flashscore — verifica a forma das equipas pelo pedido por jogo (h2h), tal como a análise faz, em vez de um histórico por equipa que o Flashscore não usa. Já não dá falso erro quando a chave está correta.',
   'v0.2.37.2: Na página Ao Vivo, cada jogo passa a mostrar a hora de início e o tempo decorrido (minuto da partida). Quando o feed do Flashscore não traz o minuto exato, é estimado a partir da hora de início (marcado com “~”).',
   'v0.2.37.1: Na página de Jogos, os jogos que já guardaste no histórico ficam marcados com um “check” verde (ao lado do nome e no botão), mesmo depois de recarregar a app — para veres num relance quais já adicionaste.',
   'v0.2.37: Removidas as fontes Football-Data e API-Football — o Flashscore (RapidAPI) passa a ser a única fonte para tudo: jogos do dia, análise, página Ao Vivo e resultados. Em Definições já não há seletor de fonte; basta a chave RapidAPI + Proxy CORS. Quem estava noutra fonte é migrado automaticamente para o Flashscore. O painel de Jogos analisa a jornada automaticamente (~1 pedido por jogo).',
