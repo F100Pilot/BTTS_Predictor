@@ -129,6 +129,16 @@ export function mergeTombstones(
   return [...byKey.values()];
 }
 
+/**
+ * Canonical JSON of a record set (sorted by a stable key) so two sets can be
+ * compared regardless of order. Used to skip a KV write when the merged set is
+ * identical to what's already stored remotely — the Workers KV free tier only
+ * allows ~1000 writes/day, and most periodic syncs change nothing.
+ */
+function canon<T>(arr: T[], keyOf: (x: T) => string): string {
+  return JSON.stringify([...arr].sort((a, b) => keyOf(a).localeCompare(keyOf(b))));
+}
+
 // Guard so the writes performed by a reconcile don't re-trigger scheduleSync.
 let applying = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -142,31 +152,42 @@ export async function syncNow(): Promise<{ ok: boolean; reason?: string }> {
   applying = true;
   try {
     // Tombstones first, so we know what to exclude/remove below.
-    const [localT, remoteT] = await Promise.all([
+    // Each blob is only PUT back when it actually differs from the remote copy,
+    // so a quiet poll costs reads (cheap) but no writes (scarce on the free KV).
+    const [localT, remoteTRaw] = await Promise.all([
       listTombstones(),
       pull<TombstoneRecord>('deletes'),
     ]);
-    const mergedT = mergeTombstones(localT, remoteT ?? []);
+    const remoteT = remoteTRaw ?? [];
+    const mergedT = mergeTombstones(localT, remoteT);
     for (const t of mergedT) await putTombstone(t);
-    await push('deletes', mergedT);
+    if (canon(mergedT, (t) => t.key) !== canon(remoteT, (t) => t.key)) {
+      await push('deletes', mergedT);
+    }
     const deleted = new Set(mergedT.map((t) => t.key));
     const isDeleted = (kind: 'history' | 'bets', id: string): boolean =>
       deleted.has(`${kind}:${id}`);
 
-    const [localH, remoteH] = await Promise.all([
+    const [localH, remoteHRaw] = await Promise.all([
       listHistory(100000),
       pull<HistoryRecord>('history'),
     ]);
-    const mergedH = mergeHistory(localH, remoteH ?? []).filter((r) => !isDeleted('history', r.id));
+    const remoteH = remoteHRaw ?? [];
+    const mergedH = mergeHistory(localH, remoteH).filter((r) => !isDeleted('history', r.id));
     for (const r of mergedH) await addHistory(r);
     for (const r of localH) if (isDeleted('history', r.id)) await removeHistory(r.id);
-    await push('history', mergedH);
+    if (canon(mergedH, (r) => r.id) !== canon(remoteH, (r) => r.id)) {
+      await push('history', mergedH);
+    }
 
-    const [localB, remoteB] = await Promise.all([listBets(), pull<BetRecord>('bets')]);
-    const mergedB = mergeBets(localB, remoteB ?? []).filter((b) => !isDeleted('bets', b.id));
+    const [localB, remoteBRaw] = await Promise.all([listBets(), pull<BetRecord>('bets')]);
+    const remoteB = remoteBRaw ?? [];
+    const mergedB = mergeBets(localB, remoteB).filter((b) => !isDeleted('bets', b.id));
     for (const b of mergedB) await putBet(b);
     for (const b of localB) if (isDeleted('bets', b.id)) await removeBet(b.id);
-    await push('bets', mergedB);
+    if (canon(mergedB, (b) => b.id) !== canon(remoteB, (b) => b.id)) {
+      await push('bets', mergedB);
+    }
 
     // Refresh the in-memory bets store so the change is visible immediately.
     // Dynamic import keeps the module graph acyclic.
