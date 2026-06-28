@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Radio, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { LiveMatch, MatchResult } from '@/domain/types';
+import type { FlashFixture } from '@/services/flashscoreMatches';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useSettings } from '@/store/settingsStore';
+import { useMartingale } from '@/store/martingaleStore';
+import { useCalibration } from '@/store/calibrationStore';
 import { useDataService } from '@/hooks/useDataService';
-import { listHistory, listBets } from '@/data/cache/repositories';
-import { buildFixtureIndex } from '@/services/flashscoreSettle';
+import { listHistory, listBets, setHistoryResult } from '@/data/cache/repositories';
+import { buildFixtureIndex, flashOutcome } from '@/services/flashscoreSettle';
+import { settleBetAgainstBtts } from '@/services/settlementService';
 import { fetchFlashscoreLive, fixtureToLiveMatch } from '@/services/flashscoreClient';
 import { bttsVerdict } from '@/core/classification/classification';
 import { IconAction } from '@/components/common/IconAction';
@@ -213,6 +217,8 @@ export function LiveScorePage() {
   const cacheFixtures = useFixtureCache((s) => s.put);
   const corsProxy = useSettings((s) => s.corsProxy);
   const rapidApiKey = useSettings((s) => s.rapidApiKey);
+  const setBetResult = useMartingale((s) => s.setResult);
+  const refreshCalibration = useCalibration((s) => s.refresh);
   const data = useDataService();
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [preds, setPreds] = useState<Map<string, SavedPred>>(new Map());
@@ -274,18 +280,60 @@ export function LiveScorePage() {
             () => [] as Awaited<ReturnType<typeof fetchFlashscoreLive>>,
           );
           const idx = buildFixtureIndex(fixtures);
-          const matched = new Map<string, ReturnType<typeof idx.find>>();
+
+          // All tracked games (history + bets) that are live right now.
+          const liveFixtures = new Map<string, FlashFixture>();
           for (const h of history) {
             const f = idx.find(h.flashMatchId, h.fixtureName);
-            if (f && f.status === 'live') matched.set(f.matchId, f);
+            if (f && f.status === 'live') liveFixtures.set(f.matchId, f);
           }
           for (const b of bets) {
             const f = idx.find(b.flashMatchId, b.matchLabel);
-            if (f && f.status === 'live') matched.set(f.matchId, f);
+            if (f && f.status === 'live') liveFixtures.set(f.matchId, f);
           }
-          shown = [...matched.values()]
-            .filter(Boolean)
-            .map((f) => fixtureToLiveMatch(f!))
+
+          // Auto-settle any tracked game that has already reached its BTTS
+          // outcome (both teams scored locks an early "yes"). The result is
+          // written straight into the history / bets, and the game then drops
+          // out of the live view below.
+          let settled = false;
+          for (const h of history) {
+            if (h.actual) continue;
+            const f = idx.find(h.flashMatchId, h.fixtureName);
+            const o = f && f.status === 'live' ? flashOutcome(f) : null;
+            if (o) {
+              await setHistoryResult(h.id, o.outcome, o.score);
+              settled = true;
+            }
+          }
+          for (const b of bets) {
+            if (b.result !== 'pending') continue;
+            const f = idx.find(b.flashMatchId, b.matchLabel);
+            const o = f && f.status === 'live' ? flashOutcome(f) : null;
+            if (!o) continue;
+            const graded = settleBetAgainstBtts(b, o.outcome);
+            if (graded) {
+              await setBetResult(b.id, graded);
+              settled = true;
+            }
+          }
+          if (settled) {
+            // Refresh the saved-prediction map and the calibration stats so the
+            // freshly settled results are reflected immediately.
+            const fresh = await listHistory();
+            for (const h of fresh) {
+              if (typeof h.probYes === 'number')
+                predMap.set(h.fixtureId || h.id, { probYes: h.probYes });
+            }
+            setPreds(new Map(predMap));
+            void refreshCalibration();
+          }
+
+          // Only show games still undecided — once a BTTS outcome is locked the
+          // game has reached its result and disappears from Ao Vivo.
+          shown = [...liveFixtures.values()]
+            .filter((f) => !flashOutcome(f))
+            .map((f) => fixtureToLiveMatch(f))
             .filter((mm) => !looksFinished(mm));
         }
 
@@ -298,7 +346,7 @@ export function LiveScorePage() {
         setLoading(false);
       }
     },
-    [corsProxy, rapidApiKey, ensureForm],
+    [corsProxy, rapidApiKey, ensureForm, setBetResult, refreshCalibration],
   );
 
   useEffect(() => {
