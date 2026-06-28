@@ -20,6 +20,18 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.40.0
+
+- **Redesign da página de Jogos** (minimalista): cada jogo passa a ser um
+  **banner** (hora, competição, equipas, selo BTTS e classificação) que abre a
+  análise ao toque.
+- **Opções da página num pop-up discreto** — controlos só com **ícones** (sem
+  texto); o nome aparece ao passar o rato (desktop) ou ao **manter premido**
+  (toque). Inclui Filtros, Reanalisar, Analisar mais, exportações (CSV/Excel/PDF)
+  e os atalhos "Só grandes ligas" / "Esconder começados".
+- As ações por jogo (favorito, watchlist, histórico) seguem o mesmo padrão
+  icon-only com rótulo ao passar/premir. Novo componente `IconAction`.
+
 ## 0.2.39.1
 
 - **Ao Vivo poupa pedidos RapidAPI**: o feed do Flashscore só é consultado quando

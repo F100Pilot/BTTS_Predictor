@@ -3,16 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Star, Eye, ListPlus, Check } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { TierBadge, ConfidenceMeter } from '@/components/common/PredictionWidgets';
+import { IconAction } from '@/components/common/IconAction';
+import { TierBadge } from '@/components/common/PredictionWidgets';
 import { bttsVerdict } from '@/core/classification/classification';
 import { formatTime } from '@/lib/format';
 import { toPercent, round } from '@/lib/math';
@@ -45,20 +37,136 @@ function toHistoryRecord(row: DashboardRow, providerId: string): HistoryRecord |
   };
 }
 
+/** BTTS verdict pill — green for SIM, red for NÃO, neutral while unknown. */
+function VerdictPill({ row }: { row: DashboardRow }) {
+  if (!row.prediction) {
+    return (
+      <span className="shrink-0 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+        {row.predictionError ? 'indisp.' : '…'}
+      </span>
+    );
+  }
+  const v = bttsVerdict(row.prediction.probYes);
+  return (
+    <span
+      className={cn(
+        'shrink-0 rounded-full border px-3 py-1 text-sm font-bold tabular-nums',
+        v.side === 'SIM'
+          ? 'border-success/30 bg-success/15 text-success'
+          : 'border-destructive/30 bg-destructive/15 text-destructive',
+      )}
+    >
+      {v.side} {toPercent(v.probability)}
+    </span>
+  );
+}
+
+/** A single game banner (full-width row); the whole banner opens the analysis. */
+function GameBanner({
+  row,
+  inHistory,
+  onOpen,
+  onAddHistory,
+}: {
+  row: DashboardRow;
+  inHistory: boolean;
+  onOpen: () => void;
+  onAddHistory: () => void;
+}) {
+  const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
+  const { fixture } = row;
+  const edge = rowEdge(row);
+  const fav = isFavorite(fixture.id);
+  const watched = isWatched(fixture.id);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition-colors hover:border-primary/40 hover:bg-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <div className="w-12 shrink-0 text-center">
+        <div className="text-sm font-bold tabular-nums">{formatTime(fixture.date)}</div>
+        {inHistory && (
+          <Check className="mx-auto mt-0.5 h-3.5 w-3.5 text-success" aria-label="No histórico" />
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[11px] text-muted-foreground">
+          {fixture.competition.country ? `${fixture.competition.country} · ` : ''}
+          {fixture.competition.name}
+        </div>
+        <div className="truncate font-semibold leading-tight">
+          {fixture.home.name} <span className="text-muted-foreground">vs</span> {fixture.away.name}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          {row.prediction && <TierBadge tier={row.prediction.tier} />}
+          {edge != null && edge > 0 && (
+            <span className="text-xs font-semibold text-success">+{round(edge * 100, 1)}%</span>
+          )}
+          {row.prediction && (
+            <span className="text-xs text-muted-foreground">
+              conf. {row.prediction.confidence}/10
+            </span>
+          )}
+        </div>
+      </div>
+
+      <VerdictPill row={row} />
+
+      <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <IconAction
+          size="sm"
+          label={fav ? 'Remover dos favoritos' : 'Favorito'}
+          icon={<Star className={cn('h-4 w-4', fav && 'fill-warning text-warning')} />}
+          active={fav}
+          onClick={() => toggleFavorite(row)}
+        />
+        <IconAction
+          size="sm"
+          label={watched ? 'Remover da watchlist' : 'Watchlist'}
+          icon={<Eye className="h-4 w-4" />}
+          active={watched}
+          onClick={() => toggleWatchlist(row)}
+        />
+        <IconAction
+          size="sm"
+          label={inHistory ? 'Já no histórico' : 'Adicionar ao histórico'}
+          icon={
+            inHistory ? (
+              <Check className="h-4 w-4 text-success" />
+            ) : (
+              <ListPlus className="h-4 w-4" />
+            )
+          }
+          disabled={!row.prediction || inHistory}
+          onClick={onAddHistory}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function GamesTable({ rows }: { rows: DashboardRow[] }) {
   const navigate = useNavigate();
-  const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
   const providerId = useSettings((s) => s.providerId);
-  // Fixtures already saved to history (persisted from any session) plus those
-  // added in this one — so the "in history" check survives a reload.
-  const [saved, setSaved] = useState<Set<string>>(new Set());
+  // Fixtures already in history (persisted) so the check shows on first paint.
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
     void listHistory()
       .then((records) => {
         if (cancelled) return;
-        setSaved(new Set(records.map((r) => r.fixtureId || r.id)));
+        setSavedIds(new Set(records.map((r) => r.fixtureId || r.id)));
       })
       .catch((err) => log.warn('load history ids failed', err));
     return () => {
@@ -70,133 +178,21 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
     const record = toHistoryRecord(row, providerId);
     if (!record) return;
     void upsertHistory(record)
-      .then(() => setSaved((prev) => new Set(prev).add(row.fixture.id)))
+      .then(() => setSavedIds((prev) => new Set(prev).add(row.fixture.id)))
       .catch((err) => log.warn('add to history failed', err));
   };
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-14">Hora</TableHead>
-          <TableHead className="hidden sm:table-cell">Competição</TableHead>
-          <TableHead>Jogo</TableHead>
-          <TableHead className="w-28">BTTS</TableHead>
-          <TableHead className="hidden md:table-cell">Classificação</TableHead>
-          <TableHead className="hidden lg:table-cell">Confiança</TableHead>
-          <TableHead className="hidden sm:table-cell">Valor</TableHead>
-          <TableHead className="w-28 text-right">Ações</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row) => {
-          const fav = isFavorite(row.fixture.id);
-          const watched = isWatched(row.fixture.id);
-          return (
-            <TableRow
-              key={row.fixture.id}
-              className="cursor-pointer"
-              onClick={() => navigate(`/analysis/${encodeURIComponent(row.fixture.id)}`)}
-            >
-              <TableCell className="font-medium">{formatTime(row.fixture.date)}</TableCell>
-              <TableCell className="hidden text-muted-foreground sm:table-cell">
-                {row.fixture.competition.name}
-              </TableCell>
-              <TableCell>
-                <div className="font-medium">
-                  {row.fixture.home.name} <span className="text-muted-foreground">vs</span>{' '}
-                  {row.fixture.away.name}
-                </div>
-                <div className="text-xs text-muted-foreground sm:hidden">
-                  {row.fixture.competition.name}
-                </div>
-              </TableCell>
-              <TableCell>
-                {row.prediction ? (
-                  (() => {
-                    // Show the dominant side with its (higher) probability so it's
-                    // unambiguous whether the model leans SIM or NÃO.
-                    const v = bttsVerdict(row.prediction.probYes);
-                    return (
-                      <span
-                        className={
-                          v.side === 'SIM' ? 'font-semibold text-primary' : 'font-semibold'
-                        }
-                      >
-                        {v.side} {toPercent(v.probability)}
-                      </span>
-                    );
-                  })()
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    {row.predictionError ? 'indisp.' : '…'}
-                  </span>
-                )}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {row.prediction ? <TierBadge tier={row.prediction.tier} /> : <span>—</span>}
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {row.prediction ? (
-                  <ConfidenceMeter confidence={row.prediction.confidence} />
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                {(() => {
-                  const edge = rowEdge(row);
-                  if (edge == null) return <span className="text-muted-foreground">—</span>;
-                  return (
-                    <span
-                      className={edge > 0 ? 'font-semibold text-success' : 'text-muted-foreground'}
-                    >
-                      {edge > 0 ? '+' : ''}
-                      {round(edge * 100, 1)}%
-                    </span>
-                  );
-                })()}
-              </TableCell>
-              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Favorito"
-                    onClick={() => toggleFavorite(row)}
-                  >
-                    <Star className={cn('h-4 w-4', fav && 'fill-warning text-warning')} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Watchlist"
-                    onClick={() => toggleWatchlist(row)}
-                  >
-                    <Eye className={cn('h-4 w-4', watched && 'text-primary')} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={
-                      saved.has(row.fixture.id) ? 'Já no histórico' : 'Adicionar ao histórico'
-                    }
-                    title={saved.has(row.fixture.id) ? 'Já no histórico' : 'Adicionar ao histórico'}
-                    disabled={!row.prediction || saved.has(row.fixture.id)}
-                    onClick={() => addToHistory(row)}
-                  >
-                    {saved.has(row.fixture.id) ? (
-                      <Check className="h-4 w-4 text-success" />
-                    ) : (
-                      <ListPlus className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <div className="space-y-2">
+      {rows.map((row) => (
+        <GameBanner
+          key={row.fixture.id}
+          row={row}
+          inHistory={savedIds.has(row.fixture.id)}
+          onOpen={() => navigate(`/analysis/${encodeURIComponent(row.fixture.id)}`)}
+          onAddHistory={() => addToHistory(row)}
+        />
+      ))}
+    </div>
   );
 }
