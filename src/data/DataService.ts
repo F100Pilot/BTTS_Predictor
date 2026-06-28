@@ -1,4 +1,5 @@
 import type { Fixture, LiveMatch, MatchResult, SeasonStats } from '@/domain/types';
+import type { FixtureTeamMatches } from '@/services/flashscoreAnalysis';
 import { cached, isNonEmpty, TTL } from './cache/cache';
 import { getProvider, realProviders, DEFAULT_PROVIDER_ID } from './providers/registry';
 import type { BttsOdds, DataProvider, ProviderContext } from './providers/types';
@@ -225,6 +226,32 @@ export class DataService {
       );
     } catch (err) {
       log.warn('getTeamSeasonStats failed', err);
+      return null;
+    }
+  }
+
+  /**
+   * Both teams' recent matches for a fixture in one request, when the primary
+   * provider supports it (Flashscore). Returns null otherwise so callers fall
+   * back to two per-team lookups. Empty results are not cached.
+   */
+  async getFixtureMatches(
+    fixture: Fixture,
+    throwOnError = false,
+  ): Promise<FixtureTeamMatches | null> {
+    const provider = getProvider(this.providerId);
+    const ctx = this.ctxFor(provider.id);
+    if (!provider.getFixtureMatches || !provider.isConfigured(ctx)) return null;
+    try {
+      return await cached(
+        `${provider.id}:fxmatches:${fixture.id}`,
+        TTL.teamHistory,
+        () => provider.getFixtureMatches!(fixture, ctx),
+        { shouldCache: (v) => !!v && (v.home.length > 0 || v.away.length > 0) },
+      );
+    } catch (err) {
+      if (throwOnError) throw err;
+      log.warn('getFixtureMatches failed', err);
       return null;
     }
   }

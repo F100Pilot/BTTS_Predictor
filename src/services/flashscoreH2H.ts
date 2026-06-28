@@ -52,19 +52,19 @@ function toGoals(v: unknown): number | null {
  * Final score as [home, away]. Supports both response shapes: the score on a
  * top-level `scores` object, or on the team objects (`home_team.score`).
  */
-function goalsOf(m: FlashMatch): [number | null, number | null] {
+export function goalsOf(m: FlashMatch): [number | null, number | null] {
   return [
     toGoals(m.scores?.home ?? m.home_team.score),
     toGoals(m.scores?.away ?? m.away_team.score),
   ];
 }
 
-function isFriendly(m: FlashMatch): boolean {
+export function isFriendly(m: FlashMatch): boolean {
   return /friendly/i.test(m.tournament_name ?? '');
 }
 
 /** Normalize a team name for matching (trim + collapse inner whitespace). */
-function normName(s: string): string {
+export function normName(s: string): string {
   return s.trim().replace(/\s+/g, ' ');
 }
 
@@ -74,7 +74,7 @@ function normName(s: string): string {
  * and section objects ({home_form, away_form, h2h: [...]}) by concatenating every
  * nested array of objects we find one level deep.
  */
-function toMatchArray(input: unknown): unknown[] {
+export function toMatchArray(input: unknown): unknown[] {
   if (Array.isArray(input)) return input;
   if (!input || typeof input !== 'object') return [];
   const out: unknown[] = [];

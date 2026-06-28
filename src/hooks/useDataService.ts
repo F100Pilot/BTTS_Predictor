@@ -8,15 +8,19 @@ export function useDataService(): DataService {
   const apiKeys = useSettings((s) => s.apiKeys);
   const corsProxy = useSettings((s) => s.corsProxy);
   const autoFallback = useSettings((s) => s.autoFallback);
+  const rapidApiKey = useSettings((s) => s.rapidApiKey);
 
   return useMemo(
     () =>
       new DataService({
         providerId,
-        apiKeys,
+        // The Flashscore provider's key IS the dedicated RapidAPI key, so feed it
+        // into the provider context under the 'flashscore' id (a generic key field
+        // for it is redundant — Settings hides it).
+        apiKeys: { ...apiKeys, flashscore: rapidApiKey || apiKeys.flashscore || '' },
         corsProxy,
         autoFallback,
       }),
-    [providerId, apiKeys, corsProxy, autoFallback],
+    [providerId, apiKeys, corsProxy, autoFallback, rapidApiKey],
   );
 }

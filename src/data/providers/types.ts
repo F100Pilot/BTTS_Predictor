@@ -64,6 +64,16 @@ export interface DataProvider {
     ctx: ProviderContext,
   ): Promise<SeasonStats | null>;
   getTeamRecentMatches(teamId: string, limit: number, ctx: ProviderContext): Promise<MatchResult[]>;
+  /**
+   * Optional: fetch BOTH teams' recent matches for a fixture in a single request
+   * (e.g. Flashscore's h2h endpoint). When present, the analysis pipeline uses
+   * this instead of two per-team `getTeamRecentMatches` calls — far cheaper for
+   * sources keyed by match rather than by team.
+   */
+  getFixtureMatches?(
+    fixture: Fixture,
+    ctx: ProviderContext,
+  ): Promise<{ home: MatchResult[]; away: MatchResult[] }>;
   getHeadToHead(
     homeId: string,
     awayId: string,

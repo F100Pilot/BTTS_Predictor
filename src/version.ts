@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.35.1';
+export const APP_VERSION = '0.2.36';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.36: Nova fonte de dados Flashscore (RapidAPI), agora a fonte recomendada e por omissão. Faz a análise diária quase só com o Flashscore — a lista de jogos do dia (1 pedido) e, por jogo, a forma das duas equipas + H2H num só pedido. Com ~1000 pedidos/dia cobres uma jornada inteira. Em Definições, escolhe “Flashscore (RapidAPI)” como fornecedor e usa a chave RapidAPI já existente (a Football-Data e a API-Football continuam disponíveis como alternativa).',
   'v0.2.35.1: Mais testes internos (pipeline de análise e cadeia de fontes de dados) — sem alterações visíveis; só robustez. Total 115 testes.',
   'v0.2.35: Melhorias da auditoria — app mais leve no telemóvel (instalação ~1,4 MB menor), página Ao Vivo poupa quota (pausa quando o separador está oculto), limpeza automática de marcas de eliminação antigas, botão “Gerar” código de sincronização seguro, aviso ao exportar o perfil (contém chaves), e mais testes internos.',
   'v0.2.34.3: Ao Vivo volta a combinar Football-Data + Flashscore. O plano grátis da Football-Data só cobre as grandes ligas, por isso os jogos importados do Flashscore (ligas menores) só aparecem ao vivo via Flashscore. Agora usam-se as duas fontes em simultâneo.',

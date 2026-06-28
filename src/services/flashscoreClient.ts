@@ -5,8 +5,9 @@
  */
 
 import { parseFlashscoreMatches, type FlashFixture } from './flashscoreMatches';
+import { flashscoreFixtureMatches, type FixtureTeamMatches } from './flashscoreAnalysis';
 import { proxyFor } from './corsProxy';
-import type { LiveMatch } from '@/domain/types';
+import type { Fixture, LiveMatch, Team } from '@/domain/types';
 
 const HOST = 'flashscore4.p.rapidapi.com';
 
@@ -73,6 +74,29 @@ export async function fetchFlashscoreQuota(
   return {
     limit: num('x-ratelimit-requests-limit'),
     remaining: num('x-ratelimit-requests-remaining'),
+  };
+}
+
+/** Recent matches of both teams for a fixture, from one h2h request. */
+export async function fetchFlashscoreFixtureMatches(
+  rapidApiKey: string,
+  corsProxy: string,
+  matchId: string,
+  home: Team,
+  away: Team,
+): Promise<FixtureTeamMatches> {
+  const target = `https://${HOST}/api/flashscore/v2/matches/h2h?match_id=${encodeURIComponent(matchId)}`;
+  return flashscoreFixtureMatches(await getJson(target, rapidApiKey, corsProxy), home, away);
+}
+
+/** Map a Flashscore fixture to the app's Fixture shape (for the dashboard). */
+export function flashFixtureToFixture(f: FlashFixture): Fixture {
+  return {
+    id: f.matchId,
+    date: f.timestamp ? new Date(f.timestamp * 1000).toISOString() : new Date().toISOString(),
+    competition: { id: f.tournament || 'flashscore', name: f.tournament || 'Flashscore', country: f.country },
+    home: { id: f.home.id, name: f.home.name },
+    away: { id: f.away.id, name: f.away.name },
   };
 }
 
