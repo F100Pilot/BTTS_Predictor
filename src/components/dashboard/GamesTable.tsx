@@ -3,16 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Star, Eye, ListPlus, Check } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { TierBadge, ConfidenceMeter } from '@/components/common/PredictionWidgets';
+import { TierBadge } from '@/components/common/PredictionWidgets';
 import { bttsVerdict } from '@/core/classification/classification';
 import { formatTime } from '@/lib/format';
 import { toPercent, round } from '@/lib/math';
@@ -45,6 +37,30 @@ function toHistoryRecord(row: DashboardRow, providerId: string): HistoryRecord |
   };
 }
 
+/** BTTS verdict pill — green for SIM, red for NÃO, neutral while unknown. */
+function VerdictPill({ row }: { row: DashboardRow }) {
+  if (!row.prediction) {
+    return (
+      <span className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+        {row.predictionError ? 'indisponível' : 'a analisar…'}
+      </span>
+    );
+  }
+  const v = bttsVerdict(row.prediction.probYes);
+  return (
+    <span
+      className={cn(
+        'rounded-full border px-3 py-1 text-sm font-bold tabular-nums',
+        v.side === 'SIM'
+          ? 'border-success/30 bg-success/15 text-success'
+          : 'border-destructive/30 bg-destructive/15 text-destructive',
+      )}
+    >
+      {v.side} {toPercent(v.probability)}
+    </span>
+  );
+}
+
 export function GamesTable({ rows }: { rows: DashboardRow[] }) {
   const navigate = useNavigate();
   const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
@@ -74,94 +90,73 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
       .catch((err) => log.warn('add to history failed', err));
   };
 
+  const open = (id: string): void => navigate(`/analysis/${encodeURIComponent(id)}`);
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-14">Hora</TableHead>
-          <TableHead className="hidden sm:table-cell">Competição</TableHead>
-          <TableHead>Jogo</TableHead>
-          <TableHead className="w-28">BTTS</TableHead>
-          <TableHead className="hidden md:table-cell">Classificação</TableHead>
-          <TableHead className="hidden lg:table-cell">Confiança</TableHead>
-          <TableHead className="hidden sm:table-cell">Valor</TableHead>
-          <TableHead className="w-28 text-right">Ações</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row) => {
-          const fav = isFavorite(row.fixture.id);
-          const watched = isWatched(row.fixture.id);
-          return (
-            <TableRow
-              key={row.fixture.id}
-              className="cursor-pointer"
-              onClick={() => navigate(`/analysis/${encodeURIComponent(row.fixture.id)}`)}
-            >
-              <TableCell className="font-medium">{formatTime(row.fixture.date)}</TableCell>
-              <TableCell className="hidden text-muted-foreground sm:table-cell">
-                {row.fixture.competition.name}
-              </TableCell>
-              <TableCell>
-                <div className="font-medium">
-                  {row.fixture.home.name} <span className="text-muted-foreground">vs</span>{' '}
-                  {row.fixture.away.name}
-                </div>
-                <div className="text-xs text-muted-foreground sm:hidden">
-                  {row.fixture.competition.name}
-                </div>
-              </TableCell>
-              <TableCell>
-                {row.prediction ? (
-                  (() => {
-                    // Show the dominant side with its (higher) probability so it's
-                    // unambiguous whether the model leans SIM or NÃO.
-                    const v = bttsVerdict(row.prediction.probYes);
-                    return (
-                      <span
-                        className={
-                          v.side === 'SIM' ? 'font-semibold text-primary' : 'font-semibold'
-                        }
-                      >
-                        {v.side} {toPercent(v.probability)}
-                      </span>
-                    );
-                  })()
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    {row.predictionError ? 'indisp.' : '…'}
+    <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+      {rows.map((row) => {
+        const { fixture } = row;
+        const fav = isFavorite(fixture.id);
+        const watched = isWatched(fixture.id);
+        const inHistory = saved.has(fixture.id);
+        const edge = rowEdge(row);
+        return (
+          <div
+            key={fixture.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => open(fixture.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open(fixture.id);
+              }
+            }}
+            className="group cursor-pointer rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {formatTime(fixture.date)}
                   </span>
-                )}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {row.prediction ? <TierBadge tier={row.prediction.tier} /> : <span>—</span>}
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {row.prediction ? (
-                  <ConfidenceMeter confidence={row.prediction.confidence} />
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                {(() => {
-                  const edge = rowEdge(row);
-                  if (edge == null) return <span className="text-muted-foreground">—</span>;
-                  return (
-                    <span
-                      className={edge > 0 ? 'font-semibold text-success' : 'text-muted-foreground'}
-                    >
-                      {edge > 0 ? '+' : ''}
-                      {round(edge * 100, 1)}%
+                  <span className="truncate">
+                    {fixture.competition.country ? `${fixture.competition.country} · ` : ''}
+                    {fixture.competition.name}
+                  </span>
+                  {inHistory && (
+                    <Check
+                      className="h-3.5 w-3.5 shrink-0 text-success"
+                      aria-label="No histórico"
+                    />
+                  )}
+                </div>
+                <div className="mt-1.5 truncate text-[0.95rem] font-semibold">
+                  {fixture.home.name} <span className="text-muted-foreground">vs</span>{' '}
+                  {fixture.away.name}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {row.prediction && <TierBadge tier={row.prediction.tier} />}
+                  {edge != null && edge > 0 && (
+                    <span className="text-xs font-semibold text-success">
+                      valor +{round(edge * 100, 1)}%
                     </span>
-                  );
-                })()}
-              </TableCell>
-              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-end gap-1">
+                  )}
+                  {row.prediction && (
+                    <span className="text-xs text-muted-foreground">
+                      conf. {row.prediction.confidence}/10
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <VerdictPill row={row} />
+                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
                     aria-label="Favorito"
                     onClick={() => toggleFavorite(row)}
                   >
@@ -170,6 +165,7 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
                     aria-label="Watchlist"
                     onClick={() => toggleWatchlist(row)}
                   >
@@ -178,25 +174,24 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={
-                      saved.has(row.fixture.id) ? 'Já no histórico' : 'Adicionar ao histórico'
-                    }
-                    title={saved.has(row.fixture.id) ? 'Já no histórico' : 'Adicionar ao histórico'}
-                    disabled={!row.prediction || saved.has(row.fixture.id)}
+                    className="h-8 w-8"
+                    aria-label={inHistory ? 'Já no histórico' : 'Adicionar ao histórico'}
+                    title={inHistory ? 'Já no histórico' : 'Adicionar ao histórico'}
+                    disabled={!row.prediction || inHistory}
                     onClick={() => addToHistory(row)}
                   >
-                    {saved.has(row.fixture.id) ? (
+                    {inHistory ? (
                       <Check className="h-4 w-4 text-success" />
                     ) : (
                       <ListPlus className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

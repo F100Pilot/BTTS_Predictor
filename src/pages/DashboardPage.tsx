@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   RefreshCw,
   PlusCircle,
+  SlidersHorizontal,
 } from 'lucide-react';
 import type { DashboardRow, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
@@ -90,6 +91,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   // How many fixtures (in kickoff order) we are allowed to analyse. 0 batch size
   // means "analyse everything" (Infinity).
   const [batchLimit, setBatchLimit] = useState<number>(() => batchSize || Infinity);
@@ -305,7 +307,14 @@ export function DashboardPage() {
           </p>
           <QuotaBadge className="mt-1" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={showFilters ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setShowFilters((v) => !v)}
+          >
+            <SlidersHorizontal /> Filtros
+          </Button>
           {showWaiting && (
             <Button variant="outline" size="sm" onClick={loadMore} disabled={analyzing}>
               <PlusCircle /> Analisar mais {nextBatch}
@@ -354,12 +363,14 @@ export function DashboardPage() {
         </div>
       )}
 
-      <DashboardFilters
-        value={filters}
-        competitions={competitions}
-        countries={countries}
-        onChange={setFilters}
-      />
+      {showFilters && (
+        <DashboardFilters
+          value={filters}
+          competitions={competitions}
+          countries={countries}
+          onChange={setFilters}
+        />
+      )}
 
       {loadError && (
         <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
@@ -403,9 +414,7 @@ export function DashboardPage() {
           }
         />
       ) : (
-        <div className="rounded-lg border bg-card">
-          <GamesTable rows={filtered} />
-        </div>
+        <GamesTable rows={filtered} />
       )}
     </div>
   );
