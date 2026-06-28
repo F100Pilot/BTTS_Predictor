@@ -28,6 +28,7 @@ import { FactorBreakdown } from '@/components/analysis/FactorBreakdown';
 import { TeamStatsCard, HeadToHeadCard } from '@/components/analysis/StatsPanels';
 import { MarketsCard, ValueCard } from '@/components/analysis/ExtraCards';
 import { AnalysisCharts } from '@/components/analysis/AnalysisCharts';
+import { MartingaleDialog } from '@/components/martingale/MartingaleDialog';
 import { cn } from '@/lib/utils';
 
 const log = createLogger('AnalysisPage');
@@ -51,6 +52,7 @@ export function AnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [martOpen, setMartOpen] = useState(false);
 
   const resolveFixture = useCallback(async (): Promise<Fixture | undefined> => {
     const cached = getCached(id);
@@ -177,20 +179,6 @@ export function AnalysisPage() {
     setRefreshKey((k) => k + 1);
   };
 
-  const goToMartingale = (): void => {
-    const selection = prediction.probYes >= 0.5 ? 'SIM' : 'NÃO';
-    const odds = selection === 'SIM' ? fixture.odds?.bttsYes : fixture.odds?.bttsNo;
-    navigate('/martingale', {
-      state: {
-        matchLabel: `${fixture.home.name} vs ${fixture.away.name}`,
-        selection,
-        odds,
-        fixtureId: fixture.id,
-        kickoff: fixture.date,
-      },
-    });
-  };
-
   return (
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -229,7 +217,7 @@ export function AnalysisPage() {
               >
                 <Eye className="h-4 w-4" /> Watchlist
               </Button>
-              <Button variant="outline" size="sm" onClick={goToMartingale}>
+              <Button variant="outline" size="sm" onClick={() => setMartOpen(true)}>
                 <Coins className="h-4 w-4" /> Martingale
               </Button>
               <Button variant="outline" size="sm" onClick={handleReanalyze}>
@@ -304,6 +292,19 @@ export function AnalysisPage() {
           <FactorBreakdown prediction={prediction} />
         </TabsContent>
       </Tabs>
+
+      <MartingaleDialog
+        open={martOpen}
+        onOpenChange={setMartOpen}
+        game={{
+          matchLabel: `${fixture.home.name} vs ${fixture.away.name}`,
+          fixtureId: fixture.id,
+          kickoff: fixture.date,
+          oddsYes: fixture.odds?.bttsYes,
+          oddsNo: fixture.odds?.bttsNo,
+          defaultSelection: prediction.probYes >= 0.5 ? 'SIM' : 'NÃO',
+        }}
+      />
     </div>
   );
 }

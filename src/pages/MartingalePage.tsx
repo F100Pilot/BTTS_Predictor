@@ -456,7 +456,7 @@ export function MartingalePage() {
       {bets.length === 0 ? (
         <EmptyState
           title="Sem apostas registadas"
-          description="Adicione uma aposta acima, ou use 'Adicionar à Martingale' a partir da análise de um jogo."
+          description="Adicione uma aposta acima, ou abra um jogo e use o botão 'Martingale' para registar a aposta diretamente a partir da análise."
         />
       ) : (
         <div className="rounded-lg border bg-card">
