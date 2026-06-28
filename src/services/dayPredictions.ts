@@ -14,9 +14,16 @@ const TTL = 1000 * 60 * 60 * 24 * 7; // keep a day's analysis for a week
 const keyFor = (date: string): string => `dashboard:day:${date}`;
 
 /**
- * Signature of the inputs that affect a prediction. When weights / odds
- * calibration / auto-calibration change, the signature changes and previously
- * saved predictions are ignored (recomputed), keeping results consistent.
+ * Bumped whenever the model maths change so previously cached predictions are
+ * recomputed instead of shown stale. (m2: recency-decay + Empirical-Bayes.)
+ */
+const MODEL_VERSION = 'm2';
+
+/**
+ * Signature of the inputs that affect a prediction. When the model version /
+ * weights / odds calibration / auto-calibration change, the signature changes
+ * and previously saved predictions are ignored (recomputed), keeping results
+ * consistent.
  */
 export function predictionSignature(
   weights: Record<FactorKey, number>,
@@ -29,7 +36,7 @@ export function predictionSignature(
     .map((k) => `${k}:${w[k].toFixed(3)}`)
     .join(',');
   const r = recalibration ? `${recalibration.a.toFixed(3)},${recalibration.b.toFixed(3)}` : 'none';
-  return `w=${wStr}|o=${oddsCalibration}|r=${r}`;
+  return `m=${MODEL_VERSION}|w=${wStr}|o=${oddsCalibration}|r=${r}`;
 }
 
 /** Load saved predictions for a day, but only if they match the current settings. */

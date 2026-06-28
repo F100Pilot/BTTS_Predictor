@@ -62,8 +62,12 @@ export async function buildAnalysis(
         data.getTeamRecentMatches(fixture.away.id, MAX_RECENT_MATCHES, t),
       ]);
 
-  let homeStats = computeTeamStats(fixture.home, homeMatches);
-  let awayStats = computeTeamStats(fixture.away, awayMatches);
+  // Adjust the windows relative to the fixture's own kickoff (so an analysis is
+  // reproducible regardless of when it's run) with recency-decay + league-prior
+  // shrinkage for small samples.
+  const now = Date.parse(fixture.date) || Date.now();
+  let homeStats = computeTeamStats(fixture.home, homeMatches, { now });
+  let awayStats = computeTeamStats(fixture.away, awayMatches, { now });
 
   // When recent history is thin (< 3 games — happens for national teams early
   // in a tournament), enrich with season-wide stats from the provider.
@@ -85,7 +89,7 @@ export async function buildAnalysis(
   const h2hPool = Array.from(
     new Map([...homeMatches, ...awayMatches].map((m) => [m.id, m])).values(),
   );
-  const h2h = computeHeadToHead(fixture.home.id, fixture.away.id, h2hPool);
+  const h2h = computeHeadToHead(fixture.home.id, fixture.away.id, h2hPool, 10, { now });
   const modelPrediction = predict({
     home: homeStats,
     away: awayStats,

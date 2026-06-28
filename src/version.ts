@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.45';
+export const APP_VERSION = '0.2.46';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.46: Modelo de previsão mais robusto em duas frentes: (1) ponderação por recência — os jogos mais recentes pesam mais que os antigos (meia-vida de ~6 meses), tanto na forma como no histórico direto (H2H); (2) regularização Empirical-Bayes — equipas com poucos jogos (início de época, seleções) deixam de ter previsões exageradas, sendo as suas taxas “puxadas” para a média da liga até haver amostra suficiente. As estatísticas mostradas continuam a ser as reais; o ajuste é só no cálculo da previsão.',
   'v0.2.45: A página Ao Vivo passa a liquidar os jogos automaticamente — quando um jogo que está no teu histórico ou nas tuas apostas atinge o resultado BTTS (ambas as equipas marcam), o resultado é gravado de imediato no histórico/apostas e o jogo desaparece do Ao Vivo. Assim só ficam à vista os jogos ainda por decidir.',
   'v0.2.44.1: Reanalisar passa a pedir confirmação — ao tocar em “Reanalisar” (na lista de Jogos ou na análise de um jogo) aparece um pop-up a avisar que vai descartar a análise guardada e consumir novos pedidos à API, para evitares reanálises acidentais.',
   'v0.2.44: O Martingale passa a estar associado a cada jogo — ao abrir a análise, o botão “Martingale” abre um pop-up onde escolhes a seleção (BTTS SIM/NÃO), a odd (pré-preenchida com a do jogo) e vês logo a stake sugerida para o step atual da série, podendo registar a aposta sem sair do jogo. Tens ainda um atalho para “Abrir Martingale completo”. A aba Martingale mantém a gestão completa da banca.',

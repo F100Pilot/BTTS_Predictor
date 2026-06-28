@@ -20,6 +20,24 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.46.0
+
+Melhorias ao modelo de previsão (sugeridas numa revisão externa), aplicadas só
+ao cálculo — as estatísticas mostradas continuam a ser as reais.
+
+- **Ponderação por recência (time-decay)**: cada jogo é pesado por
+  `0.5^(idade/meia-vida)` com meia-vida de `FORM_HALF_LIFE_DAYS = 180` dias, nas
+  janelas de forma e no H2H (`HeadToHead.bttsPctWeighted`). Jogos recentes pesam
+  mais que os antigos.
+- **Empirical-Bayes shrinkage**: as taxas/médias de cada equipa são "encolhidas"
+  para os priors da liga (`LEAGUE_PRIORS`) com força `PRIOR_STRENGTH = 4`
+  pseudo-jogos — `(n·obs + k·prior)/(n+k)`. Amostras pequenas (início de época,
+  seleções) deixam de gerar previsões exageradas.
+- Implementado em `computeTeamStats`/`computeHeadToHead` (novo bundle `adjusted`
+  em `TeamStats`, sem mexer nas janelas em bruto); o motor (`engine.ts`) lê o
+  `adjusted` quando existe. `predictionSignature` ganhou um token de versão de
+  modelo (`m2`) para recalcular previsões em cache.
+
 ## 0.2.45.0
 
 - **Liquidação automática no Ao Vivo**: durante a atualização (cada 10 min) a

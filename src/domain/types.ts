@@ -101,6 +101,15 @@ export interface VenueStats {
   bttsPct: number; // 0..1
 }
 
+/** Recency-weighted + league-shrunk windows used by the prediction engine.
+ * Kept apart from the raw windows so the stats panels still show true counts. */
+export interface AdjustedStats {
+  last5: WindowStats;
+  last10: WindowStats;
+  home: VenueStats;
+  away: VenueStats;
+}
+
 export interface TeamStats {
   team: Team;
   last5: WindowStats;
@@ -112,6 +121,9 @@ export interface TeamStats {
   /** Season-wide stats from the provider, when available. Used by the engine
    * as a fallback when recent match history is thin (< 3 games). */
   seasonStats?: SeasonStats;
+  /** Decay-weighted + Empirical-Bayes-shrunk windows the engine prefers when
+   * present (raw windows above stay untouched for display). */
+  adjusted?: AdjustedStats;
 }
 
 export interface FormEntry {
@@ -130,6 +142,9 @@ export interface HeadToHead {
   played: number;
   bttsPct: number; // 0..1
   avgGoals: number; // total goals per match
+  /** Recency-weighted + league-shrunk BTTS rate the engine prefers when present
+   * (raw bttsPct above stays untouched for display). */
+  bttsPctWeighted?: number; // 0..1
 }
 
 export type PredictionTier = 'very-strong' | 'strong' | 'medium' | 'weak';

@@ -23,6 +23,20 @@ function probScores(expectedGoals: number): number {
   return 1 - Math.exp(-Math.max(0, expectedGoals));
 }
 
+/**
+ * The windows the engine reads: the recency-decayed + league-shrunk `adjusted`
+ * bundle when present, else the raw windows. Keeps every factor on the better
+ * inputs without the callers (or tests building raw TeamStats) having to change.
+ */
+function win(stats: TeamStats): {
+  last5: WindowStats;
+  last10: WindowStats;
+  home: VenueStats;
+  away: VenueStats;
+} {
+  return stats.adjusted ?? stats;
+}
+
 /** Average goals-for, preferring venue-specific data when it has enough games. */
 function venueGoalsFor(venue: VenueStats, fallback: WindowStats): number {
   return venue.played >= MIN_MATCHES ? venue.avgGoalsFor : fallback.avgGoalsFor;
@@ -46,47 +60,49 @@ function hasSufficientData(stats: TeamStats): boolean {
 
 /** Expected goals-for at a given venue. Prefers recent history, falls back to season stats. */
 function effectiveGoalsFor(stats: TeamStats, venue: 'home' | 'away'): number {
+  const w = win(stats);
   if (stats.last10.played >= MIN_MATCHES) {
-    return venue === 'home'
-      ? venueGoalsFor(stats.home, stats.last5)
-      : venueGoalsFor(stats.away, stats.last5);
+    return venue === 'home' ? venueGoalsFor(w.home, w.last5) : venueGoalsFor(w.away, w.last5);
   }
   if (stats.seasonStats) {
     return venue === 'home' ? stats.seasonStats.avgGoalsForHome : stats.seasonStats.avgGoalsForAway;
   }
   // Use whatever little recent data we have (0–2 games)
-  const vStats = venue === 'home' ? stats.home : stats.away;
-  return vStats.played > 0 ? vStats.avgGoalsFor : stats.last5.avgGoalsFor;
+  const vStats = venue === 'home' ? w.home : w.away;
+  return vStats.played > 0 ? vStats.avgGoalsFor : w.last5.avgGoalsFor;
 }
 
 /** Expected goals-against at a given venue. Prefers recent history, falls back to season stats. */
 function effectiveGoalsAgainst(stats: TeamStats, venue: 'home' | 'away'): number {
+  const w = win(stats);
   if (stats.last10.played >= MIN_MATCHES) {
     return venue === 'home'
-      ? venueGoalsAgainst(stats.home, stats.last5)
-      : venueGoalsAgainst(stats.away, stats.last5);
+      ? venueGoalsAgainst(w.home, w.last5)
+      : venueGoalsAgainst(w.away, w.last5);
   }
   if (stats.seasonStats) {
     return venue === 'home'
       ? stats.seasonStats.avgGoalsAgainstHome
       : stats.seasonStats.avgGoalsAgainstAway;
   }
-  const vStats = venue === 'home' ? stats.home : stats.away;
-  return vStats.played > 0 ? vStats.avgGoalsAgainst : stats.last5.avgGoalsAgainst;
+  const vStats = venue === 'home' ? w.home : w.away;
+  return vStats.played > 0 ? vStats.avgGoalsAgainst : w.last5.avgGoalsAgainst;
 }
 
 /** Overall avg goals-for. Prefers recent last10, falls back to season stats. */
 function effectiveAvgGoalsFor(stats: TeamStats): number {
-  if (stats.last10.played >= MIN_MATCHES) return stats.last10.avgGoalsFor;
+  const w = win(stats);
+  if (stats.last10.played >= MIN_MATCHES) return w.last10.avgGoalsFor;
   if (stats.seasonStats) return stats.seasonStats.avgGoalsFor;
-  return stats.last10.avgGoalsFor;
+  return w.last10.avgGoalsFor;
 }
 
 /** Overall avg goals-against. Prefers recent last10, falls back to season stats. */
 function effectiveAvgGoalsAgainst(stats: TeamStats): number {
-  if (stats.last10.played >= MIN_MATCHES) return stats.last10.avgGoalsAgainst;
+  const w = win(stats);
+  if (stats.last10.played >= MIN_MATCHES) return w.last10.avgGoalsAgainst;
   if (stats.seasonStats) return stats.seasonStats.avgGoalsAgainst;
-  return stats.last10.avgGoalsAgainst;
+  return w.last10.avgGoalsAgainst;
 }
 
 /**
@@ -94,13 +110,14 @@ function effectiveAvgGoalsAgainst(stats: TeamStats): number {
  * P(BTTS) ≈ P(scores) × P(concedes) = (1 − failToScore%) × (1 − cleanSheet%).
  */
 function effectiveBttsPct(stats: TeamStats): number {
-  if (stats.last10.played >= MIN_MATCHES) return stats.last10.bttsPct;
+  const w = win(stats);
+  if (stats.last10.played >= MIN_MATCHES) return w.last10.bttsPct;
   if (stats.seasonStats) {
     const pScores = 1 - stats.seasonStats.failedToScorePct;
     const pConcedes = 1 - stats.seasonStats.cleanSheetPct;
     return clamp(pScores * pConcedes);
   }
-  return stats.last10.bttsPct;
+  return w.last10.bttsPct;
 }
 
 /**
@@ -143,17 +160,20 @@ function defenseScore(home: TeamStats, away: TeamStats): number {
   );
 }
 
-/** H2H (10%): direct-encounter BTTS rate; neutral when no history. */
+/** H2H (10%): direct-encounter BTTS rate (recency-weighted when available);
+ * neutral when no history. */
 function h2hScore(h2h: HeadToHead): number {
   if (h2h.played === 0) return 0.5;
-  return clamp(h2h.bttsPct);
+  return clamp(h2h.bttsPctWeighted ?? h2h.bttsPct);
 }
 
 /** VENUE (5%): home team's home BTTS rate vs away team's away BTTS rate. */
 function venueScore(home: TeamStats, away: TeamStats): number {
+  const wh = win(home);
+  const wa = win(away);
   const parts: number[] = [];
-  if (home.home.played > 0) parts.push(home.home.bttsPct);
-  if (away.away.played > 0) parts.push(away.away.bttsPct);
+  if (wh.home.played > 0) parts.push(wh.home.bttsPct);
+  if (wa.away.played > 0) parts.push(wa.away.bttsPct);
   if (parts.length === 0) return 0.5;
   return clamp(average(parts));
 }
