@@ -14,7 +14,10 @@ BTTS Analytics Pro recolhe dados estatísticos de futebol, calcula probabilidade
 - **Probabilidades BTTS SIM/NÃO** + **Confidence Score (0-10)** + classificação automática (**Muito Forte / Forte / Média / Fraca**).
 - **Dashboard** "Jogos de Hoje" ordenado por probabilidade, com filtros (campeonato, data, BTTS mínimo, odds min/máx, país).
 - **Página de análise** detalhada: forma, estatísticas (últimos 5/10, casa/fora), head-to-head, decomposição do modelo e **gráficos** (tendência BTTS, golos marcados/sofridos).
-- **Favoritos**, **Watchlist** e **Histórico** de previsões (IndexedDB).
+- **Página Ao Vivo**: acompanha os teus jogos (histórico/apostas), liquida-os automaticamente quando atingem o resultado BTTS e remove-os da lista.
+- **Martingale** associado ao jogo (pop-up na análise) + aba de gestão de banca com staking recuperativo.
+- **Calculadora** de prognóstico manual (sem chamadas à API).
+- **Favoritos**, **Watchlist** e **Histórico** de previsões (IndexedDB), com sincronização opcional entre dispositivos (Cloudflare KV).
 - **Exportação** para Excel (.xlsx), CSV e PDF.
 - **PWA**: instalável, offline-first, Service Worker com aviso de atualização.
 - **Camada de dados modular** (Strategy Pattern): a fonte é o **Flashscore (RapidAPI)** — cobre quase todas as ligas e faz a análise diária com ~1 pedido por jogo. Adicionar outra fonte é criar uma classe `DataProvider` e registá-la.
@@ -63,7 +66,13 @@ P(BTTS=NÃO) = 1 − P(BTTS=SIM)
 - **Confidence Score**: combina quantidade de dados, concordância entre fatores e extremidade da probabilidade.
 - **Classificação**: ≥80% Muito Forte · 70-79% Forte · 60-69% Média · <60% Fraca.
 
-Os pesos são **ajustáveis** em *Definições* e o motor é uma **função pura** coberta por testes. Ver detalhes em [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+Os dados que alimentam os fatores são **ponderados por recência** (time-decay, meia-vida
+~6 meses) e **regularizados** com _Empirical-Bayes shrinkage_ para a média da liga em
+amostras pequenas (início de época, seleções) — só no cálculo; as estatísticas mostradas
+continuam a ser as reais. Os pesos são **ajustáveis** em *Definições* (e podem ser
+**afinados automaticamente** pelos teus resultados), há **calibração** de probabilidades
+(Platt) e o motor é uma **função pura** coberta por testes. Ver detalhes em
+[`ARCHITECTURE.md`](./ARCHITECTURE.md) e [`TESTING.md`](./TESTING.md).
 
 ---
 
@@ -85,7 +94,11 @@ A app define uma interface `DataProvider` (Strategy Pattern). Fonte ativa:
 
 ## 📚 Documentação
 
+- [`CLAUDE.md`](./CLAUDE.md) — guia para agentes (regras de trabalho, versão, docs vivas).
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — arquitetura completa, problemas técnicos e soluções.
+- [`TODO.md`](./TODO.md) — trabalho por fazer, ideias e pedidos pendentes.
+- [`TESTING.md`](./TESTING.md) — como testar **e** registo de bugs (abertos/resolvidos).
+- [`CHANGELOG.md`](./CHANGELOG.md) — histórico de versões.
 - [`docs/INSTALLATION.md`](./docs/INSTALLATION.md) — guia de instalação detalhado.
 - [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — deploy no GitHub Pages.
 - [`docs/CORS-PROXY.md`](./docs/CORS-PROXY.md) — Proxy CORS para o RapidAPI/Flashscore (Cloudflare Worker) + sincronização (KV).
@@ -99,15 +112,15 @@ A app define uma interface `DataProvider` (Strategy Pattern). Fonte ativa:
 ```
 src/
 ├── app/          Bootstrap + router
-├── components/   ui (shadcn), layout, dashboard, analysis, common
-├── core/         prediction (motor), statistics, classification
-├── data/         providers (fontes), cache (IndexedDB), rateLimit
+├── components/   ui (shadcn), layout, dashboard, analysis, martingale, common
+├── core/         prediction (motor), statistics, classification, backtest, value, martingale, staking
+├── data/         providers (Flashscore), cache (IndexedDB), rateLimit
 ├── domain/       tipos de domínio
-├── services/     export, logger, sanitize, analysisService
-├── store/        Zustand (settings, collections, fixtureCache)
+├── services/     analysisService, autoTune, flashscore*, settlement, sync, export, logger, sanitize
+├── store/        Zustand (settings, collections, fixtureCache, martingale, calibration, dashboardFilters)
 ├── hooks/        hooks reutilizáveis
 ├── lib/          utilitários puros (math, format, cn)
-└── pages/        Dashboard, Analysis, Favorites, Watchlist, History, Settings
+└── pages/        Dashboard, Analysis, LiveScore, Martingale, Calculator, Favorites, Watchlist, History, Settings
 ```
 
 ---
