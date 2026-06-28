@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.45.0
+
+- **Liquidação automática no Ao Vivo**: durante a atualização (cada 10 min) a
+  página Ao Vivo passa a liquidar os jogos seguidos — quando um jogo do histórico
+  ou das apostas atinge o resultado BTTS (ambas marcam, que tranca o "sim"
+  antecipado), grava o resultado via `setHistoryResult` / `setResult` (apostas) e
+  remove-o da vista. Só ficam à vista os jogos ainda por decidir
+  (`flashOutcome(f) == null`).
+- Após liquidar, o mapa de prognósticos e as estatísticas de calibração são
+  atualizados de imediato (`refreshCalibration`).
+
 ## 0.2.44.1
 
 - **Reanalisar pede confirmação**: o botão "Reanalisar" (na lista de Jogos e na
