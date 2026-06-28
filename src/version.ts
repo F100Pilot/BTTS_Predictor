@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.38';
+export const APP_VERSION = '0.2.38.1';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.38.1: Sincronização entre dispositivos muito mais poupada no Cloudflare KV — passa a escrever só quando os dados mudam mesmo (antes reescrevia tudo a cada 45s) e o intervalo passou para 5 min. Resolve o aviso de “limite diário do Workers KV” sem precisares de upgrade.',
   'v0.2.38: No Histórico (Previsões), as previsões passam a estar agrupadas por dia, com cada dia a poder ser colapsado/expandido (e um botão “Expandir/Colapsar tudo”). Além disso, como a atualização de resultados é sempre via Flashscore, deixou de haver dois botões: fica só “Atualizar resultados” (com o ícone de atualização).',
   'v0.2.37.4: Na página de Jogos, o “check” de jogo no histórico aparece só uma vez — no botão da coluna Ações (removida a marca duplicada ao lado do nome).',
   'v0.2.37.3: “Testar ligação” em Definições corrigido para o Flashscore — verifica a forma das equipas pelo pedido por jogo (h2h), tal como a análise faz, em vez de um histórico por equipa que o Flashscore não usa. Já não dá falso erro quando a chave está correta.',

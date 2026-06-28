@@ -67,6 +67,9 @@ export function App() {
 
   // Cross-device sync: reconcile on mount, when the tab regains focus, and on a
   // gentle interval while visible. No-op until a sync code + proxy are set.
+  // The interval is deliberately slow (writes to the free Workers KV are capped
+  // at ~1000/day); a sync only writes when data actually changed, so polling is
+  // mostly cheap reads.
   useEffect(() => {
     if (!isSyncConfigured()) return;
     const run = (): void => {
@@ -76,7 +79,7 @@ export function App() {
     const onVisible = (): void => run();
     window.addEventListener('focus', onVisible);
     document.addEventListener('visibilitychange', onVisible);
-    const id = setInterval(run, 45000);
+    const id = setInterval(run, 300000);
     return () => {
       window.removeEventListener('focus', onVisible);
       document.removeEventListener('visibilitychange', onVisible);
