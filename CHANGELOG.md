@@ -20,6 +20,16 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.41.0
+
+- **Página Ao Vivo redesenhada** no mesmo estilo da Jogos: cada jogo num
+  **banner** com emblema (iniciais) das equipas, resultado ao vivo, **barra de
+  forma** (últimos 5 resultados de cada equipa), **prognóstico BTTS com %** e
+  estado "ambas marcaram". Opções num pop-up de ícones + atalho para Definições.
+  A forma é obtida do pedido por jogo já em cache (sem novos pedidos no caso
+  comum).
+- **Jogos**: botão de **Definições** alinhado à direita do título.
+
 ## 0.2.40.0
 
 - **Redesign da página de Jogos** (minimalista): cada jogo passa a ser um
