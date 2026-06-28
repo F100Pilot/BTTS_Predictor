@@ -74,9 +74,10 @@ export function LiveScorePage() {
           (m) => trackedIds.has(m.id) || trackedNames.has(nameKey(m.home.name, m.away.name)),
         );
 
-        // Flashscore live for tracked games not covered by Football-Data.
+        // Flashscore live for tracked games not covered by Football-Data. Only
+        // call it when there are tracked games at all — saves RapidAPI quota.
         let flashShown: LiveMatch[] = [];
-        if (rapidApiKey.trim()) {
+        if (rapidApiKey.trim() && (history.length > 0 || bets.length > 0)) {
           const fixtures = await fetchFlashscoreLive(rapidApiKey, corsProxy).catch(
             () => [] as Awaited<ReturnType<typeof fetchFlashscoreLive>>,
           );
@@ -109,8 +110,20 @@ export function LiveScorePage() {
 
   useEffect(() => {
     void load(true);
-    timer.current = setInterval(() => void load(false), REFRESH_MS);
-    return () => clearInterval(timer.current);
+    // Poll only while the tab is visible — no point spending API quota on a
+    // hidden tab; refresh immediately when the user returns.
+    timer.current = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void load(false);
+    }, REFRESH_MS);
+    const onVisible = (): void => {
+      if (!document.hidden) void load(false);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer.current);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [load]);
 
   const openAnalysis = (m: LiveMatch): void => {

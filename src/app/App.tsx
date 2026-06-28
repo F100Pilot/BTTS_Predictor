@@ -12,6 +12,7 @@ import { useCollections } from '@/store/collectionsStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { useSettings } from '@/store/settingsStore';
 import { purgeExpired } from '@/data/cache/cache';
+import { purgeStaleTombstones } from '@/data/cache/repositories';
 import { syncNow, isSyncConfigured } from '@/services/syncService';
 
 const DashboardPage = lazy(() =>
@@ -60,6 +61,7 @@ export function App() {
       await refreshCollections();
       await refreshCalibration();
       await purgeExpired();
+      await purgeStaleTombstones().catch(() => 0);
     })();
   }, [refreshCollections, refreshCalibration, providerId]);
 

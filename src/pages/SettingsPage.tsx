@@ -27,7 +27,7 @@ import {
   showNotification,
 } from '@/services/notifications';
 import { exportProfile, importProfile } from '@/services/backupService';
-import { syncNow, isSyncConfigured } from '@/services/syncService';
+import { syncNow, isSyncConfigured, generateSyncCode } from '@/services/syncService';
 import { fetchFlashscoreQuota, type FlashscoreQuota } from '@/services/flashscoreClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -374,18 +374,28 @@ export function SettingsPage() {
         <CardContent className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="synccode">Código de sincronização</Label>
-            <Input
-              id="synccode"
-              type="text"
-              autoComplete="off"
-              placeholder="ex.: a-minha-frase-secreta-123"
-              value={settings.syncCode}
-              onChange={(e) => settings.setSyncCode(e.target.value)}
-              className="max-w-md"
-            />
+            <div className="flex max-w-md gap-2">
+              <Input
+                id="synccode"
+                type="text"
+                autoComplete="off"
+                placeholder="ex.: a-minha-frase-secreta-123"
+                value={settings.syncCode}
+                onChange={(e) => settings.setSyncCode(e.target.value)}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => settings.setSyncCode(generateSyncCode())}
+              >
+                Gerar
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
               Funciona como uma palavra-passe partilhada: quem tiver este código acede a estes
-              dados. Mínimo 6 caracteres. Deixa vazio para desligar a sincronização.
+              dados. Usa “Gerar” para um código forte e aleatório (recomendado), e mete o mesmo nos
+              outros dispositivos. Mínimo 6 caracteres. Deixa vazio para desligar a sincronização.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -677,7 +687,19 @@ export function SettingsPage() {
             <Button variant="outline" size="sm" onClick={handleClearCache}>
               <Trash2 /> Limpar cache
             </Button>
-            <Button variant="outline" size="sm" onClick={() => void exportProfile()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'O ficheiro de perfil inclui as tuas chaves de API e o código de sincronização em texto simples. Guarda-o em local seguro e não o partilhes. Exportar?',
+                  )
+                ) {
+                  void exportProfile();
+                }
+              }}
+            >
               <Download /> Exportar perfil
             </Button>
             <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>

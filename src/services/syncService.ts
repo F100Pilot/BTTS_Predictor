@@ -52,6 +52,19 @@ export function isSyncConfigured(): boolean {
   return code().length >= MIN_CODE_LEN && syncBase() !== null;
 }
 
+/**
+ * Generate a strong random sync code (≈80 bits) using the Web Crypto RNG.
+ * Avoids ambiguous characters. Far harder to guess than a hand-typed phrase.
+ */
+export function generateSyncCode(): string {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (const b of bytes) out += alphabet[b % alphabet.length];
+  return out;
+}
+
 type SyncKind = 'history' | 'bets' | 'deletes';
 
 function endpoint(base: string, kind: SyncKind): string {
@@ -79,7 +92,7 @@ async function push<T>(kind: SyncKind, data: T[]): Promise<void> {
 }
 
 /** A settled history record (has a real outcome) wins over an unsettled one. */
-function mergeHistory(local: HistoryRecord[], remote: HistoryRecord[]): HistoryRecord[] {
+export function mergeHistory(local: HistoryRecord[], remote: HistoryRecord[]): HistoryRecord[] {
   const byId = new Map<string, HistoryRecord>();
   for (const r of local) byId.set(r.id, r);
   for (const r of remote) {
@@ -92,7 +105,7 @@ function mergeHistory(local: HistoryRecord[], remote: HistoryRecord[]): HistoryR
 }
 
 /** A more-recently-settled bet wins; otherwise union by id. */
-function mergeBets(local: BetRecord[], remote: BetRecord[]): BetRecord[] {
+export function mergeBets(local: BetRecord[], remote: BetRecord[]): BetRecord[] {
   const byId = new Map<string, BetRecord>();
   for (const b of local) byId.set(b.id, b);
   for (const b of remote) {
@@ -104,7 +117,10 @@ function mergeBets(local: BetRecord[], remote: BetRecord[]): BetRecord[] {
 }
 
 /** Union tombstones by key, keeping the newest deletion time. */
-function mergeTombstones(local: TombstoneRecord[], remote: TombstoneRecord[]): TombstoneRecord[] {
+export function mergeTombstones(
+  local: TombstoneRecord[],
+  remote: TombstoneRecord[],
+): TombstoneRecord[] {
   const byKey = new Map<string, TombstoneRecord>();
   for (const t of [...local, ...remote]) {
     const cur = byKey.get(t.key);

@@ -165,12 +165,17 @@ async function handleSync(request, env, url, allowOrigin) {
   }
   if (request.method === 'PUT' || request.method === 'POST') {
     const body = await request.text();
+    // Reject oversized payloads before parsing (cheaper, DoS guard).
+    if (body.length > 5_000_000) return syncJson({ error: 'too-large' }, 413, allowOrigin);
+    let parsed;
     try {
-      JSON.parse(body);
+      parsed = JSON.parse(body);
     } catch {
       return syncJson({ error: 'bad-json' }, 400, allowOrigin);
     }
-    if (body.length > 5_000_000) return syncJson({ error: 'too-large' }, 413, allowOrigin);
+    // Sync blobs (history/bets/deletes) are always arrays — reject anything else
+    // so a stray/malicious body can't poison a user's stored data.
+    if (!Array.isArray(parsed)) return syncJson({ error: 'bad-shape' }, 400, allowOrigin);
     await env.SYNC.put(key, body);
     return syncJson({ ok: true }, 200, allowOrigin);
   }
