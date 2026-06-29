@@ -253,5 +253,7 @@ export interface MartingaleStats {
 export interface DashboardRow {
   fixture: Fixture;
   prediction?: BttsPrediction;
+  /** Poisson markets (Over/Under, 1X2) for the market selector. */
+  markets?: MarketPrediction;
   predictionError?: boolean;
 }

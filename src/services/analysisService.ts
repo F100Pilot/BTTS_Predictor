@@ -9,6 +9,7 @@ import { tierForProbability } from '@/core/classification/classification';
 import { clamp } from '@/lib/math';
 import { MAX_RECENT_MATCHES } from '@/core/prediction/constants';
 import type { FactorKey } from '@/core/prediction/weights';
+import { marketPick, type MarketKey } from '@/core/markets/markets';
 import { createLogger } from '@/services/logger';
 
 const log = createLogger('analysisService');
@@ -127,7 +128,7 @@ export async function buildDashboardRow(
     // Surface provider errors (e.g. 429) so a rate-limited game becomes a
     // predictionError (retried later) rather than a cached "no data" verdict.
     const bundle = await buildAnalysis(data, fixture, { ...options, throwOnDataError: true });
-    return { fixture, prediction: bundle.prediction };
+    return { fixture, prediction: bundle.prediction, markets: bundle.markets };
   } catch (err) {
     log.warn('failed to build row', { fixture: fixture.id, err });
     return { fixture, predictionError: true };
@@ -137,6 +138,15 @@ export async function buildDashboardRow(
 /** Sort rows by BTTS=YES probability (rows without a prediction go last). */
 export function sortDashboardRows(rows: DashboardRow[]): DashboardRow[] {
   return [...rows].sort((a, b) => (b.prediction?.probYes ?? -1) - (a.prediction?.probYes ?? -1));
+}
+
+/** Sort rows by the dominant probability of the selected market (best first). */
+export function sortDashboardRowsByMarket(rows: DashboardRow[], market: MarketKey): DashboardRow[] {
+  const score = (r: DashboardRow): number => {
+    const pick = marketPick(market, r.prediction, r.markets);
+    return pick ? pick.probability : -1;
+  };
+  return [...rows].sort((a, b) => score(b) - score(a));
 }
 
 /** Build dashboard rows (fixture + prediction) for a list of fixtures. */

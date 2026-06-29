@@ -20,6 +20,18 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.49.0
+
+- **Seletor de mercado na página de Jogos** (Fase 1): BTTS / Mais-Menos 2.5 /
+  1X2. O banner de cada jogo mostra o prognóstico do mercado escolhido (lado +
+  % + classificação) e a lista é reordenada por esse mercado. Mercados não são
+  misturados.
+- Novos: `core/markets/markets.ts` (`marketPick`, `marketActualSide`,
+  `marketPickCorrect` + testes), `store/marketStore.ts` (seleção partilhada),
+  `components/common/MarketSelector.tsx`. A cache do dia passa a guardar os
+  mercados Poisson (`SavedPrediction`); `MODEL_VERSION` → `m4`.
+- _Fase 2 (a seguir): gráficos de acerto por mercado no Histórico._
+
 ## 0.2.48.4
 
 - **Cartão "Valor vs mercado" mais claro** (`ValueCard`): cada lado mostra

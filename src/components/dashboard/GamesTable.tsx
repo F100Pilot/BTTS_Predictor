@@ -5,7 +5,9 @@ import type { DashboardRow } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
 import { IconAction } from '@/components/common/IconAction';
 import { TierBadge } from '@/components/common/PredictionWidgets';
-import { bttsVerdict } from '@/core/classification/classification';
+import { tierForProbability } from '@/core/classification/classification';
+import { marketPick, type MarketKey, type MarketPick } from '@/core/markets/markets';
+import { useMarket } from '@/store/marketStore';
 import { formatTime } from '@/lib/format';
 import { toPercent, round } from '@/lib/math';
 import { useCollections } from '@/store/collectionsStore';
@@ -37,26 +39,35 @@ function toHistoryRecord(row: DashboardRow, providerId: string): HistoryRecord |
   };
 }
 
-/** BTTS verdict pill — green for SIM, red for NÃO, neutral while unknown. */
-function VerdictPill({ row }: { row: DashboardRow }) {
-  if (!row.prediction) {
+/** Pick pill for the selected market — tone-coloured (pos green / neg red / neutral). */
+function MarketPill({
+  pick,
+  predictionError,
+}: {
+  pick: MarketPick | null;
+  predictionError?: boolean;
+}) {
+  if (!pick) {
     return (
       <span className="shrink-0 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
-        {row.predictionError ? 'indisp.' : '…'}
+        {predictionError ? 'indisp.' : '…'}
       </span>
     );
   }
-  const v = bttsVerdict(row.prediction.probYes);
+  const toneClass =
+    pick.tone === 'pos'
+      ? 'border-success/30 bg-success/15 text-success'
+      : pick.tone === 'neg'
+        ? 'border-destructive/30 bg-destructive/15 text-destructive'
+        : 'border-primary/30 bg-primary/15 text-primary';
   return (
     <span
       className={cn(
         'shrink-0 rounded-full border px-3 py-1 text-sm font-bold tabular-nums',
-        v.side === 'SIM'
-          ? 'border-success/30 bg-success/15 text-success'
-          : 'border-destructive/30 bg-destructive/15 text-destructive',
+        toneClass,
       )}
     >
-      {v.side} {toPercent(v.probability)}
+      {pick.side} {toPercent(pick.probability)}
     </span>
   );
 }
@@ -64,18 +75,29 @@ function VerdictPill({ row }: { row: DashboardRow }) {
 /** A single game banner (full-width row); the whole banner opens the analysis. */
 function GameBanner({
   row,
+  market,
   inHistory,
   onOpen,
   onAddHistory,
 }: {
   row: DashboardRow;
+  market: MarketKey;
   inHistory: boolean;
   onOpen: () => void;
   onAddHistory: () => void;
 }) {
   const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
   const { fixture } = row;
-  const edge = rowEdge(row);
+  const pick = marketPick(market, row.prediction, row.markets);
+  // The value edge ("+X%") only applies to BTTS (the only market with odds).
+  const edge = market === 'btts' ? rowEdge(row) : null;
+  // Tier: BTTS uses the calibrated stored tier; other markets classify the pick.
+  const tier =
+    market === 'btts'
+      ? row.prediction?.tier
+      : pick
+        ? tierForProbability(pick.probability)
+        : undefined;
   const fav = isFavorite(fixture.id);
   const watched = isWatched(fixture.id);
 
@@ -112,8 +134,8 @@ function GameBanner({
       {/* Bottom line: verdict + meta on the left, actions on the right. */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <VerdictPill row={row} />
-          {row.prediction && <TierBadge tier={row.prediction.tier} />}
+          <MarketPill pick={pick} predictionError={row.predictionError} />
+          {tier && <TierBadge tier={tier} />}
           {edge != null && edge > 0 && (
             <span className="text-xs font-semibold text-success">+{round(edge * 100, 1)}%</span>
           )}
@@ -160,6 +182,7 @@ function GameBanner({
 
 export function GamesTable({ rows }: { rows: DashboardRow[] }) {
   const navigate = useNavigate();
+  const market = useMarket((s) => s.market);
   const providerId = useSettings((s) => s.providerId);
   // Fixtures already in history (persisted) so the check shows on first paint.
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -191,6 +214,7 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
         <GameBanner
           key={row.fixture.id}
           row={row}
+          market={market}
           inHistory={savedIds.has(row.fixture.id)}
           onOpen={() => navigate(`/analysis/${encodeURIComponent(row.fixture.id)}`)}
           onAddHistory={() => addToHistory(row)}
