@@ -861,6 +861,11 @@ export function HistoryPage() {
                                       )
                                     ) : (
                                       (() => {
+                                        // No prediction for this market on this game (older record
+                                        // without stored markets) → nothing to track here.
+                                        const pick = recordPick(r);
+                                        if (!pick)
+                                          return <span className="text-muted-foreground">—</span>;
                                         const goals = parseScore(r.actualScore);
                                         if (!goals) {
                                           return (
@@ -871,26 +876,23 @@ export function HistoryPage() {
                                             />
                                           );
                                         }
-                                        const pick = recordPick(r);
                                         const actualSide = marketActualSide(
                                           market,
                                           goals[0],
                                           goals[1],
                                         );
-                                        const correct = pick ? pick.side === actualSide : null;
+                                        const correct = pick.side === actualSide;
                                         return (
                                           <div className="flex items-center gap-2">
                                             <span
                                               className={
-                                                correct == null
-                                                  ? 'font-semibold text-muted-foreground'
-                                                  : correct
-                                                    ? 'font-semibold text-success'
-                                                    : 'font-semibold text-destructive'
+                                                correct
+                                                  ? 'font-semibold text-success'
+                                                  : 'font-semibold text-destructive'
                                               }
                                             >
                                               {actualSide}
-                                              {correct == null ? '' : correct ? ' ✓' : ' ✗'}
+                                              {correct ? ' ✓' : ' ✗'}
                                             </span>
                                             <Button
                                               variant="ghost"

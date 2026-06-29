@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.0.2
+
+- **Fix**: no Histórico, em O/U 2.5 e 1X2, registos **sem** os mercados Poisson
+  guardados (analisados antes do mercado existir) deixam de mostrar um resultado
+  derivado do score no "Resultado real" — aparecem "—". O resultado/score do
+  mercado só é mostrado quando existe prognóstico (`recordPick` não nulo), em
+  linha com a card de desempenho (que já só conta jogos com `markets`).
+
 ## 0.3.0.1
 
 - **Fix**: no Histórico, a **lista de jogos** passa a acompanhar o mercado
