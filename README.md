@@ -17,7 +17,7 @@ BTTS Analytics Pro recolhe dados estatísticos de futebol, calcula probabilidade
 - **Página Ao Vivo**: acompanha os teus jogos (histórico/apostas), liquida-os automaticamente quando atingem o resultado BTTS e remove-os da lista.
 - **Martingale** associado ao jogo (pop-up na análise) + aba de gestão de banca com staking recuperativo.
 - **Calculadora** de prognóstico manual (sem chamadas à API).
-- **Favoritos**, **Watchlist** e **Histórico** de previsões (IndexedDB), com sincronização opcional entre dispositivos (Cloudflare KV).
+- **Histórico** de previsões (IndexedDB), com sincronização opcional entre dispositivos (Cloudflare KV).
 - **Exportação** para Excel (.xlsx), CSV e PDF.
 - **PWA**: instalável, offline-first, Service Worker com aviso de atualização.
 - **Camada de dados modular** (Strategy Pattern): a fonte é o **Flashscore (RapidAPI)** — cobre quase todas as ligas e faz a análise diária com ~1 pedido por jogo. Adicionar outra fonte é criar uma classe `DataProvider` e registá-la.
@@ -120,7 +120,7 @@ src/
 ├── store/        Zustand (settings, collections, fixtureCache, martingale, calibration, dashboardFilters)
 ├── hooks/        hooks reutilizáveis
 ├── lib/          utilitários puros (math, format, cn)
-└── pages/        Dashboard, Analysis, LiveScore, Martingale, Calculator, Favorites, Watchlist, History, Settings
+└── pages/        Dashboard, Analysis, LiveScore, Martingale, Calculator, History, Settings
 ```
 
 ---

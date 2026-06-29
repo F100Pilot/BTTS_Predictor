@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.50';
+export const APP_VERSION = '0.3.0.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.0.0: As abas “Favoritos” e “Watchlist” foram removidas, para uma navegação mais simples e focada (Jogos, Ao Vivo, Martingale, Histórico, Calculadora, Definições). Os botões de favorito/watchlist nos jogos também saíram.',
   'v0.2.50: O Histórico passa a ter desempenho por mercado — escolhe BTTS, Mais/Menos 2.5 ou 1X2 e vês o acerto, o Brier, o gráfico de acerto por faixa e a curva de fiabilidade só desse mercado (sem misturar). Para Over/Under e 1X2 conta os jogos a que introduziste o resultado (score). Para isto, cada previsão guarda também os mercados Poisson.',
   'v0.2.49: A página de Jogos passa a ter um seletor de mercado — BTTS, Mais/Menos 2.5 golos e Resultado (1X2). Ao escolher o mercado, cada jogo mostra o prognóstico desse mercado (lado + percentagem + classificação) e a lista é reordenada por esse mercado. (Os gráficos de acerto por mercado no Histórico chegam a seguir.)',
   'v0.2.48.4: O cartão "Valor vs mercado" ficou mais claro — em vez de só uma percentagem, mostra "Valor +X%" (aposta vantajosa) ou "Sem valor (−X%)", a probabilidade do modelo e a "odd justa" (a odd mínima a partir da qual a aposta passa a ter valor).',

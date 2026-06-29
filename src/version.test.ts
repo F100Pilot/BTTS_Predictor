@@ -24,8 +24,8 @@ describe('compareVersions', () => {
 
 describe('whatsNewSince', () => {
   it('returns only entries newer than the seen version', () => {
-    // After v0.2.48.4 the device is missing the two newest entries (indices 0 and 1).
-    const fresh = whatsNewSince('0.2.48.4');
+    // After v0.2.49 the device is missing the two newest entries (indices 0 and 1).
+    const fresh = whatsNewSince('0.2.49');
     expect(fresh).toEqual([WHATS_NEW[0], WHATS_NEW[1]]);
     expect(fresh).not.toContain(WHATS_NEW[2]);
   });

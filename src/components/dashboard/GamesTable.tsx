@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Eye, ListPlus, Check } from 'lucide-react';
+import { ListPlus, Check } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
 import { IconAction } from '@/components/common/IconAction';
@@ -10,7 +10,6 @@ import { marketPick, type MarketKey, type MarketPick } from '@/core/markets/mark
 import { useMarket } from '@/store/marketStore';
 import { formatTime } from '@/lib/format';
 import { toPercent, round } from '@/lib/math';
-import { useCollections } from '@/store/collectionsStore';
 import { useSettings } from '@/store/settingsStore';
 import { upsertHistory, listHistory } from '@/data/cache/repositories';
 import { rowEdge } from '@/components/dashboard/filters';
@@ -87,7 +86,6 @@ function GameBanner({
   onOpen: () => void;
   onAddHistory: () => void;
 }) {
-  const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
   const { fixture } = row;
   const pick = marketPick(market, row.prediction, row.markets);
   // The value edge ("+X%") only applies to BTTS (the only market with odds).
@@ -99,8 +97,6 @@ function GameBanner({
       : pick
         ? tierForProbability(pick.probability)
         : undefined;
-  const fav = isFavorite(fixture.id);
-  const watched = isWatched(fixture.id);
 
   return (
     <div
@@ -148,20 +144,6 @@ function GameBanner({
         </div>
 
         <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <IconAction
-            size="sm"
-            label={fav ? 'Remover dos favoritos' : 'Favorito'}
-            icon={<Star className={cn('h-4 w-4', fav && 'fill-warning text-warning')} />}
-            active={fav}
-            onClick={() => toggleFavorite(row)}
-          />
-          <IconAction
-            size="sm"
-            label={watched ? 'Remover da watchlist' : 'Watchlist'}
-            icon={<Eye className="h-4 w-4" />}
-            active={watched}
-            onClick={() => toggleWatchlist(row)}
-          />
           <IconAction
             size="sm"
             label={inHistory ? 'Já no histórico' : 'Adicionar ao histórico'}
