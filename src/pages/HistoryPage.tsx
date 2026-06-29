@@ -27,6 +27,7 @@ import { useMarket } from '@/store/marketStore';
 import { MarketSelector } from '@/components/common/MarketSelector';
 import { MarketPerformance } from '@/components/history/MarketPerformance';
 import { ModelTuningPanel } from '@/components/history/ModelTuningPanel';
+import { Ou25CalibrationPanel } from '@/components/history/MarketCalibrationPanel';
 import {
   marketLabel,
   marketPick,
@@ -729,17 +730,19 @@ export function HistoryPage() {
                 </Card>
               )}
 
-              {/* Model tuning, per market: BTTS has factor weights; the Poisson
-                  markets (O/U, 1X2) have none. */}
+              {/* Model tuning, per market: BTTS has factor weights; O/U has its
+                  own calibration; 1X2 calibration (3-way) is pending. */}
               {market === 'btts' ? (
                 <ModelTuningPanel />
+              ) : market === 'ou25' ? (
+                <Ou25CalibrationPanel />
               ) : (
                 <Card>
                   <CardContent className="py-4 text-sm text-muted-foreground">
                     O mercado{' '}
                     <span className="font-medium text-foreground">{marketLabel(market)}</span> usa
-                    um modelo de Poisson (golos esperados) — não tem pesos ajustáveis como o BTTS. A
-                    calibração própria deste mercado chega numa próxima atualização.
+                    um modelo de Poisson (golos esperados) — não tem pesos ajustáveis. A calibração
+                    própria do 1X2 (3 vias) chega numa próxima atualização.
                   </CardContent>
                 </Card>
               )}

@@ -6,7 +6,8 @@ import { predictMarkets } from '@/core/prediction/markets';
 import { calibrate, impliedBttsYes } from '@/core/prediction/calibration';
 import { applyPlatt, IDENTITY_PLATT, type PlattParams } from '@/core/backtest/backtest';
 import { tierForProbability } from '@/core/classification/classification';
-import { clamp } from '@/lib/math';
+import { clamp, round } from '@/lib/math';
+import type { MarketPrediction } from '@/domain/types';
 import { MAX_RECENT_MATCHES } from '@/core/prediction/constants';
 import type { FactorKey } from '@/core/prediction/weights';
 import { marketPick, type MarketKey } from '@/core/markets/markets';
@@ -18,8 +19,10 @@ export interface AnalysisOptions {
   weights?: Record<FactorKey, number>;
   /** Market-odds calibration weight (0..1); 0 = pure model. */
   oddsCalibration?: number;
-  /** Auto-calibration mapping learned from settled history (Platt). */
+  /** Auto-calibration mapping learned from settled history (Platt) for BTTS. */
   recalibration?: PlattParams;
+  /** Auto-calibration mapping for the Over/Under 2.5 market (Platt on Over). */
+  ou25Recalibration?: PlattParams;
   /** Throw on a provider data error (e.g. 429) instead of treating it as empty.
    * Lets the dashboard tell a rate-limit failure apart from genuine no-data. */
   throwOnDataError?: boolean;
@@ -42,6 +45,16 @@ function applyRecalibration(
     tier: prediction.insufficientData ? 'weak' : tierForProbability(Math.max(probYes, probNo)),
     recalibrated: true,
   };
+}
+
+/** Apply a learned Over/Under 2.5 recalibration to the Poisson markets (no-op for identity). */
+function applyMarketRecalibration(
+  markets: MarketPrediction,
+  params?: PlattParams,
+): MarketPrediction {
+  if (!params || (params.a === IDENTITY_PLATT.a && params.b === IDENTITY_PLATT.b)) return markets;
+  const over25 = round(clamp(applyPlatt(markets.over25, params)), 4);
+  return { ...markets, over25, under25: round(1 - over25, 4) };
 }
 
 /** Build the full analysis bundle for a single fixture. */
@@ -103,7 +116,10 @@ export async function buildAnalysis(
     options.oddsCalibration ?? 0,
   );
   const prediction = applyRecalibration(calibrated, options.recalibration);
-  const markets = predictMarkets(homeStats, awayStats);
+  const markets = applyMarketRecalibration(
+    predictMarkets(homeStats, awayStats),
+    options.ou25Recalibration,
+  );
 
   return {
     fixture,

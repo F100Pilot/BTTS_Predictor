@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.2.0
+
+- **Calibração por mercado (Over/Under 2.5)**: nova auto-calibração própria do
+  mercado O/U 2.5, independente do BTTS. `calibrationStore` passa a ajustar
+  também um Platt para o "Mais de 2.5" (`plattOu25`, a partir dos markets Poisson
+  guardados + score); `settingsStore` ganha `autoCalibrateOu25`. A calibração é
+  aplicada às previsões mostradas em `analysisService` (`applyMarketRecalibration`
+  sobre `over25`) e entra na `predictionSignature` (invalida a cache). Painel
+  próprio no Histórico (`Ou25CalibrationPanel`).
+- O 1X2 (3 vias / calibração multiclasse) continua adiado, com nota.
+
 ## 0.3.1.0
 
 - **Ajuste do modelo movido para o Histórico, por mercado**: o painel de pesos +

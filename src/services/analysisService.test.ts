@@ -135,6 +135,25 @@ describe('buildAnalysis', () => {
     expect(recal.prediction.probYes).not.toBe(base.prediction.probYes);
   });
 
+  it('applies Over/Under 2.5 recalibration to the markets (sum stays 1)', async () => {
+    const home = [
+      match('h2', HOME, team('x', 'X'), 2, 2),
+      match('h3', HOME, team('y', 'Y'), 1, 1),
+      match('h4', HOME, team('z', 'Z'), 3, 1),
+    ];
+    const away = [
+      match('a2', AWAY, team('x', 'X'), 1, 1),
+      match('a3', AWAY, team('y', 'Y'), 2, 2),
+      match('a4', AWAY, team('z', 'Z'), 0, 1),
+    ];
+    const base = await buildAnalysis(stubData({ home, away }).data, fixture());
+    const recal = await buildAnalysis(stubData({ home, away }).data, fixture(), {
+      ou25Recalibration: { a: 2, b: 0.5 }, // not identity
+    });
+    expect(recal.markets.over25).not.toBe(base.markets.over25);
+    expect(recal.markets.over25 + recal.markets.under25).toBeCloseTo(1, 4);
+  });
+
   it('identity recalibration is a no-op', async () => {
     const home = [
       match('h2', HOME, team('x', 'X'), 2, 2),

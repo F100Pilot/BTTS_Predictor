@@ -33,8 +33,10 @@ interface SettingsState {
   prevWeights: Record<FactorKey, number> | null;
   /** Market-odds calibration weight (0 = pure model, 1 = pure market). */
   oddsCalibration: number;
-  /** Auto-calibrate predictions from settled history (Platt recalibration). */
+  /** Auto-calibrate BTTS predictions from settled history (Platt recalibration). */
   autoCalibrate: boolean;
+  /** Auto-calibrate the Over/Under 2.5 market from settled history. */
+  autoCalibrateOu25: boolean;
   /** Live notifications master switch + per-type toggles. */
   notifyEnabled: boolean;
   notifyGoals: boolean;
@@ -59,6 +61,7 @@ interface SettingsState {
   resetWeights: () => void;
   setOddsCalibration: (value: number) => void;
   setAutoCalibrate: (value: boolean) => void;
+  setAutoCalibrateOu25: (value: boolean) => void;
   setNotify: (patch: {
     notifyEnabled?: boolean;
     notifyGoals?: boolean;
@@ -87,6 +90,7 @@ export const useSettings = create<SettingsState>()(
       prevWeights: null,
       oddsCalibration: 0,
       autoCalibrate: false,
+      autoCalibrateOu25: false,
       notifyEnabled: false,
       notifyGoals: true,
       notifyWatchlistBtts: true,
@@ -110,6 +114,7 @@ export const useSettings = create<SettingsState>()(
       resetWeights: () => set({ weights: { ...DEFAULT_WEIGHTS }, prevWeights: null }),
       setOddsCalibration: (value) => set({ oddsCalibration: Math.min(1, Math.max(0, value)) }),
       setAutoCalibrate: (value) => set({ autoCalibrate: value }),
+      setAutoCalibrateOu25: (value) => set({ autoCalibrateOu25: value }),
       setNotify: (patch) =>
         set((s) => ({
           notifyEnabled: patch.notifyEnabled ?? s.notifyEnabled,
