@@ -6,8 +6,12 @@ import {
   applyPlatt,
   reliabilityCurve,
   accuracyByConfidence,
+  evaluateOutcomes,
+  confidenceBandsOutcomes,
+  reliabilityOutcomes,
   IDENTITY_PLATT,
   type Sample,
+  type OutcomeSample,
 } from './backtest';
 
 describe('brier', () => {
@@ -76,6 +80,41 @@ describe('accuracyByConfidence', () => {
     const empty = bands.find((b) => b.lower === 50);
     expect(empty?.n).toBe(0);
     expect(empty?.accuracy).toBeNull();
+  });
+});
+
+describe('generic per-market outcomes', () => {
+  const samples: OutcomeSample[] = [
+    { prob: 0.82, correct: 1 },
+    { prob: 0.74, correct: 0 },
+    { prob: 0.44, correct: 1 },
+    { prob: 0.36, correct: 0 },
+  ];
+
+  it('evaluateOutcomes computes accuracy and Brier', () => {
+    const e = evaluateOutcomes(samples);
+    expect(e.n).toBe(4);
+    expect(e.accuracy).toBe(50); // 2 of 4 correct
+    expect(e.brier).toBeCloseTo(((0.82 - 1) ** 2 + 0.74 ** 2 + (0.44 - 1) ** 2 + 0.36 ** 2) / 4, 4);
+  });
+
+  it('confidenceBandsOutcomes bands across the full 0–100% range', () => {
+    const bands = confidenceBandsOutcomes(samples, 10);
+    expect(bands).toHaveLength(10);
+    expect(bands.find((b) => b.lower === 80)?.n).toBe(1); // 0.82
+    expect(bands.find((b) => b.lower === 80)?.accuracy).toBe(100);
+    expect(bands.find((b) => b.lower === 70)?.accuracy).toBe(0); // 0.74 wrong
+    expect(bands.find((b) => b.lower === 30)?.n).toBe(1); // 0.36
+    expect(bands.find((b) => b.lower === 0)?.accuracy).toBeNull();
+  });
+
+  it('reliabilityOutcomes buckets predicted prob vs hit-rate', () => {
+    const curve = reliabilityOutcomes(samples, 5);
+    expect(curve).toHaveLength(5);
+    expect(curve[4]?.n).toBe(1); // 80-100%: 0.82
+    expect(curve[4]?.actual).toBe(100);
+    expect(curve[2]?.n).toBe(1); // 40-60%: 0.44
+    expect(curve[0]?.actual).toBeNull(); // 0-20% empty
   });
 });
 

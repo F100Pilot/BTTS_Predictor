@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Bet } from '@/domain/types';
+import type { Bet, MarketPrediction } from '@/domain/types';
 
 /** Persisted bet record (Martingale system). */
 export type BetRecord = Bet;
@@ -46,6 +46,9 @@ export interface HistoryRecord {
   flashMatchId?: string;
   /** Per-factor sub-scores at prediction time (for weight auto-tuning). */
   factorScores?: Record<string, number>;
+  /** Poisson markets (Over/Under, 1X2) at prediction time — lets the history
+   * track per-market accuracy, not just BTTS. */
+  markets?: MarketPrediction;
 }
 
 /** A deletion marker so removals propagate across devices via sync. */

@@ -122,6 +122,7 @@ export function AnalysisPage() {
             factorScores: Object.fromEntries(
               result.prediction.factors.map((f) => [f.key, f.score]),
             ),
+            markets: result.markets,
           }).catch((err) => log.warn('history save failed', err));
         }
       } catch (err) {

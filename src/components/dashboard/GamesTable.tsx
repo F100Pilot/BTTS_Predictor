@@ -36,6 +36,7 @@ function toHistoryRecord(row: DashboardRow, providerId: string): HistoryRecord |
     createdAt: Date.now(),
     providerId,
     factorScores: Object.fromEntries(prediction.factors.map((f) => [f.key, f.score])),
+    markets: row.markets,
   };
 }
 
