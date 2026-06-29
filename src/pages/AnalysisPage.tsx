@@ -45,6 +45,10 @@ export function AnalysisPage() {
   const platt = useCalibration((s) => s.platt);
   const calibrationReady = useCalibration((s) => s.ready);
   const recalibration = autoCalibrate && calibrationReady ? platt : undefined;
+  const autoCalibrateOu25 = useSettings((s) => s.autoCalibrateOu25);
+  const plattOu25 = useCalibration((s) => s.plattOu25);
+  const ou25Ready = useCalibration((s) => s.ou25Ready);
+  const ou25Recalibration = autoCalibrateOu25 && ou25Ready ? plattOu25 : undefined;
   const getCached = useFixtureCache((s) => s.get);
 
   const [bundle, setBundle] = useState<AnalysisBundle | null>(null);
@@ -88,6 +92,7 @@ export function AnalysisPage() {
           weights,
           oddsCalibration,
           recalibration,
+          ou25Recalibration,
         });
         if (cancelled) return;
         setBundle(result);
@@ -97,7 +102,12 @@ export function AnalysisPage() {
         // "disappear" and never cost another request).
         if (result.prediction) {
           const day = fixture.date.slice(0, 10);
-          const sig = predictionSignature(weights, oddsCalibration, recalibration);
+          const sig = predictionSignature(
+            weights,
+            oddsCalibration,
+            recalibration,
+            ou25Recalibration,
+          );
           void saveDayPrediction(day, sig, fixture.id, result.prediction, result.markets);
         }
         // Record the prediction in history (one record per fixture, best-effort).
@@ -141,7 +151,16 @@ export function AnalysisPage() {
     return () => {
       cancelled = true;
     };
-  }, [resolveFixture, data, weights, oddsCalibration, recalibration, providerId, refreshKey]);
+  }, [
+    resolveFixture,
+    data,
+    weights,
+    oddsCalibration,
+    recalibration,
+    ou25Recalibration,
+    providerId,
+    refreshKey,
+  ]);
 
   if (loading) return <Spinner label="A analisar o jogo..." />;
   if (!bundle)

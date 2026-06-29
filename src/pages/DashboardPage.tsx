@@ -86,6 +86,14 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [autoCalibrate, calibrationReady, platt?.a, platt?.b],
   );
+  const autoCalibrateOu25 = useSettings((s) => s.autoCalibrateOu25);
+  const plattOu25 = useCalibration((s) => s.plattOu25);
+  const ou25Ready = useCalibration((s) => s.ou25Ready);
+  const ou25Recalibration = useMemo(
+    () => (autoCalibrateOu25 && ou25Ready ? plattOu25 : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [autoCalibrateOu25, ou25Ready, plattOu25?.a, plattOu25?.b],
+  );
   const hideAmateur = useSettings((s) => s.hideAmateur);
   const majorOnly = useSettings((s) => s.majorOnly);
   const setMajorOnly = useSettings((s) => s.setMajorOnly);
@@ -123,7 +131,7 @@ export function DashboardPage() {
     setFixtures([]);
     setLoadError(null);
     analyzedRef.current = new Set();
-    const sig = predictionSignature(weights, oddsCalibration, recalibration);
+    const sig = predictionSignature(weights, oddsCalibration, recalibration, ou25Recalibration);
     sigRef.current = sig;
     (async () => {
       const allFixtures = await data.getFixturesByDate(filters.date);
@@ -198,6 +206,7 @@ export function DashboardPage() {
     weights,
     oddsCalibration,
     recalibration,
+    ou25Recalibration,
     cacheFixtures,
     refreshKey,
     hideAmateur,
@@ -225,6 +234,7 @@ export function DashboardPage() {
           weights,
           oddsCalibration,
           recalibration,
+          ou25Recalibration,
         });
         if (cancelled) return;
         // Persist successful analyses (predictionError rows are left to retry).
@@ -240,7 +250,16 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [fixtures, batchLimit, data, weights, oddsCalibration, recalibration, filters.date]);
+  }, [
+    fixtures,
+    batchLimit,
+    data,
+    weights,
+    oddsCalibration,
+    recalibration,
+    ou25Recalibration,
+    filters.date,
+  ]);
 
   const handleReanalyze = useCallback(async () => {
     await clearDayPredictions(filters.date);

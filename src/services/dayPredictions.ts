@@ -37,6 +37,7 @@ export function predictionSignature(
   weights: Record<FactorKey, number>,
   oddsCalibration: number,
   recalibration?: PlattParams,
+  ou25Recalibration?: PlattParams,
 ): string {
   const w = normalizeWeights(weights);
   const wStr = (Object.keys(w) as FactorKey[])
@@ -44,7 +45,10 @@ export function predictionSignature(
     .map((k) => `${k}:${w[k].toFixed(3)}`)
     .join(',');
   const r = recalibration ? `${recalibration.a.toFixed(3)},${recalibration.b.toFixed(3)}` : 'none';
-  return `m=${MODEL_VERSION}|w=${wStr}|o=${oddsCalibration}|r=${r}`;
+  const ou = ou25Recalibration
+    ? `${ou25Recalibration.a.toFixed(3)},${ou25Recalibration.b.toFixed(3)}`
+    : 'none';
+  return `m=${MODEL_VERSION}|w=${wStr}|o=${oddsCalibration}|r=${r}|ou=${ou}`;
 }
 
 /** Load saved predictions for a day, but only if they match the current settings. */

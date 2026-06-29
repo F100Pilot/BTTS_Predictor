@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.3.1.0';
+export const APP_VERSION = '0.3.2.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.2.0: Calibração por mercado — o Mais/Menos 2.5 passa a ter a sua própria auto-calibração (independente do BTTS), no Histórico. Com a calibração ligada e 15+ jogos com resultado, a app ajusta as percentagens de Over/Under mostradas para se aproximarem do que realmente acontece. O 1X2 (3 vias) fica para uma fase seguinte.',
   'v0.3.1.0: O painel de ajuste do modelo (pesos, otimização e calibração) saiu das Definições e passou para o Histórico, por mercado. Como só o BTTS tem “pesos” (Forma, Ataque, Defesa…), o painel completo aparece no mercado BTTS; o Mais/Menos 2.5 e o 1X2 usam um modelo de Poisson (sem pesos) — a calibração própria desses mercados chega a seguir.',
   'v0.3.0.3: No Histórico, ao escolher Mais/Menos 2.5 ou 1X2, a lista passa a mostrar só os jogos com prognóstico desse mercado. Como ainda não há nenhum, a lista fica vazia (em vez de mostrar todos os jogos a “—”). Vão aparecendo à medida que analisares jogos novos.',
   'v0.3.0.2: Correção no Histórico — em Mais/Menos 2.5 e 1X2, os jogos sem prognóstico desse mercado (analisados antes de o mercado existir) deixam de mostrar um “resultado” derivado do score. Agora aparecem como “—”, por isso esses mercados ficam vazios até analisares jogos novos com o resultado introduzido.',
