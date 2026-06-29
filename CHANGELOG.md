@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.1.0
+
+- **Ajuste do modelo movido para o Histórico, por mercado**: o painel de pesos +
+  otimização + calibração saiu das Definições gerais (novo componente
+  `components/history/ModelTuningPanel.tsx`). No Histórico, sob o seletor de
+  mercado: **BTTS** mostra o painel completo (só o BTTS tem pesos/fatores); **O/U
+  2.5** e **1X2** (modelos de Poisson, sem pesos) mostram uma nota — a calibração
+  própria por mercado fica para uma próxima fase.
+- Removido o painel das Definições (fica só uma nota a apontar para o Histórico;
+  "Jogos analisados por lote" e restantes definições mantêm-se).
+
 ## 0.3.0.3
 
 - **Fix**: no Histórico, a lista de jogos passa a ser **filtrada pelo mercado** —
