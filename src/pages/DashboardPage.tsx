@@ -18,7 +18,10 @@ import type { DashboardRow, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
 import { getProvider } from '@/data/providers/registry';
-import { buildDashboardRow, sortDashboardRows } from '@/services/analysisService';
+import { buildDashboardRow, sortDashboardRowsByMarket } from '@/services/analysisService';
+import { useMarket } from '@/store/marketStore';
+import { MarketSelector } from '@/components/common/MarketSelector';
+import { marketLabel } from '@/core/markets/markets';
 import { isMinorCompetition, isMajorCompetition } from '@/core/classification/competitions';
 import {
   loadDayPredictions,
@@ -91,6 +94,8 @@ export function DashboardPage() {
   const batchSize = useSettings((s) => s.analysisBatchSize);
   const providerId = useSettings((s) => s.providerId);
   const cacheFixtures = useFixtureCache((s) => s.put);
+  const market = useMarket((s) => s.market);
+  const setMarket = useMarket((s) => s.setMarket);
   const { filters, setFilters } = useDashboardFilters();
   // `fixtures` is the kickoff-ordered list; it drives analysis priority (not display).
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
@@ -163,7 +168,13 @@ export function DashboardPage() {
       if (cancelled) return;
       analyzedRef.current = new Set(Object.keys(saved));
       setFixtures(ordered);
-      setRows(ordered.map((fixture) => ({ fixture, prediction: saved[fixture.id] })));
+      setRows(
+        ordered.map((fixture) => ({
+          fixture,
+          prediction: saved[fixture.id]?.prediction,
+          markets: saved[fixture.id]?.markets,
+        })),
+      );
       setBatchLimit(batchSize || Infinity); // reset the window on a fresh load
       setLoading(false);
     })().catch((err: unknown) => {
@@ -219,7 +230,7 @@ export function DashboardPage() {
         // Persist successful analyses (predictionError rows are left to retry).
         if (row.prediction) {
           analyzedRef.current.add(fixture.id);
-          void saveDayPrediction(filters.date, sig, fixture.id, row.prediction);
+          void saveDayPrediction(filters.date, sig, fixture.id, row.prediction, row.markets);
         }
         setRows((prev) => prev.map((r) => (r.fixture.id === fixture.id ? row : r)));
       }
@@ -246,13 +257,13 @@ export function DashboardPage() {
   const filtered = useMemo(
     () =>
       sortByFavourite(
-        // Sort by probYes first so highest-confidence BTTS=YES games appear at top,
-        // then apply filters. Sort happens here (not inside setRows) so individual
-        // prediction updates don't re-sort the entire rows array on every fixture.
-        applyFilters(sortDashboardRows(rows), filters),
+        // Sort by the selected market's dominant probability so the strongest
+        // games for that market appear on top, then apply filters. Sorting here
+        // (not in setRows) avoids re-sorting on every per-fixture prediction.
+        applyFilters(sortDashboardRowsByMarket(rows, market), filters),
         favoriteCompetition,
       ),
-    [rows, filters, favoriteCompetition],
+    [rows, filters, favoriteCompetition, market],
   );
   // Competition options are locked to the selected country.
   const competitions = useMemo(
@@ -305,7 +316,8 @@ export function DashboardPage() {
             {filters.date === todayIso() ? 'Jogos de Hoje' : 'Jogos'}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {formatDate(filters.date)} · {filtered.length} jogo(s) · ordenados por BTTS=SIM
+            {formatDate(filters.date)} · {filtered.length} jogo(s) · ordenados por{' '}
+            {marketLabel(market)}
             {analyzing && ` · a analisar ${analyzedInBatch}/${batchTotal}…`}
             {showWaiting && ` · ${waiting} em espera`}
           </p>
@@ -391,6 +403,9 @@ export function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Market selector — the whole list/ranking adapts to the chosen market. */}
+      <MarketSelector value={market} onChange={setMarket} />
 
       {analyzing && (
         <div className="space-y-1">

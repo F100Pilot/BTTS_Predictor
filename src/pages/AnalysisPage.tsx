@@ -100,7 +100,7 @@ export function AnalysisPage() {
         if (result.prediction) {
           const day = fixture.date.slice(0, 10);
           const sig = predictionSignature(weights, oddsCalibration, recalibration);
-          void saveDayPrediction(day, sig, fixture.id, result.prediction);
+          void saveDayPrediction(day, sig, fixture.id, result.prediction, result.markets);
         }
         // Record the prediction in history (one record per fixture, best-effort).
         // Skip insufficient-data games — a ~50/50 placeholder would pollute the

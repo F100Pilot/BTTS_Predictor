@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.48.4';
+export const APP_VERSION = '0.2.49';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.49: A página de Jogos passa a ter um seletor de mercado — BTTS, Mais/Menos 2.5 golos e Resultado (1X2). Ao escolher o mercado, cada jogo mostra o prognóstico desse mercado (lado + percentagem + classificação) e a lista é reordenada por esse mercado. (Os gráficos de acerto por mercado no Histórico chegam a seguir.)',
   'v0.2.48.4: O cartão "Valor vs mercado" ficou mais claro — em vez de só uma percentagem, mostra "Valor +X%" (aposta vantajosa) ou "Sem valor (−X%)", a probabilidade do modelo e a "odd justa" (a odd mínima a partir da qual a aposta passa a ter valor).',
   'v0.2.48.3: Corrigida a incoerência em que um jogo mostrava "60%" mas ficava classificado como "Fraca". A classificação passa a usar a mesma percentagem arredondada que vês no ecrã, por isso ≥60% é sempre "Média", ≥70% "Forte" e ≥80% "Muito Forte". (Lembrete: a "confiança X/10" é a qualidade dos dados, não a classificação.)',
   'v0.2.48.2: Na curva de fiabilidade (Histórico → Desempenho do modelo), cada ponto passa a mostrar quantos jogos tem nessa faixa (ex.: "3j") e o tooltip indica também o nº de jogos — para perceberes que pontos têm poucos dados e por isso são menos fiáveis.',
