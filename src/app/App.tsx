@@ -23,12 +23,6 @@ const DashboardPage = lazy(() =>
 const AnalysisPage = lazy(() =>
   import('@/pages/AnalysisPage').then((m) => ({ default: m.AnalysisPage })),
 );
-const FavoritesPage = lazy(() =>
-  import('@/pages/FavoritesPage').then((m) => ({ default: m.FavoritesPage })),
-);
-const WatchlistPage = lazy(() =>
-  import('@/pages/WatchlistPage').then((m) => ({ default: m.WatchlistPage })),
-);
 const HistoryPage = lazy(() =>
   import('@/pages/HistoryPage').then((m) => ({ default: m.HistoryPage })),
 );
@@ -97,8 +91,6 @@ export function App() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/analysis/:fixtureId" element={<AnalysisPage />} />
-            <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/watchlist" element={<WatchlistPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/martingale" element={<MartingalePage />} />
             <Route path="/live" element={<LiveScorePage />} />

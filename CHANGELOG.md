@@ -20,6 +20,15 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.0.0
+
+- **Removidas as abas "Favoritos" e "Watchlist"** — navegação simplificada
+  (Jogos, Ao Vivo, Martingale, Histórico, Calculadora, Definições). Removidas as
+  rotas `/favorites` e `/watchlist`, as páginas correspondentes e os botões de
+  favorito/watchlist nos banners de jogo e na análise. O `collectionsStore` e os
+  hooks de notificação mantêm-se intactos (sem quebrar nada); o filtro "Liga
+  favorita" (conceito distinto) também se mantém.
+
 ## 0.2.50.0
 
 - **Desempenho por mercado no Histórico** (Fase 2): a card "Desempenho do modelo"

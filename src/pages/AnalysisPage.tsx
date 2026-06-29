@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Eye, Coins, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Coins, AlertTriangle, RefreshCw } from 'lucide-react';
 import type { AnalysisBundle, Fixture } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
-import { useCollections } from '@/store/collectionsStore';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { buildAnalysis } from '@/services/analysisService';
@@ -47,7 +46,6 @@ export function AnalysisPage() {
   const calibrationReady = useCalibration((s) => s.ready);
   const recalibration = autoCalibrate && calibrationReady ? platt : undefined;
   const getCached = useFixtureCache((s) => s.get);
-  const { toggleFavorite, toggleWatchlist, isFavorite, isWatched } = useCollections();
 
   const [bundle, setBundle] = useState<AnalysisBundle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -170,7 +168,6 @@ export function AnalysisPage() {
     );
 
   const { fixture, prediction } = bundle;
-  const row = { fixture, prediction };
   const tier = tierMeta(prediction.tier);
 
   const handleReanalyze = (): void => {
@@ -206,20 +203,6 @@ export function AnalysisPage() {
               </CardTitle>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant={isFavorite(fixture.id) ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => toggleFavorite(row)}
-              >
-                <Star className="h-4 w-4" /> Favorito
-              </Button>
-              <Button
-                variant={isWatched(fixture.id) ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => toggleWatchlist(row)}
-              >
-                <Eye className="h-4 w-4" /> Watchlist
-              </Button>
               <Button variant="outline" size="sm" onClick={() => setMartOpen(true)}>
                 <Coins className="h-4 w-4" /> Martingale
               </Button>
