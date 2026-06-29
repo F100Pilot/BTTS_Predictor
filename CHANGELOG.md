@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.48.4
+
+- **Cartão "Valor vs mercado" mais claro** (`ValueCard`): cada lado mostra
+  "Valor +X%" (verde) ou "Sem valor (−X%)" em texto, a probabilidade do modelo e
+  a **odd justa** (`1/prob`, a odd mínima para ter valor). Descrição reescrita em
+  linguagem simples.
+
 ## 0.2.48.3
 
 - **Classificação coerente com a % mostrada**: `tierForProbability` passa a
