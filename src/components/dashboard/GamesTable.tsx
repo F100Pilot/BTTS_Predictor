@@ -90,24 +90,29 @@ function GameBanner({
           onOpen();
         }
       }}
-      className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition-colors hover:border-primary/40 hover:bg-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group flex flex-col gap-2 rounded-2xl border border-border bg-card p-3.5 transition-colors hover:border-primary/40 hover:bg-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="w-12 shrink-0 text-center">
-        <div className="text-sm font-bold tabular-nums">{formatTime(fixture.date)}</div>
+      {/* Top line: kickoff time + competition (+ in-history check). */}
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-sm font-bold tabular-nums">{formatTime(fixture.date)}</span>
+        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+          {fixture.competition.country ? `${fixture.competition.country} · ` : ''}
+          {fixture.competition.name}
+        </span>
         {inHistory && (
-          <Check className="mx-auto mt-0.5 h-3.5 w-3.5 text-success" aria-label="No histórico" />
+          <Check className="h-3.5 w-3.5 shrink-0 text-success" aria-label="No histórico" />
         )}
       </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[11px] text-muted-foreground">
-          {fixture.competition.country ? `${fixture.competition.country} · ` : ''}
-          {fixture.competition.name}
-        </div>
-        <div className="truncate font-semibold leading-tight">
-          {fixture.home.name} <span className="text-muted-foreground">vs</span> {fixture.away.name}
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+      {/* Match name — full width so both teams always show in full. */}
+      <div className="font-semibold leading-tight">
+        {fixture.home.name} <span className="text-muted-foreground">vs</span> {fixture.away.name}
+      </div>
+
+      {/* Bottom line: verdict + meta on the left, actions on the right. */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <VerdictPill row={row} />
           {row.prediction && <TierBadge tier={row.prediction.tier} />}
           {edge != null && edge > 0 && (
             <span className="text-xs font-semibold text-success">+{round(edge * 100, 1)}%</span>
@@ -118,38 +123,36 @@ function GameBanner({
             </span>
           )}
         </div>
-      </div>
 
-      <VerdictPill row={row} />
-
-      <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
-        <IconAction
-          size="sm"
-          label={fav ? 'Remover dos favoritos' : 'Favorito'}
-          icon={<Star className={cn('h-4 w-4', fav && 'fill-warning text-warning')} />}
-          active={fav}
-          onClick={() => toggleFavorite(row)}
-        />
-        <IconAction
-          size="sm"
-          label={watched ? 'Remover da watchlist' : 'Watchlist'}
-          icon={<Eye className="h-4 w-4" />}
-          active={watched}
-          onClick={() => toggleWatchlist(row)}
-        />
-        <IconAction
-          size="sm"
-          label={inHistory ? 'Já no histórico' : 'Adicionar ao histórico'}
-          icon={
-            inHistory ? (
-              <Check className="h-4 w-4 text-success" />
-            ) : (
-              <ListPlus className="h-4 w-4" />
-            )
-          }
-          disabled={!row.prediction || inHistory}
-          onClick={onAddHistory}
-        />
+        <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <IconAction
+            size="sm"
+            label={fav ? 'Remover dos favoritos' : 'Favorito'}
+            icon={<Star className={cn('h-4 w-4', fav && 'fill-warning text-warning')} />}
+            active={fav}
+            onClick={() => toggleFavorite(row)}
+          />
+          <IconAction
+            size="sm"
+            label={watched ? 'Remover da watchlist' : 'Watchlist'}
+            icon={<Eye className="h-4 w-4" />}
+            active={watched}
+            onClick={() => toggleWatchlist(row)}
+          />
+          <IconAction
+            size="sm"
+            label={inHistory ? 'Já no histórico' : 'Adicionar ao histórico'}
+            icon={
+              inHistory ? (
+                <Check className="h-4 w-4 text-success" />
+              ) : (
+                <ListPlus className="h-4 w-4" />
+              )
+            }
+            disabled={!row.prediction || inHistory}
+            onClick={onAddHistory}
+          />
+        </div>
       </div>
     </div>
   );
