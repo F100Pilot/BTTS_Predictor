@@ -58,6 +58,7 @@ import {
   Bar,
   BarChart,
   Cell,
+  LabelList,
   Line,
   LineChart,
   CartesianGrid,
@@ -609,10 +610,13 @@ export function HistoryPage() {
                             unit="%"
                           />
                           <RTooltip
-                            formatter={(value, name) => {
+                            formatter={(value, name, item) => {
                               const v = value as number | null;
-                              const label = name === 'actual' ? 'Real' : 'Ideal';
-                              return [v == null ? '—' : `${v}%`, label];
+                              if (name === 'actual') {
+                                const n = (item?.payload?.n as number) ?? 0;
+                                return [v == null ? '—' : `${v}% · ${n} jogo(s)`, 'Real'];
+                              }
+                              return [v == null ? '—' : `${v}%`, 'Ideal'];
                             }}
                           />
                           <Line
@@ -630,14 +634,22 @@ export function HistoryPage() {
                             stroke="#10b981"
                             connectNulls
                             dot={{ r: 3 }}
-                          />
+                          >
+                            <LabelList
+                              dataKey="n"
+                              position="top"
+                              fontSize={10}
+                              formatter={(n: number) => (n ? `${n}j` : '')}
+                            />
+                          </Line>
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Na curva de fiabilidade, quanto mais a linha "Real" colar à diagonal "Ideal",
-                      melhor calibrado está o modelo. Marque o resultado real dos jogos (abaixo) ou
-                      use "Atualizar resultados".
+                      melhor calibrado está o modelo. O número junto a cada ponto (ex.: "3j") é
+                      quantos jogos há nessa faixa — pontos com poucos jogos são menos fiáveis.
+                      Marque o resultado real dos jogos (abaixo) ou use "Atualizar resultados".
                     </p>
                   </CardContent>
                 </Card>
