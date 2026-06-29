@@ -38,7 +38,7 @@ interface MartingaleState {
   }) => void;
   nextStake: (odds: number) => number;
   addBet: (input: NewBetInput) => Promise<void>;
-  setResult: (id: string, result: BetResult) => Promise<void>;
+  setResult: (id: string, result: BetResult, score?: string) => Promise<void>;
   deleteBet: (id: string) => Promise<void>;
   resetSeries: () => void;
   clearAll: () => Promise<void>;
@@ -115,12 +115,14 @@ export const useMartingale = create<MartingaleState>()(
         await get().refresh();
       },
 
-      setResult: async (id, result) => {
+      setResult: async (id, result, score) => {
         const bet = get().bets.find((b) => b.id === id);
         if (!bet) return;
         await putBet({
           ...bet,
           result,
+          // Keep an explicitly-passed score; clear it when the bet is reset.
+          score: result === 'pending' ? undefined : (score ?? bet.score),
           settledAt: result === 'pending' ? undefined : Date.now(),
         });
         await get().refresh();

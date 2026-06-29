@@ -4,7 +4,7 @@
 > Manter atualizado: ao encontrar um bug regista-o em [Bugs abertos](#bugs-abertos); ao
 > resolvê-lo, move-o para [Bugs resolvidos](#bugs-resolvidos) com a versão da correção.
 
-_Última atualização: 2026-06-28 (v0.2.46) · 129 testes._
+_Última atualização: 2026-06-29 (v0.2.47) · 129 testes._
 
 ---
 
@@ -64,7 +64,8 @@ Após mudanças de UI/dados, verificar no browser (`npm run dev`):
 1. **Jogos de Hoje** — lista carrega, ordenada por BTTS, filtros funcionam.
 2. **Análise de um jogo** — fatores, gráficos, Reanalisar (pede confirmação), Martingale (pop-up).
 3. **Ao Vivo** — só mostra jogos do histórico/apostas; liquida e remove ao atingir BTTS.
-4. **Histórico** — agrupado por dia, "Atualizar resultados" liquida via Flashscore.
+4. **Histórico / Apostas** — agrupado por dia; "Atualizar resultados" liquida via Flashscore;
+   introduzir o score (golos casa–fora) deriva o BTTS e liquida a aposta (ganha/perdida).
 5. **Definições** — chave RapidAPI + Proxy CORS, "Testar ligação", pesos, calibração.
 6. **PWA** — instala, funciona offline, aviso de atualização.
 
