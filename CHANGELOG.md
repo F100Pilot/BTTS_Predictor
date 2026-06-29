@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.48.0
+
+- **"Acerto por faixa"** no Histórico (Previsões): pop-up (`Dialog`) com um
+  gráfico de barras horizontal (Recharts) da taxa de acerto das previsões
+  liquidadas, agrupada pela percentagem mostrada (lado dominante, 50–100%).
+- Nova função pura `accuracyByConfidence` em `core/backtest` (bandas de 10%,
+  topo fechado em 100%), coberta por teste. `isCorrect` passou a exportada.
+
 ## 0.2.47.0
 
 - **Liquidação por resultado (score)** no Histórico e nas Apostas: novo

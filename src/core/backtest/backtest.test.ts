@@ -5,6 +5,7 @@ import {
   fitPlatt,
   applyPlatt,
   reliabilityCurve,
+  accuracyByConfidence,
   IDENTITY_PLATT,
   type Sample,
 } from './backtest';
@@ -51,6 +52,30 @@ describe('reliabilityCurve', () => {
     expect(curve[4]!.n).toBe(2); // 80-100% bucket
     expect(curve[4]!.actual).toBe(100);
     expect(curve[2]!.actual).toBeNull(); // empty middle bucket
+  });
+});
+
+describe('accuracyByConfidence', () => {
+  it('groups hit-rate by the shown (dominant) percentage band', () => {
+    const samples: Sample[] = [
+      // 90–100% band: both correct (one YES side, one NO side)
+      { probYes: 0.95, tier: 'very-strong', outcome: 1 },
+      { probYes: 0.05, tier: 'very-strong', outcome: 0 },
+      // 70–80% band: one correct, one wrong → 50%
+      { probYes: 0.75, tier: 'strong', outcome: 1 },
+      { probYes: 0.25, tier: 'strong', outcome: 1 },
+    ];
+    const bands = accuracyByConfidence(samples, 10);
+    expect(bands).toHaveLength(5); // 50-60,60-70,70-80,80-90,90-100
+    const top = bands.find((b) => b.lower === 90);
+    expect(top?.n).toBe(2);
+    expect(top?.accuracy).toBe(100);
+    const mid = bands.find((b) => b.lower === 70);
+    expect(mid?.n).toBe(2);
+    expect(mid?.accuracy).toBe(50);
+    const empty = bands.find((b) => b.lower === 50);
+    expect(empty?.n).toBe(0);
+    expect(empty?.accuracy).toBeNull();
   });
 });
 
