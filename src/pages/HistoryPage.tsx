@@ -334,10 +334,13 @@ export function HistoryPage() {
     () => Array.from(new Set(records.map((r) => dayKey(r.createdAt)))).map((d) => parseISO(d)),
     [records],
   );
-  const filtered = useMemo(
-    () => (dateFilter ? records.filter((r) => dayKey(r.createdAt) === dateFilter) : records),
-    [records, dateFilter],
-  );
+  const filtered = useMemo(() => {
+    let rows = dateFilter ? records.filter((r) => dayKey(r.createdAt) === dateFilter) : records;
+    // Non-BTTS markets only apply to games whose Poisson markets were stored — a
+    // game with no prediction for the selected market doesn't belong in its list.
+    if (market !== 'btts') rows = rows.filter((r) => r.markets != null);
+    return rows;
+  }, [records, dateFilter, market]);
 
   // Group the predictions by game day (newest day first) so each day can be
   // collapsed/expanded independently.
@@ -727,8 +730,16 @@ export function HistoryPage() {
 
               {filtered.length === 0 ? (
                 <EmptyState
-                  title="Sem registos nesta data"
-                  description="Escolha outra data ou veja todas."
+                  title={
+                    market === 'btts'
+                      ? 'Sem registos nesta data'
+                      : `Sem jogos com prognóstico de ${marketLabel(market)}`
+                  }
+                  description={
+                    market === 'btts'
+                      ? 'Escolha outra data ou veja todas.'
+                      : 'Só aparecem aqui jogos analisados depois de este mercado existir. Analisa jogos novos para começarem a aparecer.'
+                  }
                 />
               ) : (
                 <div className="rounded-lg border bg-card">
