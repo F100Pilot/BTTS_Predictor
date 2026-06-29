@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.3.0.2';
+export const APP_VERSION = '0.3.0.3';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.0.3: No Histórico, ao escolher Mais/Menos 2.5 ou 1X2, a lista passa a mostrar só os jogos com prognóstico desse mercado. Como ainda não há nenhum, a lista fica vazia (em vez de mostrar todos os jogos a “—”). Vão aparecendo à medida que analisares jogos novos.',
   'v0.3.0.2: Correção no Histórico — em Mais/Menos 2.5 e 1X2, os jogos sem prognóstico desse mercado (analisados antes de o mercado existir) deixam de mostrar um “resultado” derivado do score. Agora aparecem como “—”, por isso esses mercados ficam vazios até analisares jogos novos com o resultado introduzido.',
   'v0.3.0.1: Correção no Histórico — a lista de jogos passa a acompanhar o mercado selecionado (BTTS / Mais-Menos 2.5 / 1X2). Antes mostrava sempre o prognóstico e resultado de BTTS mesmo com outro mercado escolhido. Agora a coluna, o prognóstico (lado + %), a classificação e o resultado refletem o mercado ativo.',
   'v0.3.0.0: As abas “Favoritos” e “Watchlist” foram removidas, para uma navegação mais simples e focada (Jogos, Ao Vivo, Martingale, Histórico, Calculadora, Definições). Os botões de favorito/watchlist nos jogos também saíram.',

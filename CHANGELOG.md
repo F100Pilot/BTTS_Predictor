@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.0.3
+
+- **Fix**: no Histórico, a lista de jogos passa a ser **filtrada pelo mercado** —
+  em O/U 2.5 e 1X2 só aparecem jogos com prognóstico desse mercado (`r.markets`).
+  Sem dados, a lista fica vazia (mensagem própria) em vez de mostrar todos os
+  jogos a "—".
+
 ## 0.3.0.2
 
 - **Fix**: no Histórico, em O/U 2.5 e 1X2, registos **sem** os mercados Poisson
