@@ -26,6 +26,7 @@ import { ScoreInput } from '@/components/common/ScoreInput';
 import { useMarket } from '@/store/marketStore';
 import { MarketSelector } from '@/components/common/MarketSelector';
 import { MarketPerformance } from '@/components/history/MarketPerformance';
+import { ModelTuningPanel } from '@/components/history/ModelTuningPanel';
 import {
   marketLabel,
   marketPick,
@@ -724,6 +725,21 @@ export function HistoryPage() {
                         </p>
                       </>
                     )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Model tuning, per market: BTTS has factor weights; the Poisson
+                  markets (O/U, 1X2) have none. */}
+              {market === 'btts' ? (
+                <ModelTuningPanel />
+              ) : (
+                <Card>
+                  <CardContent className="py-4 text-sm text-muted-foreground">
+                    O mercado{' '}
+                    <span className="font-medium text-foreground">{marketLabel(market)}</span> usa
+                    um modelo de Poisson (golos esperados) — não tem pesos ajustáveis como o BTTS. A
+                    calibração própria deste mercado chega numa próxima atualização.
                   </CardContent>
                 </Card>
               )}
