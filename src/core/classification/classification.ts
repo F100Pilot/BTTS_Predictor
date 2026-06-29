@@ -39,11 +39,19 @@ export function tierMeta(tier: PredictionTier): TierMeta {
   return TIERS[tier];
 }
 
-/** Map a dominant probability (0..1) to its classification tier. */
+/**
+ * Map a dominant probability (0..1) to its classification tier.
+ *
+ * Classification is done on the *rounded whole-number percentage* — the same
+ * value shown on screen — so the badge never contradicts the displayed % (e.g.
+ * a 0.596 prediction shows "60%" and is therefore classified "Média", not the
+ * "Fraca" it would be if compared against the raw 0.596).
+ */
 export function tierForProbability(probability: number): PredictionTier {
-  if (probability >= 0.8) return 'very-strong';
-  if (probability >= 0.7) return 'strong';
-  if (probability >= 0.6) return 'medium';
+  const pct = Math.round(probability * 100);
+  if (pct >= 80) return 'very-strong';
+  if (pct >= 70) return 'strong';
+  if (pct >= 60) return 'medium';
   return 'weak';
 }
 

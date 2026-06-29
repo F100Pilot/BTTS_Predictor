@@ -15,9 +15,10 @@ const keyFor = (date: string): string => `dashboard:day:${date}`;
 
 /**
  * Bumped whenever the model maths change so previously cached predictions are
- * recomputed instead of shown stale. (m2: recency-decay + Empirical-Bayes.)
+ * recomputed instead of shown stale. (m2: recency-decay + Empirical-Bayes;
+ * m3: tier classified on the rounded shown percentage.)
  */
-const MODEL_VERSION = 'm2';
+const MODEL_VERSION = 'm3';
 
 /**
  * Signature of the inputs that affect a prediction. When the model version /

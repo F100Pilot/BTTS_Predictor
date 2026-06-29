@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.48.3
+
+- **Classificação coerente com a % mostrada**: `tierForProbability` passa a
+  classificar sobre a percentagem **arredondada** (a mesma que aparece no ecrã),
+  eliminando casos como "60% mas Fraca" (a prob. real era ~0.596). `MODEL_VERSION`
+  → `m3` para recalcular previsões em cache. Novo teste de classificação.
+
 ## 0.2.48.2
 
 - **Curva de fiabilidade com contagem de jogos**: cada ponto da linha "Real"
