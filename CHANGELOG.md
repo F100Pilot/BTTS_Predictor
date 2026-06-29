@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.48.2
+
+- **Curva de fiabilidade com contagem de jogos**: cada ponto da linha "Real"
+  mostra um rótulo `Nj` (nº de jogos da faixa) e o tooltip passa a incluir
+  "… · N jogo(s)". Deixa claro que pontos têm poucos dados (e por isso picos
+  enganadores, como 100% com 1 jogo).
+
 ## 0.2.48.1
 
 - **Banner de jogo reorganizado (mobile-first)** em `GamesTable`: passou de uma

@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.2.48.1';
+export const APP_VERSION = '0.2.48.2';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.2.48.2: Na curva de fiabilidade (Histórico → Desempenho do modelo), cada ponto passa a mostrar quantos jogos tem nessa faixa (ex.: "3j") e o tooltip indica também o nº de jogos — para perceberes que pontos têm poucos dados e por isso são menos fiáveis.',
   'v0.2.48.1: Banners da página de Jogos reorganizados para o telemóvel — o nome das duas equipas passa a ocupar a linha toda (deixa de aparecer cortado), com a competição/hora por cima e o prognóstico, classificação e ações por baixo. Mostra muito mais informação no mesmo espaço.',
   'v0.2.48: Novo "Acerto por faixa" no Histórico (Previsões) — um pop-up com um gráfico de barras horizontal que mostra a taxa de acerto das previsões já liquidadas, agrupada pela percentagem mostrada (o lado dominante, de 50% a 100%). Ajuda-te a ver que faixas de confiança acertam mais.',
   'v0.2.47: No Histórico e nas Apostas podes agora introduzir o resultado do jogo (golos casa–fora) num campo rápido: a app calcula automaticamente o BTTS (ambas marcaram ou não) e, nas apostas, marca-a logo como ganha ou perdida. Continuam a existir os botões rápidos BTTS SIM/NÃO no histórico.',
