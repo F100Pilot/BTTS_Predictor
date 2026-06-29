@@ -20,6 +20,20 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.50.0
+
+- **Desempenho por mercado no Histórico** (Fase 2): a card "Desempenho do modelo"
+  ganhou um `MarketSelector`. BTTS mantém a vista detalhada (tabela por tier +
+  curva + auto-calibração); Over/Under 2.5 e 1X2 mostram uma vista própria
+  (`MarketPerformance`): acerto, Brier, gráfico de acerto por faixa e curva de
+  fiabilidade (previsto vs acerto). Mercados nunca misturados.
+- Para liquidar Over/Under e 1X2 deriva-se o resultado do **score** introduzido
+  (`marketPickCorrect`); por isso `HistoryRecord` passa a guardar os mercados
+  Poisson e o `AnalysisPage`/`GamesTable` gravam-nos.
+- Novas funções puras genéricas em `core/backtest`: `evaluateOutcomes`,
+  `confidenceBandsOutcomes`, `reliabilityOutcomes` (+ testes). O pop-up "Acerto
+  por faixa" passou a ser sensível ao mercado.
+
 ## 0.2.49.0
 
 - **Seletor de mercado na página de Jogos** (Fase 1): BTTS / Mais-Menos 2.5 /

@@ -23,6 +23,10 @@ import {
 import { useMartingale } from '@/store/martingaleStore';
 import { settleBetAgainstBtts, bttsFromGoals } from '@/services/settlementService';
 import { ScoreInput } from '@/components/common/ScoreInput';
+import { useMarket } from '@/store/marketStore';
+import { MarketSelector } from '@/components/common/MarketSelector';
+import { MarketPerformance } from '@/components/history/MarketPerformance';
+import { marketLabel, marketPick, marketPickCorrect } from '@/core/markets/markets';
 import { fetchFlashscoreByDate } from '@/services/flashscoreClient';
 import type { FlashFixture } from '@/services/flashscoreMatches';
 import { flashOutcome, buildFixtureIndex } from '@/services/flashscoreSettle';
@@ -71,7 +75,9 @@ import {
   evaluate,
   reliabilityCurve,
   accuracyByConfidence,
+  confidenceBandsOutcomes,
   type Sample,
+  type OutcomeSample,
 } from '@/core/backtest/backtest';
 import { useCalibration, MIN_CALIBRATION_SAMPLES } from '@/store/calibrationStore';
 import { useSettings } from '@/store/settingsStore';
@@ -89,6 +95,14 @@ const EUR = (n: number): string => `€${n.toFixed(2)}`;
 /** Colour for an accuracy value (green good, amber so-so, red poor). */
 const accuracyColor = (acc: number): string =>
   acc >= 70 ? '#10b981' : acc >= 55 ? '#f59e0b' : '#ef4444';
+
+/** Parse a "2-1" scoreline into [home, away] goals, or null when unparseable. */
+function parseScore(score: string | undefined): [number, number] | null {
+  if (!score) return null;
+  const m = score.match(/(\d+)\s*[-x:]\s*(\d+)/i);
+  if (!m) return null;
+  return [Number(m[1]), Number(m[2])];
+}
 
 /** Keep one prediction per fixture (latest), removing legacy duplicates. */
 function dedupeByFixture(records: HistoryRecord[]): HistoryRecord[] {
@@ -114,6 +128,8 @@ export function HistoryPage() {
   const bets = useMartingale((s) => s.bets);
   const refreshBets = useMartingale((s) => s.refresh);
   const setBetResult = useMartingale((s) => s.setResult);
+  const market = useMarket((s) => s.market);
+  const setMarket = useMarket((s) => s.setMarket);
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<string | null>(null);
@@ -163,6 +179,33 @@ export function HistoryPage() {
     () => accuracyByConfidence(samples, 10).filter((b) => b.n > 0),
     [samples],
   );
+  // Per-market samples (Over/Under, 1X2): need both the stored Poisson markets
+  // and a parseable final score to derive the pick + whether it was correct.
+  const marketSamples = useMemo<OutcomeSample[]>(() => {
+    if (market === 'btts') return [];
+    const out: OutcomeSample[] = [];
+    for (const r of settled) {
+      const goals = parseScore(r.actualScore);
+      if (!goals || !r.markets) continue;
+      const pick = marketPick(market, undefined, r.markets);
+      if (!pick) continue;
+      out.push({
+        prob: pick.probability,
+        correct: marketPickCorrect(market, pick.side, goals[0], goals[1]) ? 1 : 0,
+      });
+    }
+    return out;
+  }, [settled, market]);
+  // "Acerto por faixa" pop-up data, market-aware: BTTS uses the dominant-side
+  // bands; other markets use the picked-side bands.
+  const dialogBands = useMemo(
+    () =>
+      market === 'btts'
+        ? confidenceBands
+        : confidenceBandsOutcomes(marketSamples, 10).filter((b) => b.n > 0),
+    [market, confidenceBands, marketSamples],
+  );
+  const dialogCount = market === 'btts' ? samples.length : marketSamples.length;
   const reliability = useMemo(
     () =>
       reliabilityCurve(samples, 5).map((b) => ({
@@ -455,16 +498,16 @@ export function HistoryPage() {
                     <DialogContent className="max-w-md">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5 text-primary" /> Acerto por faixa de
-                          probabilidade
+                          <BarChart3 className="h-5 w-5 text-primary" /> Acerto por faixa —{' '}
+                          {marketLabel(market)}
                         </DialogTitle>
                         <DialogDescription>
-                          Taxa de acerto das previsões já liquidadas, agrupadas pela percentagem
-                          mostrada (o lado dominante, de 50% a 100%). Ajuda a ver que faixas são
-                          mais fiáveis.
+                          Taxa de acerto das previsões já liquidadas de {marketLabel(market)},
+                          agrupadas pela percentagem do prognóstico. Ajuda a ver que faixas são mais
+                          fiáveis.
                         </DialogDescription>
                       </DialogHeader>
-                      {confidenceBands.length === 0 ? (
+                      {dialogBands.length === 0 ? (
                         <EmptyState
                           title="Sem dados suficientes"
                           description="Marca o resultado de alguns jogos para veres o acerto por faixa."
@@ -472,11 +515,11 @@ export function HistoryPage() {
                       ) : (
                         <ResponsiveContainer
                           width="100%"
-                          height={Math.max(160, confidenceBands.length * 48)}
+                          height={Math.max(160, dialogBands.length * 48)}
                         >
                           <BarChart
                             layout="vertical"
-                            data={confidenceBands}
+                            data={dialogBands}
                             margin={{ left: 8, right: 32, top: 4, bottom: 4 }}
                           >
                             <CartesianGrid horizontal={false} strokeDasharray="3 3" opacity={0.2} />
@@ -503,7 +546,7 @@ export function HistoryPage() {
                                 fontSize: 11,
                               }}
                             >
-                              {confidenceBands.map((b) => (
+                              {dialogBands.map((b) => (
                                 <Cell key={b.label} fill={accuracyColor(b.accuracy ?? 0)} />
                               ))}
                             </Bar>
@@ -511,8 +554,8 @@ export function HistoryPage() {
                         </ResponsiveContainer>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        Baseado em {samples.length} previsão(ões) liquidada(s). Verde ≥70% · amarelo
-                        ≥55% · vermelho &lt;55%.
+                        Baseado em {dialogCount} jogo(s) liquidado(s). Verde ≥70% · amarelo ≥55% ·
+                        vermelho &lt;55%.
                       </p>
                     </DialogContent>
                   </Dialog>
@@ -534,123 +577,131 @@ export function HistoryPage() {
                     <CardTitle className="text-base">Desempenho do modelo</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-                      <div>
-                        <span className="text-xs text-muted-foreground">Acerto</span>
-                        <p className="text-lg font-bold">{evaluation.overall.accuracy}%</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Brier (↓ melhor)</span>
-                        <p className="text-lg font-bold">{evaluation.overall.brier}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Amostras</span>
-                        <p className="text-lg font-bold">{evaluation.overall.n}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Auto-calibração</span>
-                        <p className="text-sm font-medium">
-                          {!autoCalibrate
-                            ? 'desligada'
-                            : evaluation.overall.n >= MIN_CALIBRATION_SAMPLES
-                              ? 'ativa ✓'
-                              : `aguarda dados (${evaluation.overall.n}/${MIN_CALIBRATION_SAMPLES})`}
+                    <MarketSelector value={market} onChange={setMarket} className="flex-wrap" />
+                    {market !== 'btts' ? (
+                      <MarketPerformance samples={marketSamples} label={marketLabel(market)} />
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+                          <div>
+                            <span className="text-xs text-muted-foreground">Acerto</span>
+                            <p className="text-lg font-bold">{evaluation.overall.accuracy}%</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-muted-foreground">Brier (↓ melhor)</span>
+                            <p className="text-lg font-bold">{evaluation.overall.brier}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-muted-foreground">Amostras</span>
+                            <p className="text-lg font-bold">{evaluation.overall.n}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-muted-foreground">Auto-calibração</span>
+                            <p className="text-sm font-medium">
+                              {!autoCalibrate
+                                ? 'desligada'
+                                : evaluation.overall.n >= MIN_CALIBRATION_SAMPLES
+                                  ? 'ativa ✓'
+                                  : `aguarda dados (${evaluation.overall.n}/${MIN_CALIBRATION_SAMPLES})`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Classificação</TableHead>
+                                <TableHead>Amostras</TableHead>
+                                <TableHead>Acerto</TableHead>
+                                <TableHead>Previsto méd.</TableHead>
+                                <TableHead>Real (BTTS)</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {evaluation.byTier.map((t) => (
+                                <TableRow key={t.tier}>
+                                  <TableCell>
+                                    <TierBadge tier={t.tier as PredictionTier} />
+                                  </TableCell>
+                                  <TableCell>{t.n}</TableCell>
+                                  <TableCell className="font-semibold">{t.accuracy}%</TableCell>
+                                  <TableCell className="text-muted-foreground">
+                                    {t.avgPredicted}%
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground">
+                                    {t.actualRate}%
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                        <div>
+                          <p className="mb-1 text-xs font-medium text-muted-foreground">
+                            Curva de fiabilidade (previsto vs real)
+                          </p>
+                          <ResponsiveContainer width="100%" height={220}>
+                            <LineChart data={reliability}>
+                              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                              <XAxis
+                                dataKey="predicted"
+                                type="number"
+                                domain={[0, 100]}
+                                ticks={[0, 25, 50, 75, 100]}
+                                fontSize={11}
+                                unit="%"
+                              />
+                              <YAxis
+                                domain={[0, 100]}
+                                ticks={[0, 25, 50, 75, 100]}
+                                fontSize={11}
+                                unit="%"
+                              />
+                              <RTooltip
+                                formatter={(value, name, item) => {
+                                  const v = value as number | null;
+                                  if (name === 'actual') {
+                                    const n = (item?.payload?.n as number) ?? 0;
+                                    return [v == null ? '—' : `${v}% · ${n} jogo(s)`, 'Real'];
+                                  }
+                                  return [v == null ? '—' : `${v}%`, 'Ideal'];
+                                }}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="ideal"
+                                name="Ideal"
+                                stroke="#94a3b8"
+                                strokeDasharray="4 4"
+                                dot={false}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="actual"
+                                name="Real"
+                                stroke="#10b981"
+                                connectNulls
+                                dot={{ r: 3 }}
+                              >
+                                <LabelList
+                                  dataKey="n"
+                                  position="top"
+                                  fontSize={10}
+                                  formatter={(n: number) => (n ? `${n}j` : '')}
+                                />
+                              </Line>
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Na curva de fiabilidade, quanto mais a linha "Real" colar à diagonal
+                          "Ideal", melhor calibrado está o modelo. O número junto a cada ponto (ex.:
+                          "3j") é quantos jogos há nessa faixa — pontos com poucos jogos são menos
+                          fiáveis. Marque o resultado real dos jogos (abaixo) ou use "Atualizar
+                          resultados".
                         </p>
-                      </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Classificação</TableHead>
-                            <TableHead>Amostras</TableHead>
-                            <TableHead>Acerto</TableHead>
-                            <TableHead>Previsto méd.</TableHead>
-                            <TableHead>Real (BTTS)</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {evaluation.byTier.map((t) => (
-                            <TableRow key={t.tier}>
-                              <TableCell>
-                                <TierBadge tier={t.tier as PredictionTier} />
-                              </TableCell>
-                              <TableCell>{t.n}</TableCell>
-                              <TableCell className="font-semibold">{t.accuracy}%</TableCell>
-                              <TableCell className="text-muted-foreground">
-                                {t.avgPredicted}%
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">
-                                {t.actualRate}%
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                    <div>
-                      <p className="mb-1 text-xs font-medium text-muted-foreground">
-                        Curva de fiabilidade (previsto vs real)
-                      </p>
-                      <ResponsiveContainer width="100%" height={220}>
-                        <LineChart data={reliability}>
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                          <XAxis
-                            dataKey="predicted"
-                            type="number"
-                            domain={[0, 100]}
-                            ticks={[0, 25, 50, 75, 100]}
-                            fontSize={11}
-                            unit="%"
-                          />
-                          <YAxis
-                            domain={[0, 100]}
-                            ticks={[0, 25, 50, 75, 100]}
-                            fontSize={11}
-                            unit="%"
-                          />
-                          <RTooltip
-                            formatter={(value, name, item) => {
-                              const v = value as number | null;
-                              if (name === 'actual') {
-                                const n = (item?.payload?.n as number) ?? 0;
-                                return [v == null ? '—' : `${v}% · ${n} jogo(s)`, 'Real'];
-                              }
-                              return [v == null ? '—' : `${v}%`, 'Ideal'];
-                            }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="ideal"
-                            name="Ideal"
-                            stroke="#94a3b8"
-                            strokeDasharray="4 4"
-                            dot={false}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="actual"
-                            name="Real"
-                            stroke="#10b981"
-                            connectNulls
-                            dot={{ r: 3 }}
-                          >
-                            <LabelList
-                              dataKey="n"
-                              position="top"
-                              fontSize={10}
-                              formatter={(n: number) => (n ? `${n}j` : '')}
-                            />
-                          </Line>
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Na curva de fiabilidade, quanto mais a linha "Real" colar à diagonal "Ideal",
-                      melhor calibrado está o modelo. O número junto a cada ponto (ex.: "3j") é
-                      quantos jogos há nessa faixa — pontos com poucos jogos são menos fiáveis.
-                      Marque o resultado real dos jogos (abaixo) ou use "Atualizar resultados".
-                    </p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               )}

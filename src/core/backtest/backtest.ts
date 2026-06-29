@@ -125,6 +125,74 @@ export function accuracyByConfidence(samples: Sample[], bandSize = 10): Confiden
   return bands;
 }
 
+// ---- Generic per-market evaluation (BTTS / Over-Under / 1X2) ----
+//
+// A market-agnostic sample: the probability of the *picked* side and whether
+// that pick turned out correct. Lets the History tab score any market the same
+// way without mixing them.
+
+export interface OutcomeSample {
+  prob: number; // probability of the picked side, 0..1
+  correct: 0 | 1; // 1 = the pick was right
+}
+
+/** Overall accuracy (%) + Brier of a set of market picks. */
+export function evaluateOutcomes(samples: OutcomeSample[]): {
+  n: number;
+  accuracy: number;
+  brier: number;
+} {
+  const n = samples.length;
+  const correct = samples.filter((s) => s.correct === 1).length;
+  const brierSum = samples.reduce((sum, s) => sum + (s.prob - s.correct) ** 2, 0);
+  return {
+    n,
+    accuracy: round(safeDivide(correct, n, 0) * 100, 1),
+    brier: round(safeDivide(brierSum, n, 0), 4),
+  };
+}
+
+/** Hit-rate grouped by the picked-side probability band (0–100%, since a 1X2
+ * pick can sit below 50%). Bands with no games carry a null accuracy. */
+export function confidenceBandsOutcomes(samples: OutcomeSample[], bandSize = 10): ConfidenceBand[] {
+  const bands: ConfidenceBand[] = [];
+  for (let lo = 0; lo < 100; lo += bandSize) {
+    const hi = Math.min(100, lo + bandSize);
+    const inBand = samples.filter((s) => {
+      const p = s.prob * 100;
+      return p >= lo && (hi >= 100 ? p <= hi : p < hi);
+    });
+    const correct = inBand.filter((s) => s.correct === 1).length;
+    bands.push({
+      label: `${lo}–${hi}%`,
+      lower: lo,
+      upper: hi,
+      n: inBand.length,
+      accuracy: inBand.length ? round((correct / inBand.length) * 100, 1) : null,
+    });
+  }
+  return bands;
+}
+
+/** Calibration curve: predicted picked-side probability vs observed hit-rate. */
+export function reliabilityOutcomes(samples: OutcomeSample[], bins = 5): ReliabilityBin[] {
+  const buckets: OutcomeSample[][] = Array.from({ length: bins }, () => []);
+  for (const s of samples) {
+    const idx = Math.min(bins - 1, Math.floor(clamp(s.prob) * bins));
+    buckets[idx]!.push(s);
+  }
+  return buckets.map((bucket, i) => {
+    const center = ((i + 0.5) / bins) * 100;
+    if (bucket.length === 0) return { predicted: round(center, 0), actual: null, n: 0 };
+    const hit = bucket.filter((s) => s.correct === 1).length;
+    return {
+      predicted: round(center, 0),
+      actual: round((hit / bucket.length) * 100, 1),
+      n: bucket.length,
+    };
+  });
+}
+
 // ---- Platt scaling (logistic recalibration) ----
 
 export interface PlattParams {

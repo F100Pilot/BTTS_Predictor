@@ -48,6 +48,9 @@ Empirical-Bayes shrinkage (v0.2.46). Por decidir:
 
 ## Concluído recentemente
 
+- [x] Seletor de mercado (BTTS/O-U 2.5/1X2) na página de Jogos + desempenho por
+      mercado no Histórico, sem misturar (v0.2.49 / v0.2.50).
+- [x] Liquidação de Histórico/Apostas por score; "Acerto por faixa" (v0.2.47/0.2.48).
 - [x] Liquidação automática no Ao Vivo + remoção ao atingir o resultado (v0.2.45).
 - [x] Recência (time-decay) + Empirical-Bayes shrinkage no modelo (v0.2.46).
 - [x] Confirmação antes de reanalisar (v0.2.44.1).
