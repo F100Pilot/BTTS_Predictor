@@ -60,22 +60,29 @@ export function ValueCard({
     if (!v) return null;
     const positive = v.edge > 0;
     const isBest = value.best === side;
+    const pct = round(v.edge * 100, 1);
+    // The odd you'd need for this side to be break-even at the model's probability.
+    const fairOdd = v.prob > 0 ? round(1 / v.prob, 2) : null;
     return (
-      <div className="flex items-center justify-between border-b py-2 last:border-0">
-        <span className="font-medium">
-          {label} <span className="text-xs text-muted-foreground">@ {v.odd.toFixed(2)}</span>
-        </span>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-muted-foreground">modelo {toPercent(v.prob)}</span>
-          <span className={positive ? 'font-bold text-success' : 'text-muted-foreground'}>
-            {positive ? '+' : ''}
-            {round(v.edge * 100, 1)}%
+      <div className="border-b py-2 last:border-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium">
+            {label} <span className="text-xs text-muted-foreground">@ {v.odd.toFixed(2)}</span>
           </span>
-          {isBest && positive && (
-            <span className="rounded-full bg-success px-2 py-0.5 text-xs font-semibold text-success-foreground">
-              valor
-            </span>
-          )}
+          <span
+            className={
+              positive
+                ? 'shrink-0 font-bold text-success'
+                : 'shrink-0 text-sm font-medium text-muted-foreground'
+            }
+          >
+            {positive ? `Valor +${pct}%` : `Sem valor (${pct}%)`}
+          </span>
+        </div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          Modelo {toPercent(v.prob)}
+          {fairOdd != null && ` · odd justa ${fairOdd.toFixed(2)}`}
+          {isBest && positive && ' · melhor opção'}
         </div>
       </div>
     );
@@ -86,7 +93,9 @@ export function ValueCard({
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Valor vs mercado</CardTitle>
         <CardDescription>
-          Edge = probabilidade do modelo × odd − 1. Positivo (verde) = valor esperado a favor.
+          Compara a probabilidade do modelo com a odd da casa. “Valor +X%” (verde) = aposta
+          vantajosa a longo prazo; “Sem valor” = a odd é baixa demais. A “odd justa” é a odd mínima
+          a partir da qual passaria a ter valor.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
