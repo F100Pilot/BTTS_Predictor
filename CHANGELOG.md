@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.48.1
+
+- **Banner de jogo reorganizado (mobile-first)** em `GamesTable`: passou de uma
+  linha horizontal (hora · nome · pill · ações) para um cartão vertical — hora +
+  competição em cima, **nome das duas equipas em largura total** (sem corte), e
+  prognóstico + classificação + confiança + ações em baixo. Resolve os nomes
+  truncados no telemóvel.
+
 ## 0.2.48.0
 
 - **"Acerto por faixa"** no Histórico (Previsões): pop-up (`Dialog`) com um
