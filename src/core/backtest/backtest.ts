@@ -22,7 +22,7 @@ export function brier(probYes: number, outcome: 0 | 1): number {
 }
 
 /** Whether the dominant side of the prediction matched the outcome. */
-function isCorrect(probYes: number, outcome: 0 | 1): boolean {
+export function isCorrect(probYes: number, outcome: 0 | 1): boolean {
   return (probYes >= 0.5 ? 1 : 0) === outcome;
 }
 
@@ -86,6 +86,43 @@ export function reliabilityCurve(samples: Sample[], bins = 5): ReliabilityBin[] 
       n: bucket.length,
     };
   });
+}
+
+export interface ConfidenceBand {
+  /** e.g. "70–80%". */
+  label: string;
+  lower: number; // inclusive lower bound (50..90)
+  upper: number; // upper bound (60..100)
+  n: number;
+  /** % of calls that were correct in this band, or null when empty. */
+  accuracy: number | null;
+}
+
+/**
+ * Hit-rate of the model grouped by the *shown* prediction percentage — the
+ * dominant side, which always sits in 50–100%. Answers "which confidence
+ * bands actually hit most often". `bandSize` is the width of each band (default
+ * 10 → 50–60, 60–70, …, 90–100).
+ */
+export function accuracyByConfidence(samples: Sample[], bandSize = 10): ConfidenceBand[] {
+  const bands: ConfidenceBand[] = [];
+  for (let lo = 50; lo < 100; lo += bandSize) {
+    const hi = Math.min(100, lo + bandSize);
+    const inBand = samples.filter((s) => {
+      const pct = Math.max(s.probYes, 1 - s.probYes) * 100;
+      // The top band is closed on the right so a 100% call is counted.
+      return pct >= lo && (hi >= 100 ? pct <= hi : pct < hi);
+    });
+    const correct = inBand.filter((s) => isCorrect(s.probYes, s.outcome)).length;
+    bands.push({
+      label: `${lo}–${hi}%`,
+      lower: lo,
+      upper: hi,
+      n: inBand.length,
+      accuracy: inBand.length ? round((correct / inBand.length) * 100, 1) : null,
+    });
+  }
+  return bands;
 }
 
 // ---- Platt scaling (logistic recalibration) ----

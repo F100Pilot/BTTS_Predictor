@@ -33,7 +33,16 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart3 } from 'lucide-react';
 import { bttsVerdict } from '@/core/classification/classification';
 import { winProfit } from '@/core/martingale/martingale';
 import {
@@ -46,6 +55,9 @@ import {
 } from '@/components/ui/table';
 import { TierBadge } from '@/components/common/PredictionWidgets';
 import {
+  Bar,
+  BarChart,
+  Cell,
   Line,
   LineChart,
   CartesianGrid,
@@ -54,7 +66,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { evaluate, reliabilityCurve, type Sample } from '@/core/backtest/backtest';
+import {
+  evaluate,
+  reliabilityCurve,
+  accuracyByConfidence,
+  type Sample,
+} from '@/core/backtest/backtest';
 import { useCalibration, MIN_CALIBRATION_SAMPLES } from '@/store/calibrationStore';
 import { useSettings } from '@/store/settingsStore';
 import { todayIso, formatDateTime } from '@/lib/format';
@@ -67,6 +84,10 @@ const log = createLogger('HistoryPage');
 const dayKey = (ms: number): string => format(new Date(ms), 'yyyy-MM-dd');
 const predictedSide = (probYes: number): 'yes' | 'no' => (probYes >= 0.5 ? 'yes' : 'no');
 const EUR = (n: number): string => `€${n.toFixed(2)}`;
+
+/** Colour for an accuracy value (green good, amber so-so, red poor). */
+const accuracyColor = (acc: number): string =>
+  acc >= 70 ? '#10b981' : acc >= 55 ? '#f59e0b' : '#ef4444';
 
 /** Keep one prediction per fixture (latest), removing legacy duplicates. */
 function dedupeByFixture(records: HistoryRecord[]): HistoryRecord[] {
@@ -135,6 +156,12 @@ export function HistoryPage() {
     [settled],
   );
   const evaluation = useMemo(() => evaluate(samples), [samples]);
+  // Hit-rate grouped by the shown prediction % (dominant side, 50–100%), for the
+  // "Acerto por faixa" pop-up. Only bands that actually have games are charted.
+  const confidenceBands = useMemo(
+    () => accuracyByConfidence(samples, 10).filter((b) => b.n > 0),
+    [samples],
+  );
   const reliability = useMemo(
     () =>
       reliabilityCurve(samples, 5).map((b) => ({
@@ -418,6 +445,76 @@ export function HistoryPage() {
                     <RefreshCw className={flashFetching ? 'animate-spin' : ''} /> Atualizar
                     resultados
                   </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <BarChart3 /> Acerto por faixa
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-primary" /> Acerto por faixa de
+                          probabilidade
+                        </DialogTitle>
+                        <DialogDescription>
+                          Taxa de acerto das previsões já liquidadas, agrupadas pela percentagem
+                          mostrada (o lado dominante, de 50% a 100%). Ajuda a ver que faixas são
+                          mais fiáveis.
+                        </DialogDescription>
+                      </DialogHeader>
+                      {confidenceBands.length === 0 ? (
+                        <EmptyState
+                          title="Sem dados suficientes"
+                          description="Marca o resultado de alguns jogos para veres o acerto por faixa."
+                        />
+                      ) : (
+                        <ResponsiveContainer
+                          width="100%"
+                          height={Math.max(160, confidenceBands.length * 48)}
+                        >
+                          <BarChart
+                            layout="vertical"
+                            data={confidenceBands}
+                            margin={{ left: 8, right: 32, top: 4, bottom: 4 }}
+                          >
+                            <CartesianGrid horizontal={false} strokeDasharray="3 3" opacity={0.2} />
+                            <XAxis type="number" domain={[0, 100]} unit="%" fontSize={11} />
+                            <YAxis
+                              type="category"
+                              dataKey="label"
+                              width={56}
+                              fontSize={11}
+                              tickLine={false}
+                            />
+                            <RTooltip
+                              formatter={(v: number, _n, p) => [
+                                `${v}% acerto · ${p?.payload?.n ?? 0} jogo(s)`,
+                                'Faixa',
+                              ]}
+                            />
+                            <Bar
+                              dataKey="accuracy"
+                              radius={[0, 4, 4, 0]}
+                              label={{
+                                position: 'right',
+                                formatter: (v: number) => `${v}%`,
+                                fontSize: 11,
+                              }}
+                            >
+                              {confidenceBands.map((b) => (
+                                <Cell key={b.label} fill={accuracyColor(b.accuracy ?? 0)} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Baseado em {samples.length} previsão(ões) liquidada(s). Verde ≥70% · amarelo
+                        ≥55% · vermelho &lt;55%.
+                      </p>
+                    </DialogContent>
+                  </Dialog>
                   <Button variant="outline" size="sm" onClick={handleExport}>
                     <Download /> CSV
                   </Button>
