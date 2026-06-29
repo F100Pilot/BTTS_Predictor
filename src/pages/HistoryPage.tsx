@@ -55,7 +55,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, SlidersHorizontal } from 'lucide-react';
 import { bttsVerdict, tierForProbability } from '@/core/classification/classification';
 import { winProfit } from '@/core/martingale/martingale';
 import {
@@ -730,10 +730,28 @@ export function HistoryPage() {
                 </Card>
               )}
 
-              {/* Model tuning, per market: BTTS has factor weights; O/U has its
-                  own calibration; 1X2 calibration (3-way) is pending. */}
+              {/* Model tuning, per market: BTTS has factor weights (in a pop-up);
+                  O/U has its own calibration; 1X2 calibration (3-way) is pending. */}
               {market === 'btts' ? (
-                <ModelTuningPanel />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <SlidersHorizontal /> Pesos do modelo (BTTS)
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <SlidersHorizontal className="h-5 w-5 text-primary" /> Pesos do Modelo
+                        (BTTS)
+                      </DialogTitle>
+                      <DialogDescription>
+                        Ajusta os fatores, a calibração com odds e a auto-calibração do BTTS.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <ModelTuningPanel />
+                  </DialogContent>
+                </Dialog>
               ) : market === 'ou25' ? (
                 <Ou25CalibrationPanel />
               ) : (

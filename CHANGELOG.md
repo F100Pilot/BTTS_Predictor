@@ -20,6 +20,12 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.2.1
+
+- **Pesos do Modelo (BTTS) em pop-up**: no Histórico (mercado BTTS) o painel
+  deixa de estar permanentemente aberto — abre num `Dialog` via botão. O
+  `ModelTuningPanel` deixou de ter `Card` próprio (renderiza dentro do diálogo).
+
 ## 0.3.2.0
 
 - **Calibração por mercado (Over/Under 2.5)**: nova auto-calibração própria do
