@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.0.1
+
+- **Fix**: no Histórico, a **lista de jogos** passa a acompanhar o mercado
+  selecionado. Antes a tabela mostrava sempre o prognóstico/resultado de BTTS
+  mesmo com O/U 2.5 ou 1X2 escolhidos. Agora a coluna, o prognóstico (lado + %),
+  a classificação e o "resultado real" refletem o mercado ativo (via `recordPick`
+  + `marketActualSide`). Para O/U e 1X2 a liquidação continua a derivar do score.
+
 ## 0.3.0.0
 
 - **Removidas as abas "Favoritos" e "Watchlist"** — navegação simplificada
