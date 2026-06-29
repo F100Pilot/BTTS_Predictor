@@ -21,7 +21,8 @@ import {
   removeHistory,
 } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
-import { settleBetAgainstBtts } from '@/services/settlementService';
+import { settleBetAgainstBtts, bttsFromGoals } from '@/services/settlementService';
+import { ScoreInput } from '@/components/common/ScoreInput';
 import { fetchFlashscoreByDate } from '@/services/flashscoreClient';
 import type { FlashFixture } from '@/services/flashscoreMatches';
 import { flashOutcome, buildFixtureIndex } from '@/services/flashscoreSettle';
@@ -149,6 +150,20 @@ export function HistoryPage() {
     await setHistoryResult(id, actual);
     await load();
     await refreshCalibration();
+  };
+
+  // Enter a scoreline for a prediction → derive the BTTS outcome automatically.
+  const setRecordScore = async (id: string, hg: number, ag: number): Promise<void> => {
+    await setHistoryResult(id, bttsFromGoals(hg, ag), `${hg}-${ag}`);
+    await load();
+    await refreshCalibration();
+  };
+
+  // Enter a scoreline for a bet → derive the BTTS outcome and grade won/lost.
+  const setBetScore = async (bet: Bet, hg: number, ag: number): Promise<void> => {
+    const graded = settleBetAgainstBtts(bet, bttsFromGoals(hg, ag));
+    if (!graded) return; // non-BTTS market we can't grade from a scoreline
+    await setBetResult(bet.id, graded, `${hg}-${ag}`);
   };
 
   const handleDeleteRecord = async (id: string): Promise<void> => {
@@ -626,26 +641,31 @@ export function HistoryPage() {
                                         </Button>
                                       </div>
                                     ) : (
-                                      <div className="flex items-center gap-1">
-                                        <span className="hidden text-xs text-muted-foreground sm:inline">
-                                          Marcar:
-                                        </span>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-7 px-2"
-                                          onClick={() => void setResult(r.id, 'yes')}
-                                        >
-                                          BTTS SIM
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-7 px-2"
-                                          onClick={() => void setResult(r.id, 'no')}
-                                        >
-                                          BTTS NÃO
-                                        </Button>
+                                      <div className="flex flex-col gap-1.5">
+                                        <ScoreInput
+                                          onSubmit={(hg, ag) => void setRecordScore(r.id, hg, ag)}
+                                        />
+                                        <div className="flex items-center gap-1">
+                                          <span className="hidden text-xs text-muted-foreground sm:inline">
+                                            ou:
+                                          </span>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 px-2"
+                                            onClick={() => void setResult(r.id, 'yes')}
+                                          >
+                                            BTTS SIM
+                                          </Button>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 px-2"
+                                            onClick={() => void setResult(r.id, 'no')}
+                                          >
+                                            BTTS NÃO
+                                          </Button>
+                                        </div>
                                       </div>
                                     )}
                                   </TableCell>
@@ -736,14 +756,38 @@ export function HistoryPage() {
                           <TableCell>{b.odds.toFixed(2)}</TableCell>
                           <TableCell>{EUR(b.stake)}</TableCell>
                           <TableCell>
-                            {b.result === 'won' && (
-                              <span className="font-semibold text-success">Ganha</span>
-                            )}
-                            {b.result === 'lost' && (
-                              <span className="font-semibold text-destructive">Perdida</span>
-                            )}
-                            {b.result === 'pending' && (
-                              <span className="text-warning">Pendente</span>
+                            {b.result === 'pending' ? (
+                              <ScoreInput onSubmit={(hg, ag) => void setBetScore(b, hg, ag)} />
+                            ) : (
+                              <div
+                                className="flex items-center gap-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span
+                                  className={
+                                    b.result === 'won'
+                                      ? 'font-semibold text-success'
+                                      : 'font-semibold text-destructive'
+                                  }
+                                >
+                                  {b.result === 'won' ? 'Ganha' : 'Perdida'}
+                                </span>
+                                {b.score && (
+                                  <span className="text-xs tabular-nums text-muted-foreground">
+                                    {b.score}
+                                  </span>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  aria-label="Limpar resultado"
+                                  title="Limpar resultado"
+                                  onClick={() => void setBetResult(b.id, 'pending')}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             )}
                           </TableCell>
                           <TableCell

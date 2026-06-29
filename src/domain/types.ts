@@ -221,6 +221,8 @@ export interface Bet {
   stake: number; // computed at creation time
   step: number; // martingale step at creation time
   result: BetResult;
+  /** Final scoreline (e.g. "2-1") when settled by entering the result. */
+  score?: string;
 }
 
 export interface MartingaleSettings {

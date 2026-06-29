@@ -20,6 +20,18 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.2.47.0
+
+- **Liquidação por resultado (score)** no Histórico e nas Apostas: novo
+  `ScoreInput` (golos casa–fora) que deriva o BTTS via `bttsFromGoals` e
+  liquida automaticamente — no histórico grava o resultado + score
+  (`setHistoryResult`), nas apostas calcula ganha/perdida com
+  `settleBetAgainstBtts` e grava (`setResult` com o score).
+- `Bet` ganhou um campo opcional `score`; o `setResult` do store passa a
+  aceitar/limpar o score. As apostas mostram o score ao lado do resultado e
+  têm um botão para limpar (volta a pendente). Os botões rápidos BTTS SIM/NÃO
+  mantêm-se no histórico.
+
 ## 0.2.46.0
 
 Melhorias ao modelo de previsão (sugeridas numa revisão externa), aplicadas só
