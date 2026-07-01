@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.3.4.1';
+export const APP_VERSION = '0.3.4.2';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.4.2: Duas correções no Histórico → Apostas: (1) ao carregar em "Atualizar resultados" a app deixava de mostrar a aba Apostas e voltava para as Previsões — agora a aba escolhida mantém-se; (2) o resultado (ex.: "2-1") ao lado de "Ganha/Perdida" aparecia partido em duas linhas — passa a ficar sempre na horizontal.',
   'v0.3.4.1: Correção no Histórico → Apostas — o "Atualizar resultados" (e a introdução manual do score) só liquidava apostas BTTS; as de Mais/Menos 2.5 e 1X2 ficavam pendentes para sempre. Agora cada aposta é avaliada contra o seu próprio mercado a partir do resultado: O/U compara os golos totais com 2.5 e o 1X2 compara o vencedor com a tua seleção. Em jogos ao vivo, só resultados irreversíveis liquidam cedo (BTTS "sim" quando ambas marcam, Over 2.5 quando o total passa os 2.5); o 1X2 espera pelo final.',
   'v0.3.4.0: A análise de um jogo passa a acompanhar o mercado selecionado — ao abrir um jogo com Mais/Menos 2.5 ou 1X2 escolhido, o destaque mostra o prognóstico desse mercado (lado + percentagem + classificação e barra), em vez de mostrar sempre BTTS. Há um seletor de mercado no topo da análise para alternar ali mesmo. Além disso, no Histórico → Previsões podes clicar num jogo para abrir a sua análise (como já acontecia nas Apostas).',
   'v0.3.3.1: A perda do Martingale passa a ser partilhada por todos os mercados — se tiveste perdas no BTTS, o Martingale do Mais/Menos 2.5 ou do 1X2 já entra em conta com essas perdas (uma vitória em qualquer mercado recupera a banca toda). O pop-up de aposta na análise passa a calcular a stake sugerida a partir dessa perda acumulada partilhada. O seletor de mercado na aba Martingale filtra a tabela e define o mercado da próxima aposta; a banca e a série de recuperação são únicas.',
