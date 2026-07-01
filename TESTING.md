@@ -83,6 +83,10 @@ _Nenhum bug aberto conhecido._
 
 Histórico resumido (detalhe completo no `CHANGELOG.md`):
 
+- **"Atualizar resultados" não liquidava apostas O/U 2.5 nem 1X2** (Histórico →
+  Apostas): a liquidação (botão, score manual e Ao Vivo) era só-BTTS e deixava
+  as apostas dos outros mercados pendentes. Passou a avaliar cada aposta contra
+  o seu mercado (`settleBetAgainstGoals`) — v0.3.4.1.
 - **Martingale não acautelava perdas de outros mercados**: ao apostar em O/U 2.5 ou 1X2,
   a série ignorava as perdas do BTTS (e vice-versa) e o pop-up mostrava sempre stake "—".
   A perda/série passou a ser **global partilhada** por todos os mercados (`globalSeries`,

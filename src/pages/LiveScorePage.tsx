@@ -10,8 +10,8 @@ import { useMartingale } from '@/store/martingaleStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { useDataService } from '@/hooks/useDataService';
 import { listHistory, listBets, setHistoryResult } from '@/data/cache/repositories';
-import { buildFixtureIndex, flashOutcome } from '@/services/flashscoreSettle';
-import { settleBetAgainstBtts } from '@/services/settlementService';
+import { buildFixtureIndex, flashOutcome, flashGoals } from '@/services/flashscoreSettle';
+import { settleBetAgainstGoals } from '@/services/settlementService';
 import { fetchFlashscoreLive, fixtureToLiveMatch } from '@/services/flashscoreClient';
 import { bttsVerdict } from '@/core/classification/classification';
 import { IconAction } from '@/components/common/IconAction';
@@ -309,9 +309,11 @@ export function LiveScorePage() {
           for (const b of bets) {
             if (b.result !== 'pending') continue;
             const f = idx.find(b.flashMatchId, b.matchLabel);
-            const o = f && f.status === 'live' ? flashOutcome(f) : null;
-            if (!o) continue;
-            const graded = settleBetAgainstBtts(b, o.outcome);
+            const g = f && f.status === 'live' ? flashGoals(f) : null;
+            if (!g) continue;
+            // Bets grade against their own market; in play only irreversible
+            // outcomes settle (BTTS both scored, Over 2.5 total passed).
+            const graded = settleBetAgainstGoals(b, g.home, g.away, { finished: false });
             if (graded) {
               await setBetResult(b.id, graded);
               settled = true;
