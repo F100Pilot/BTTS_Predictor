@@ -83,6 +83,11 @@ _Nenhum bug aberto conhecido._
 
 Histórico resumido (detalhe completo no `CHANGELOG.md`):
 
+- **A aba voltava a Previsões ao "Atualizar resultados" nas Apostas**: o spinner
+  de refresh desmontava o `<Tabs>` não-controlado. Passou a ser controlado por
+  estado — v0.3.4.2.
+- **Score na coluna Resultado quebrava em duas linhas** ("2-"/"1"): o span do
+  score ficou `whitespace-nowrap` — v0.3.4.2.
 - **"Atualizar resultados" não liquidava apostas O/U 2.5 nem 1X2** (Histórico →
   Apostas): a liquidação (botão, score manual e Ao Vivo) era só-BTTS e deixava
   as apostas dos outros mercados pendentes. Passou a avaliar cada aposta contra

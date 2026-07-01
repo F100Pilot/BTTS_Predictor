@@ -141,6 +141,10 @@ export function HistoryPage() {
   const setMarket = useMarket((s) => s.setMarket);
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  // Controlled so the active tab survives the loading spinner that briefly
+  // unmounts the page during a refresh (e.g. after "Atualizar resultados" on
+  // the Apostas tab — otherwise it would snap back to Previsões).
+  const [tab, setTab] = useState<'predictions' | 'bets'>('predictions');
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [calOpen, setCalOpen] = useState(false);
   const [flashFetching, setFlashFetching] = useState(false);
@@ -470,7 +474,7 @@ export function HistoryPage() {
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-bold">Histórico</h1>
-      <Tabs defaultValue="predictions">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as 'predictions' | 'bets')}>
         <TabsList>
           <TabsTrigger value="predictions">Previsões</TabsTrigger>
           <TabsTrigger value="bets">Apostas</TabsTrigger>
@@ -1102,14 +1106,14 @@ export function HistoryPage() {
                                 <span
                                   className={
                                     b.result === 'won'
-                                      ? 'font-semibold text-success'
-                                      : 'font-semibold text-destructive'
+                                      ? 'shrink-0 font-semibold text-success'
+                                      : 'shrink-0 font-semibold text-destructive'
                                   }
                                 >
                                   {b.result === 'won' ? 'Ganha' : 'Perdida'}
                                 </span>
                                 {b.score && (
-                                  <span className="text-xs tabular-nums text-muted-foreground">
+                                  <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
                                     {b.score}
                                   </span>
                                 )}

@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.4.2
+
+- **Correção: a aba saltava para Previsões ao atualizar resultados**: no
+  Histórico, `if (loading) return <Spinner />` desmonta a página durante o
+  refresh e o `<Tabs>` (não controlado, `defaultValue="predictions"`) reiniciava
+  para Previsões — mesmo estando nas Apostas. O separador passa a ser controlado
+  por estado (`tab`), preservando a aba ativa entre refreshes.
+- **Correção: o score na coluna Resultado quebrava em duas linhas** (ex.: "2-"
+  / "1"). O `<span>` do score ganhou `shrink-0 whitespace-nowrap` (e a etiqueta
+  Ganha/Perdida `shrink-0`), ficando sempre na horizontal.
+
 ## 0.3.4.1
 
 - **Correção: liquidação de apostas não-BTTS**: no Histórico → Apostas, o
