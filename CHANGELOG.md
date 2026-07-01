@@ -20,6 +20,21 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.4.1
+
+- **Correção: liquidação de apostas não-BTTS**: no Histórico → Apostas, o
+  "Atualizar resultados" e a introdução manual do score só liquidavam apostas
+  BTTS (`settleBetAgainstBtts`) — as de O/U 2.5 e 1X2 ficavam pendentes para
+  sempre. Novo `settleBetAgainstGoals(bet, hg, ag, {finished})` avalia cada
+  aposta contra o **seu próprio mercado** a partir do resultado (via
+  `marketActualSide`), com seleções normalizadas (SIM/NÃO · Over/Under · Casa/
+  Empate/Fora, PT/EN). Em jogo (não terminado) só liquidam resultados
+  irreversíveis: BTTS "sim" com ambas a marcar e Over 2.5 com 3+ golos; o 1X2
+  espera pelo final. Novo `flashGoals` expõe golos + flag `finished` do feed
+  (o `flashOutcome`, só-BTTS, mantém-se para as previsões do histórico).
+- Aplica-se aos três caminhos: botão "Atualizar resultados", score manual na
+  aposta e auto-liquidação da página Ao Vivo. Testes novos para ambos.
+
 ## 0.3.4.0
 
 - **Análise segue o mercado selecionado**: a página de análise deixa de mostrar

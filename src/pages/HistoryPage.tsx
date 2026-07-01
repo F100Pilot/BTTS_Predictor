@@ -21,7 +21,7 @@ import {
   removeHistory,
 } from '@/data/cache/repositories';
 import { useMartingale } from '@/store/martingaleStore';
-import { settleBetAgainstBtts, bttsFromGoals } from '@/services/settlementService';
+import { settleBetAgainstGoals, bttsFromGoals } from '@/services/settlementService';
 import { ScoreInput } from '@/components/common/ScoreInput';
 import { useMarket } from '@/store/marketStore';
 import { MarketSelector } from '@/components/common/MarketSelector';
@@ -38,7 +38,7 @@ import {
 } from '@/core/markets/markets';
 import { fetchFlashscoreByDate } from '@/services/flashscoreClient';
 import type { FlashFixture } from '@/services/flashscoreMatches';
-import { flashOutcome, buildFixtureIndex } from '@/services/flashscoreSettle';
+import { flashOutcome, flashGoals, buildFixtureIndex } from '@/services/flashscoreSettle';
 import { FinancialDashboard } from '@/components/history/FinancialDashboard';
 import { AddHistoryDialog } from '@/components/history/AddHistoryDialog';
 import { EmptyState, Spinner } from '@/components/common/States';
@@ -251,10 +251,11 @@ export function HistoryPage() {
     await refreshCalibration();
   };
 
-  // Enter a scoreline for a bet → derive the BTTS outcome and grade won/lost.
+  // Enter a scoreline for a bet → grade it against the bet's own market
+  // (BTTS, Over/Under 2.5 or 1X2).
   const setBetScore = async (bet: Bet, hg: number, ag: number): Promise<void> => {
-    const graded = settleBetAgainstBtts(bet, bttsFromGoals(hg, ag));
-    if (!graded) return; // non-BTTS market we can't grade from a scoreline
+    const graded = settleBetAgainstGoals(bet, hg, ag);
+    if (!graded) return; // ambiguous selection we can't grade automatically
     await setBetResult(bet.id, graded, `${hg}-${ag}`);
   };
 
@@ -267,8 +268,9 @@ export function HistoryPage() {
   // Update results from Flashscore (the only data source). We fetch the day list
   // for each pending game's date (finished games carry the final score; in-play
   // ones are included too), match by the stored Flashscore match id (Calculator
-  // imports) first, then by team-name pair. Finished games settle both ways;
-  // in-play games can only lock an early "yes" once both teams have scored.
+  // imports) first, then by team-name pair. Finished games settle fully; in-play
+  // games only lock irreversible outcomes (BTTS "yes" once both have scored,
+  // Over 2.5 once the total passes it). Bets grade against their own market.
   const handleFlashResults = async (): Promise<void> => {
     if (!rapidApiKey.trim()) {
       setFetchMsg('Configura a chave RapidAPI em Definições para usar o Flashscore.');
@@ -305,11 +307,13 @@ export function HistoryPage() {
       let betsSettled = 0;
       for (const b of pendingBets) {
         const f = idx.find(b.flashMatchId, b.matchLabel);
-        const o = f ? flashOutcome(f) : null;
-        if (!o) continue;
-        const graded = settleBetAgainstBtts(b, o.outcome);
+        // Bets settle per market (BTTS / O-U / 1X2), so they need the raw
+        // score + finished flag instead of the BTTS-only outcome above.
+        const g = f ? flashGoals(f) : null;
+        if (!g) continue;
+        const graded = settleBetAgainstGoals(b, g.home, g.away, { finished: g.finished });
         if (graded) {
-          await setBetResult(b.id, graded);
+          await setBetResult(b.id, graded, g.finished ? g.score : undefined);
           betsSettled += 1;
         }
       }

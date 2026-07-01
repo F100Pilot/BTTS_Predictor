@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { flashOutcome, buildFixtureIndex, splitFixtureName } from './flashscoreSettle';
+import { flashOutcome, flashGoals, buildFixtureIndex, splitFixtureName } from './flashscoreSettle';
 import type { FlashFixture } from './flashscoreMatches';
 
 const fx = (over: Partial<FlashFixture>): FlashFixture => ({
@@ -41,6 +41,30 @@ describe('flashOutcome', () => {
 
   it('does not settle when a score is missing', () => {
     expect(flashOutcome(fx({ status: 'live', scores: { home: null, away: null } }))).toBeNull();
+  });
+});
+
+describe('flashGoals', () => {
+  it('returns the goals + finished flag of a finished game', () => {
+    expect(flashGoals(fx({ scores: { home: 2, away: 0 } }))).toEqual({
+      home: 2,
+      away: 0,
+      finished: true,
+      score: '2-0',
+    });
+  });
+
+  it('marks in-play games as not finished (even one-sided scores)', () => {
+    expect(flashGoals(fx({ status: 'live', scores: { home: 3, away: 0 } }))).toEqual({
+      home: 3,
+      away: 0,
+      finished: false,
+      score: '3-0',
+    });
+  });
+
+  it('returns null when the feed has no score', () => {
+    expect(flashGoals(fx({ status: 'live', scores: { home: null, away: null } }))).toBeNull();
   });
 });
 

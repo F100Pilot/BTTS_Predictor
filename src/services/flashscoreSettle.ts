@@ -26,6 +26,23 @@ export function flashOutcome(f: FlashFixture): FlashSettleOutcome | null {
   return null;
 }
 
+export interface FlashGoals {
+  home: number;
+  away: number;
+  finished: boolean;
+  /** Scoreline "2-1" (only final when `finished`). */
+  score: string;
+}
+
+/** Current goals of a fixture, for market-aware bet settling (BTTS / O-U / 1X2
+ * grade differently, so the caller needs the raw score + finished flag rather
+ * than the BTTS-only `flashOutcome`). Null when the feed has no score yet. */
+export function flashGoals(f: FlashFixture): FlashGoals | null {
+  const { home, away } = f.scores;
+  if (home == null || away == null) return null;
+  return { home, away, finished: f.status === 'finished', score: `${home}-${away}` };
+}
+
 function norm(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, ' ');
 }
