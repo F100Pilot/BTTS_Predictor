@@ -1,14 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Bet, BetResult } from '@/domain/types';
-import { activeSeries, calculateStake } from '@/core/martingale/martingale';
+import type { MarketKey } from '@/core/markets/markets';
+import { activeSeries, calculateStake, betsForMarket } from '@/core/martingale/martingale';
 import { clearBets, listBets, putBet, removeBet } from '@/data/cache/repositories';
 import { sanitizeNumber } from '@/services/sanitize';
 import { useSettings } from '@/store/settingsStore';
 
+// Re-exported so components can group bets by market from the store module.
+export { betsForMarket };
+
 export interface NewBetInput {
   matchLabel: string;
   market: string;
+  /** Which market series this bet belongs to. */
+  marketKey: MarketKey;
   selection: string;
   odds: number;
   fixtureId?: string;
@@ -24,7 +30,8 @@ interface MartingaleState {
   baseProfit: number;
   maxStakePct: number; // % of current bankroll above which the stake is flagged (0 = off)
   maxStep: number; // safety brake: block new bets once the series reaches this step (0 = off)
-  seriesResetAt: number;
+  /** Per-market "reset series" timestamps; bets before it are ignored. */
+  seriesResetAt: Partial<Record<MarketKey, number>>;
   // Runtime
   bets: Bet[];
   loaded: boolean;
@@ -36,11 +43,11 @@ interface MartingaleState {
     maxStakePct?: number;
     maxStep?: number;
   }) => void;
-  nextStake: (odds: number) => number;
+  nextStake: (odds: number, market: MarketKey) => number;
   addBet: (input: NewBetInput) => Promise<void>;
   setResult: (id: string, result: BetResult, score?: string) => Promise<void>;
   deleteBet: (id: string) => Promise<void>;
-  resetSeries: () => void;
+  resetSeries: (market: MarketKey) => void;
   clearAll: () => Promise<void>;
 }
 
@@ -56,7 +63,7 @@ export const useMartingale = create<MartingaleState>()(
       baseProfit: 10,
       maxStakePct: 25,
       maxStep: 6,
-      seriesResetAt: 0,
+      seriesResetAt: {},
       bets: [],
       loaded: false,
 
@@ -89,13 +96,19 @@ export const useMartingale = create<MartingaleState>()(
               : s.maxStep,
         })),
 
-      nextStake: (odds) => {
-        const { currentLoss } = activeSeries(get().bets, get().seriesResetAt);
+      nextStake: (odds, market) => {
+        const { currentLoss } = activeSeries(
+          betsForMarket(get().bets, market),
+          get().seriesResetAt[market] ?? 0,
+        );
         return calculateStake(currentLoss, get().baseProfit, odds);
       },
 
       addBet: async (input) => {
-        const { currentLoss, step } = activeSeries(get().bets, get().seriesResetAt);
+        const { currentLoss, step } = activeSeries(
+          betsForMarket(get().bets, input.marketKey),
+          get().seriesResetAt[input.marketKey] ?? 0,
+        );
         const bet: Bet = {
           id: uid(),
           createdAt: Date.now(),
@@ -105,6 +118,7 @@ export const useMartingale = create<MartingaleState>()(
           matchLabel: input.matchLabel,
           kickoff: input.kickoff,
           market: input.market,
+          marketKey: input.marketKey,
           selection: input.selection,
           odds: input.odds,
           stake: calculateStake(currentLoss, get().baseProfit, input.odds),
@@ -133,16 +147,26 @@ export const useMartingale = create<MartingaleState>()(
         await get().refresh();
       },
 
-      resetSeries: () => set({ seriesResetAt: Date.now() }),
+      resetSeries: (market) =>
+        set((s) => ({ seriesResetAt: { ...s.seriesResetAt, [market]: Date.now() } })),
 
       clearAll: async () => {
         await clearBets();
-        set({ seriesResetAt: Date.now() });
+        set({ seriesResetAt: {} });
         await get().refresh();
       },
     }),
     {
       name: 'btts:martingale',
+      version: 1,
+      // v1: seriesResetAt went from a single number to a per-market map.
+      migrate: (persisted, version) => {
+        const s = (persisted ?? {}) as Record<string, unknown>;
+        if (version < 1 && typeof s.seriesResetAt === 'number') {
+          s.seriesResetAt = s.seriesResetAt ? { btts: s.seriesResetAt } : {};
+        }
+        return s as unknown as MartingaleState;
+      },
       partialize: (s) => ({
         initialBankroll: s.initialBankroll,
         baseProfit: s.baseProfit,

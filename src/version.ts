@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.3.2.2';
+export const APP_VERSION = '0.3.3.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.3.0: O Martingale passa a funcionar separadamente por mercado — BTTS, Mais/Menos 2.5 e 1X2 têm cada um a sua própria série de recuperação, banca e apostas. Na aba Martingale há um seletor de mercado; o pop-up de aposta (na análise) adapta as seleções ao mercado ativo (SIM/NÃO, Over/Under, Casa/Empate/Fora).',
   'v0.3.2.2: O histórico passa a ser mesmo separado por mercado — um jogo que adicionas ao BTTS deixa de aparecer no Mais/Menos 2.5 e no 1X2 (e vice-versa). Cada mercado guarda a sua própria lista de jogos.',
   'v0.3.2.1: No Histórico (mercado BTTS), o painel "Pesos do Modelo" deixa de estar sempre aberto — passa a abrir num pop-up através do botão "Pesos do modelo (BTTS)".',
   'v0.3.2.0: Calibração por mercado — o Mais/Menos 2.5 passa a ter a sua própria auto-calibração (independente do BTTS), no Histórico. Com a calibração ligada e 15+ jogos com resultado, a app ajusta as percentagens de Over/Under mostradas para se aproximarem do que realmente acontece. O 1X2 (3 vias) fica para uma fase seguinte.',

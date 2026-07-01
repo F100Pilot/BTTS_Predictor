@@ -513,6 +513,7 @@ export function CalculatorPage() {
     void addBet({
       matchLabel,
       market: 'BTTS',
+      marketKey: 'btts',
       selection,
       odds: selectionOdd,
       flashMatchId: flashMatchId || undefined,
