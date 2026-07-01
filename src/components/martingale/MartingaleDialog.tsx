@@ -11,9 +11,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useMartingale, betsForMarket } from '@/store/martingaleStore';
+import { useMartingale } from '@/store/martingaleStore';
 import { useMarket } from '@/store/marketStore';
-import { activeSeries } from '@/core/martingale/martingale';
+import { globalSeries } from '@/core/martingale/martingale';
 import { MARKET_SIDES, marketLabel } from '@/core/markets/markets';
 
 const EUR = (n: number): string => `€${n.toFixed(2)}`;
@@ -85,11 +85,10 @@ export function MartingaleDialog({
   }, [market]);
 
   const oddsVal = Number(odds);
-  const series = useMemo(
-    () => activeSeries(betsForMarket(bets, market), seriesResetAt[market] ?? 0),
-    [bets, seriesResetAt, market],
-  );
-  const stake = oddsVal > 1 ? nextStake(oddsVal, market) : 0;
+  // The loss series is shared across all markets — a bet here also recovers
+  // losses accumulated on BTTS / Over-Under / 1X2.
+  const series = useMemo(() => globalSeries(bets, seriesResetAt), [bets, seriesResetAt]);
+  const stake = oddsVal > 1 ? nextStake(oddsVal) : 0;
   const stepBlocked = maxStep > 0 && series.step > maxStep;
   const canAdd = oddsVal > 1 && !stepBlocked && !added;
 
@@ -195,6 +194,11 @@ export function MartingaleDialog({
               Banca <span className="font-semibold text-foreground">{EUR(initialBankroll)}</span>
             </span>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            A perda acumulada é <strong>partilhada por todos os mercados</strong>: esta stake já
+            acautela as perdas de BTTS, Mais/Menos 2.5 e 1X2.
+          </p>
 
           {stepBlocked && (
             <p className="text-xs text-destructive">

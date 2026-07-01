@@ -81,6 +81,10 @@ _Nenhum bug aberto conhecido._
 
 Histórico resumido (detalhe completo no `CHANGELOG.md`):
 
+- **Martingale não acautelava perdas de outros mercados**: ao apostar em O/U 2.5 ou 1X2,
+  a série ignorava as perdas do BTTS (e vice-versa) e o pop-up mostrava sempre stake "—".
+  A perda/série passou a ser **global partilhada** por todos os mercados (`globalSeries`,
+  `seriesResetAt` global com migração v2) — v0.3.3.1.
 - **Ao Vivo mostrava jogos já terminados** que o feed marcava como "em jogo" — corrigido
   com janela de tempo máxima desde o início (v0.2.38.2).
 - **"Testar ligação" dava falso erro** no Flashscore — passou a verificar pela via h2h,

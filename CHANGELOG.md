@@ -20,6 +20,21 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.3.1
+
+- **Martingale: perda partilhada por mercado**: a série de recuperação e a banca
+  voltam a ser **únicas/globais** — uma perda em qualquer mercado (BTTS, O/U 2.5
+  ou 1X2) entra no cálculo da stake de qualquer outro mercado, e uma vitória em
+  qualquer mercado recupera a perda acumulada de todos. Novo `globalSeries` (em
+  `core/martingale`, com testes); `seriesResetAt` volta a ser um único
+  _timestamp_ global (migração v2 colapsa o mapa por mercado); `nextStake`,
+  `addBet` e `resetSeries` deixam de receber `market`.
+- O **pop-up** de aposta na análise passa a calcular a stake a partir da perda
+  acumulada partilhada (antes mostrava sempre perda 0 nos mercados sem apostas).
+- Na aba **Martingale** a banca/estatísticas/projeção passam a ser globais; o
+  seletor de mercado filtra a tabela e define o mercado da próxima aposta.
+- `betsForMarket` mantém-se apenas como filtro de visualização da tabela.
+
 ## 0.3.3.0
 
 - **Martingale por mercado**: a série de recuperação, banca, estatísticas e

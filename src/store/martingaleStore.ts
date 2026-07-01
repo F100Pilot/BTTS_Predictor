@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Bet, BetResult } from '@/domain/types';
 import type { MarketKey } from '@/core/markets/markets';
-import { activeSeries, calculateStake, betsForMarket } from '@/core/martingale/martingale';
+import { globalSeries, calculateStake, betsForMarket } from '@/core/martingale/martingale';
 import { clearBets, listBets, putBet, removeBet } from '@/data/cache/repositories';
 import { sanitizeNumber } from '@/services/sanitize';
 import { useSettings } from '@/store/settingsStore';
@@ -30,8 +30,9 @@ interface MartingaleState {
   baseProfit: number;
   maxStakePct: number; // % of current bankroll above which the stake is flagged (0 = off)
   maxStep: number; // safety brake: block new bets once the series reaches this step (0 = off)
-  /** Per-market "reset series" timestamps; bets before it are ignored. */
-  seriesResetAt: Partial<Record<MarketKey, number>>;
+  /** Global "reset series" timestamp; bets on/before it are ignored. The loss
+   * series is shared across all markets, so the reset is global too. */
+  seriesResetAt: number;
   // Runtime
   bets: Bet[];
   loaded: boolean;
@@ -43,11 +44,11 @@ interface MartingaleState {
     maxStakePct?: number;
     maxStep?: number;
   }) => void;
-  nextStake: (odds: number, market: MarketKey) => number;
+  nextStake: (odds: number) => number;
   addBet: (input: NewBetInput) => Promise<void>;
   setResult: (id: string, result: BetResult, score?: string) => Promise<void>;
   deleteBet: (id: string) => Promise<void>;
-  resetSeries: (market: MarketKey) => void;
+  resetSeries: () => void;
   clearAll: () => Promise<void>;
 }
 
@@ -63,7 +64,7 @@ export const useMartingale = create<MartingaleState>()(
       baseProfit: 10,
       maxStakePct: 25,
       maxStep: 6,
-      seriesResetAt: {},
+      seriesResetAt: 0,
       bets: [],
       loaded: false,
 
@@ -96,19 +97,14 @@ export const useMartingale = create<MartingaleState>()(
               : s.maxStep,
         })),
 
-      nextStake: (odds, market) => {
-        const { currentLoss } = activeSeries(
-          betsForMarket(get().bets, market),
-          get().seriesResetAt[market] ?? 0,
-        );
+      nextStake: (odds) => {
+        const { currentLoss } = globalSeries(get().bets, get().seriesResetAt);
         return calculateStake(currentLoss, get().baseProfit, odds);
       },
 
       addBet: async (input) => {
-        const { currentLoss, step } = activeSeries(
-          betsForMarket(get().bets, input.marketKey),
-          get().seriesResetAt[input.marketKey] ?? 0,
-        );
+        // Stake recovers the shared loss across ALL markets (not just this one).
+        const { currentLoss, step } = globalSeries(get().bets, get().seriesResetAt);
         const bet: Bet = {
           id: uid(),
           createdAt: Date.now(),
@@ -147,23 +143,30 @@ export const useMartingale = create<MartingaleState>()(
         await get().refresh();
       },
 
-      resetSeries: (market) =>
-        set((s) => ({ seriesResetAt: { ...s.seriesResetAt, [market]: Date.now() } })),
+      resetSeries: () => set({ seriesResetAt: Date.now() }),
 
       clearAll: async () => {
         await clearBets();
-        set({ seriesResetAt: {} });
+        set({ seriesResetAt: 0 });
         await get().refresh();
       },
     }),
     {
       name: 'btts:martingale',
-      version: 1,
-      // v1: seriesResetAt went from a single number to a per-market map.
+      version: 2,
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Record<string, unknown>;
+        // v1: seriesResetAt went from a single number to a per-market map.
         if (version < 1 && typeof s.seriesResetAt === 'number') {
           s.seriesResetAt = s.seriesResetAt ? { btts: s.seriesResetAt } : {};
+        }
+        // v2: the loss series became shared across markets, so the per-market
+        // reset map collapses back to a single global timestamp (most recent).
+        if (version < 2 && s.seriesResetAt && typeof s.seriesResetAt === 'object') {
+          const vals = Object.values(s.seriesResetAt as Record<string, unknown>).filter(
+            (n): n is number => typeof n === 'number',
+          );
+          s.seriesResetAt = vals.length ? Math.max(...vals) : 0;
         }
         return s as unknown as MartingaleState;
       },

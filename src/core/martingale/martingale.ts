@@ -2,9 +2,23 @@ import type { Bet, MartingaleStats } from '@/domain/types';
 import type { MarketKey } from '@/core/markets/markets';
 import { round, safeDivide } from '@/lib/math';
 
-/** Bets belonging to a market's Martingale series (absent key ⇒ legacy 'btts'). */
+/** Bets belonging to a market's Martingale series (absent key ⇒ legacy 'btts').
+ * Used only as a display/table filter — the loss series itself is shared. */
 export function betsForMarket(bets: Bet[], market: MarketKey): Bet[] {
   return bets.filter((b) => (b.marketKey ?? 'btts') === market);
+}
+
+/**
+ * The single Martingale loss/step series shared across ALL markets. A win in
+ * any market (BTTS, Over/Under, 1X2) recovers the whole accumulated loss; a
+ * loss in any market adds to it. This is just `activeSeries` over every bet —
+ * so betting on Over/Under always accounts for a prior BTTS loss, and so on.
+ */
+export function globalSeries(
+  bets: Bet[],
+  seriesResetAt = 0,
+): { currentLoss: number; step: number } {
+  return activeSeries(bets, seriesResetAt);
 }
 
 /**
