@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Coins, AlertTriangle, RefreshCw } from 'lucide-react';
-import type { AnalysisBundle, Fixture } from '@/domain/types';
+import type { AnalysisBundle, Fixture, MarketPrediction } from '@/domain/types';
 import { useDataService } from '@/hooks/useDataService';
 import { useSettings } from '@/store/settingsStore';
+import { useMarket } from '@/store/marketStore';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useCalibration } from '@/store/calibrationStore';
 import { buildAnalysis } from '@/services/analysisService';
@@ -11,7 +12,10 @@ import { cacheDelete } from '@/data/cache/cache';
 import { upsertHistory } from '@/data/cache/repositories';
 import { saveDayPrediction, predictionSignature } from '@/services/dayPredictions';
 import { todayIso, formatDateTime } from '@/lib/format';
-import { tierMeta } from '@/core/classification/classification';
+import { toPercent } from '@/lib/math';
+import { tierMeta, tierForProbability } from '@/core/classification/classification';
+import { marketPick, marketLabel, type MarketKey } from '@/core/markets/markets';
+import { MarketSelector } from '@/components/common/MarketSelector';
 import { createLogger } from '@/services/logger';
 import { Spinner, EmptyState } from '@/components/common/States';
 import { Button } from '@/components/ui/button';
@@ -33,6 +37,71 @@ import { cn } from '@/lib/utils';
 
 const log = createLogger('AnalysisPage');
 
+/** Text colour for a market pick tone (green pos / red neg / primary neutral). */
+function pickToneClass(tone: 'pos' | 'neg' | 'neutral'): string {
+  return tone === 'pos' ? 'text-success' : tone === 'neg' ? 'text-destructive' : 'text-primary';
+}
+
+/** A segmented probability bar for the non-BTTS markets (Over/Under, 1X2). */
+function MarketBar({ market, markets }: { market: MarketKey; markets: MarketPrediction }) {
+  const pct = (v: number): number => Math.round(v * 100);
+  const segs =
+    market === 'ou25'
+      ? [
+          {
+            key: 'over',
+            label: `Over 2.5 ${pct(markets.over25)}%`,
+            v: markets.over25,
+            cls: 'bg-primary',
+          },
+          {
+            key: 'under',
+            label: `Under 2.5 ${pct(markets.under25)}%`,
+            v: markets.under25,
+            cls: 'bg-destructive/70',
+          },
+        ]
+      : [
+          {
+            key: 'home',
+            label: `Casa ${pct(markets.homeWin)}%`,
+            v: markets.homeWin,
+            cls: 'bg-primary',
+          },
+          {
+            key: 'draw',
+            label: `X ${pct(markets.draw)}%`,
+            v: markets.draw,
+            cls: 'bg-muted-foreground',
+          },
+          {
+            key: 'away',
+            label: `Fora ${pct(markets.awayWin)}%`,
+            v: markets.awayWin,
+            cls: 'bg-success',
+          },
+        ];
+  const total = segs.reduce((s, x) => s + x.v, 0) || 1;
+  return (
+    <div className="w-full">
+      <div className="mb-1 flex flex-wrap justify-between gap-x-3 text-xs text-muted-foreground">
+        {segs.map((s) => (
+          <span key={s.key}>{s.label}</span>
+        ))}
+      </div>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+        {segs.map((s) => (
+          <div
+            key={s.key}
+            className={cn('h-full', s.cls)}
+            style={{ width: `${(s.v / total) * 100}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AnalysisPage() {
   const { fixtureId = '' } = useParams();
   const id = decodeURIComponent(fixtureId);
@@ -50,6 +119,8 @@ export function AnalysisPage() {
   const ou25Ready = useCalibration((s) => s.ou25Ready);
   const ou25Recalibration = autoCalibrateOu25 && ou25Ready ? plattOu25 : undefined;
   const getCached = useFixtureCache((s) => s.get);
+  const market = useMarket((s) => s.market);
+  const setMarket = useMarket((s) => s.setMarket);
 
   const [bundle, setBundle] = useState<AnalysisBundle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,6 +260,9 @@ export function AnalysisPage() {
 
   const { fixture, prediction } = bundle;
   const tier = tierMeta(prediction.tier);
+  // The dominant pick for the currently-selected market (so the headline follows
+  // the market chosen on Jogos/Histórico, instead of always showing BTTS).
+  const pick = marketPick(market, prediction, bundle.markets);
 
   const handleReanalyze = (): void => {
     // Drop cached team history (limit 15, see analysisService) + odds so the next
@@ -233,14 +307,40 @@ export function AnalysisPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <VerdictPill prediction={prediction} />
-            <div className="flex items-center gap-4">
-              <TierBadge tier={prediction.tier} />
-              <ConfidenceMeter confidence={prediction.confidence} />
-            </div>
-          </div>
-          <ProbabilityBar probYes={prediction.probYes} />
+          <MarketSelector value={market} onChange={setMarket} className="flex-wrap" />
+          {market === 'btts' ? (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <VerdictPill prediction={prediction} />
+                <div className="flex items-center gap-4">
+                  <TierBadge tier={prediction.tier} />
+                  <ConfidenceMeter confidence={prediction.confidence} />
+                </div>
+              </div>
+              <ProbabilityBar probYes={prediction.probYes} />
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold">
+                    {pick ? pick.side : marketLabel(market)}
+                  </span>
+                  {pick && (
+                    <span className={cn('text-lg font-semibold', pickToneClass(pick.tone))}>
+                      {toPercent(pick.probability)}
+                    </span>
+                  )}
+                </div>
+                {pick && <TierBadge tier={tierForProbability(pick.probability)} />}
+              </div>
+              <MarketBar market={market} markets={bundle.markets} />
+              <p className="text-xs text-muted-foreground">
+                {marketLabel(market)} · modelo de Poisson. Vê os detalhes no cartão “Outros
+                mercados” abaixo.
+              </p>
+            </>
+          )}
           {prediction.insufficientData && (
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
