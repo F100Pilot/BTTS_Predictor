@@ -64,6 +64,7 @@ export function AddHistoryDialog({ onAdded }: { onAdded: () => void }) {
       confidence: 0,
       tier: tierForProbability(Math.max(probYes, probNo)),
       createdAt: Date.now(),
+      trackedMarkets: ['btts'],
       ...(actual === 'none' ? {} : { actual }),
     });
     reset();

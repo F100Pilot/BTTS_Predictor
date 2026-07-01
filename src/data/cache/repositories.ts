@@ -95,8 +95,26 @@ export async function addHistory(record: HistoryRecord): Promise<void> {
 export async function upsertHistory(record: HistoryRecord): Promise<void> {
   const db = await getDb();
   const existing = await db.get('history', record.id);
-  if (existing?.actual) return; // settled — keep the graded prediction intact
-  await db.put('history', existing ? { ...record, createdAt: existing.createdAt } : record);
+  // Union the market lists this game belongs to (BTTS / O-U / 1X2), so adding a
+  // game to one market never removes it from another. Absent ⇒ legacy `['btts']`.
+  const existingMarkets = existing ? (existing.trackedMarkets ?? ['btts']) : [];
+  const trackedMarkets = Array.from(
+    new Set([...existingMarkets, ...(record.trackedMarkets ?? [])]),
+  );
+  if (existing?.actual) {
+    // Settled — keep the graded prediction intact, but still allow adding the
+    // game to another market's list.
+    if (trackedMarkets.length !== existingMarkets.length) {
+      await db.put('history', { ...existing, trackedMarkets });
+      scheduleSync();
+    }
+    return;
+  }
+  const merged = existing ? { ...record, createdAt: existing.createdAt } : record;
+  await db.put('history', {
+    ...merged,
+    trackedMarkets: trackedMarkets.length ? trackedMarkets : undefined,
+  });
   scheduleSync();
 }
 export async function clearHistory(): Promise<void> {

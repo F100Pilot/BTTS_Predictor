@@ -338,9 +338,9 @@ export function HistoryPage() {
   );
   const filtered = useMemo(() => {
     let rows = dateFilter ? records.filter((r) => dayKey(r.createdAt) === dateFilter) : records;
-    // Non-BTTS markets only apply to games whose Poisson markets were stored — a
-    // game with no prediction for the selected market doesn't belong in its list.
-    if (market !== 'btts') rows = rows.filter((r) => r.markets != null);
+    // Show only games added to the selected market's list (BTTS / O-U / 1X2).
+    // Legacy records (no trackedMarkets) count as BTTS.
+    rows = rows.filter((r) => (r.trackedMarkets ?? ['btts']).includes(market));
     return rows;
   }, [records, dateFilter, market]);
 
