@@ -21,6 +21,13 @@ export function marketLabel(market: MarketKey): string {
   return MARKETS.find((m) => m.key === market)?.label ?? market;
 }
 
+/** The selectable outcomes of each market (for Martingale bets). */
+export const MARKET_SIDES: Record<MarketKey, string[]> = {
+  btts: ['SIM', 'NÃO'],
+  ou25: ['Over 2.5', 'Under 2.5'],
+  x12: ['Casa', 'Empate', 'Fora'],
+};
+
 /** Visual tone of a pick: a "good/yes" side, a "bad/no" side, or neutral (1X2). */
 export type Tone = 'pos' | 'neg' | 'neutral';
 

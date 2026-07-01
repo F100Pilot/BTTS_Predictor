@@ -216,6 +216,9 @@ export interface Bet {
   /** Kickoff date-time (ISO) of the game, when known (for display/navigation). */
   kickoff?: string;
   market: string; // e.g. "BTTS"
+  /** Grouping key for a per-market Martingale series (absent ⇒ legacy 'btts').
+   * Mirrors core `MarketKey` — inlined to avoid a circular type import. */
+  marketKey?: 'btts' | 'ou25' | 'x12';
   selection: string; // e.g. "SIM" / "NÃO"
   odds: number;
   stake: number; // computed at creation time

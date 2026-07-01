@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.3.0
+
+- **Martingale por mercado**: a série de recuperação, banca, estatísticas e
+  apostas passam a ser **separadas por mercado** (BTTS / O/U 2.5 / 1X2).
+  `Bet` ganhou `marketKey`; `seriesResetAt` passou a um mapa por mercado (com
+  migração v1); `nextStake`/`addBet`/`resetSeries` são por mercado;
+  `betsForMarket` agrupa (em `core/martingale`, com teste).
+- A aba **Martingale** tem um seletor de mercado; o **pop-up** de aposta na
+  análise adapta as seleções ao mercado ativo (SIM/NÃO · Over/Under · 1X2) e
+  regista a aposta na série desse mercado.
+
 ## 0.3.2.2
 
 - **Fix: histórico separado por mercado**. Um jogo adicionado ao BTTS já não

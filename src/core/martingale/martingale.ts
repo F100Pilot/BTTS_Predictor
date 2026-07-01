@@ -1,5 +1,11 @@
 import type { Bet, MartingaleStats } from '@/domain/types';
+import type { MarketKey } from '@/core/markets/markets';
 import { round, safeDivide } from '@/lib/math';
+
+/** Bets belonging to a market's Martingale series (absent key ⇒ legacy 'btts'). */
+export function betsForMarket(bets: Bet[], market: MarketKey): Bet[] {
+  return bets.filter((b) => (b.marketKey ?? 'btts') === market);
+}
 
 /**
  * Core Martingale stake formula (ported from the martingale-app):

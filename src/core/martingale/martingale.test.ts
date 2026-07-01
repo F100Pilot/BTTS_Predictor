@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { calculateStake, winProfit, activeSeries, computeStats, projectSeries } from './martingale';
+import {
+  calculateStake,
+  winProfit,
+  activeSeries,
+  computeStats,
+  projectSeries,
+  betsForMarket,
+} from './martingale';
 import type { Bet } from '@/domain/types';
 
 function bet(partial: Partial<Bet>): Bet {
@@ -9,6 +16,7 @@ function bet(partial: Partial<Bet>): Bet {
     settledAt: partial.settledAt,
     matchLabel: 'A vs B',
     market: 'BTTS',
+    marketKey: partial.marketKey,
     selection: 'SIM',
     odds: partial.odds ?? 2,
     stake: partial.stake ?? 10,
@@ -16,6 +24,20 @@ function bet(partial: Partial<Bet>): Bet {
     result: partial.result ?? 'pending',
   };
 }
+
+describe('betsForMarket', () => {
+  it('groups bets by market key (absent ⇒ btts) — series stay independent', () => {
+    const all = [
+      bet({ id: 'a', marketKey: 'btts' }),
+      bet({ id: 'b' }), // legacy, no key ⇒ btts
+      bet({ id: 'c', marketKey: 'ou25' }),
+      bet({ id: 'd', marketKey: 'x12' }),
+    ];
+    expect(betsForMarket(all, 'btts').map((b) => b.id)).toEqual(['a', 'b']);
+    expect(betsForMarket(all, 'ou25').map((b) => b.id)).toEqual(['c']);
+    expect(betsForMarket(all, 'x12').map((b) => b.id)).toEqual(['d']);
+  });
+});
 
 describe('calculateStake', () => {
   it('recovers accumulated loss plus base profit at the given odds', () => {

@@ -11,8 +11,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useMartingale } from '@/store/martingaleStore';
+import { useMartingale, betsForMarket } from '@/store/martingaleStore';
+import { useMarket } from '@/store/marketStore';
 import { activeSeries } from '@/core/martingale/martingale';
+import { MARKET_SIDES, marketLabel } from '@/core/markets/markets';
 
 const EUR = (n: number): string => `€${n.toFixed(2)}`;
 
@@ -56,20 +58,44 @@ export function MartingaleDialog({
     if (open && !loaded) void refresh();
   }, [open, loaded, refresh]);
 
-  const [selection, setSelection] = useState<'SIM' | 'NÃO'>(game.defaultSelection ?? 'SIM');
-  const defaultOdd = (selection === 'SIM' ? game.oddsYes : game.oddsNo) ?? undefined;
-  const [odds, setOdds] = useState(defaultOdd ? defaultOdd.toFixed(2) : '');
+  const market = useMarket((s) => s.market);
+  const sides = MARKET_SIDES[market];
+
+  // For BTTS we can prefill the odd from the fixture; other markets are manual.
+  const bttsOdd = (side: string): number | undefined =>
+    market === 'btts' ? (side === 'SIM' ? game.oddsYes : game.oddsNo) : undefined;
+
+  const [selection, setSelection] = useState<string>(
+    (market === 'btts' ? game.defaultSelection : undefined) ?? sides[0] ?? '',
+  );
+  const [odds, setOdds] = useState(() => {
+    const o = bttsOdd(selection);
+    return o ? o.toFixed(2) : '';
+  });
   const [added, setAdded] = useState(false);
 
+  // Reset the side/odd when the active market changes while the pop-up is open.
+  useEffect(() => {
+    const first = (market === 'btts' ? game.defaultSelection : undefined) ?? sides[0] ?? '';
+    setSelection(first);
+    const o = bttsOdd(first);
+    setOdds(o ? o.toFixed(2) : '');
+    setAdded(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market]);
+
   const oddsVal = Number(odds);
-  const series = useMemo(() => activeSeries(bets, seriesResetAt), [bets, seriesResetAt]);
-  const stake = oddsVal > 1 ? nextStake(oddsVal) : 0;
+  const series = useMemo(
+    () => activeSeries(betsForMarket(bets, market), seriesResetAt[market] ?? 0),
+    [bets, seriesResetAt, market],
+  );
+  const stake = oddsVal > 1 ? nextStake(oddsVal, market) : 0;
   const stepBlocked = maxStep > 0 && series.step > maxStep;
   const canAdd = oddsVal > 1 && !stepBlocked && !added;
 
-  const pickSide = (side: 'SIM' | 'NÃO'): void => {
+  const pickSide = (side: string): void => {
     setSelection(side);
-    const o = side === 'SIM' ? game.oddsYes : game.oddsNo;
+    const o = bttsOdd(side);
     if (o) setOdds(o.toFixed(2));
   };
 
@@ -77,7 +103,8 @@ export function MartingaleDialog({
     if (!canAdd) return;
     void addBet({
       matchLabel: game.matchLabel,
-      market: 'BTTS',
+      market: marketLabel(market),
+      marketKey: market,
       selection,
       odds: oddsVal,
       fixtureId: game.fixtureId,
@@ -90,6 +117,7 @@ export function MartingaleDialog({
     navigate('/martingale', {
       state: {
         matchLabel: game.matchLabel,
+        marketKey: market,
         selection,
         odds: oddsVal > 1 ? oddsVal : undefined,
         fixtureId: game.fixtureId,
@@ -103,16 +131,19 @@ export function MartingaleDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Coins className="h-5 w-5 text-primary" /> Martingale
+            <Coins className="h-5 w-5 text-primary" /> Martingale · {marketLabel(market)}
           </DialogTitle>
           <DialogDescription className="truncate">{game.matchLabel}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Seleção BTTS</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['SIM', 'NÃO'] as const).map((side) => (
+            <Label>Seleção · {marketLabel(market)}</Label>
+            <div
+              className="grid gap-2"
+              style={{ gridTemplateColumns: `repeat(${sides.length}, minmax(0, 1fr))` }}
+            >
+              {sides.map((side) => (
                 <button
                   key={side}
                   type="button"
@@ -124,7 +155,7 @@ export function MartingaleDialog({
                       : 'border-border text-muted-foreground hover:bg-accent')
                   }
                 >
-                  BTTS {side}
+                  {side}
                 </button>
               ))}
             </div>

@@ -13,7 +13,10 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { Check, X, RotateCcw, Trash2, Plus, Download, Clock, AlertTriangle } from 'lucide-react';
-import { useMartingale } from '@/store/martingaleStore';
+import { useMartingale, betsForMarket } from '@/store/martingaleStore';
+import { useMarket } from '@/store/marketStore';
+import { MarketSelector } from '@/components/common/MarketSelector';
+import { MARKET_SIDES, marketLabel, type MarketKey } from '@/core/markets/markets';
 import { activeSeries, computeStats, projectSeries } from '@/core/martingale/martingale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +48,7 @@ const EUR = (n: number) => `€${n.toFixed(2)}`;
 
 interface PrefillState {
   matchLabel?: string;
+  marketKey?: MarketKey;
   selection?: string;
   odds?: number;
   fixtureId?: string;
@@ -82,9 +86,12 @@ export function MartingalePage() {
     clearAll,
   } = useMartingale();
 
+  const market = useMarket((s) => s.market);
+  const setMarketGlobal = useMarket((s) => s.setMarket);
+  const sides = MARKET_SIDES[market];
+
   const [matchLabel, setMatchLabel] = useState(prefill.matchLabel ?? '');
-  const [market, setMarket] = useState('BTTS');
-  const [selection, setSelection] = useState(prefill.selection ?? 'SIM');
+  const [selection, setSelection] = useState(prefill.selection ?? sides[0] ?? '');
   const [odds, setOdds] = useState(prefill.odds ? String(prefill.odds) : '');
   const [fixtureId] = useState(prefill.fixtureId);
   const [kickoff] = useState(prefill.kickoff);
@@ -93,10 +100,29 @@ export function MartingalePage() {
     void refresh();
   }, [refresh]);
 
-  const stats = useMemo(() => computeStats(bets, initialBankroll), [bets, initialBankroll]);
-  const series = useMemo(() => activeSeries(bets, seriesResetAt), [bets, seriesResetAt]);
+  // Align the page market with a prefill coming from the per-game pop-up.
+  useEffect(() => {
+    if (prefill.marketKey) setMarketGlobal(prefill.marketKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the selection valid for the active market.
+  useEffect(() => {
+    if (!sides.includes(selection)) setSelection(sides[0] ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market]);
+
+  const marketBets = useMemo(() => betsForMarket(bets, market), [bets, market]);
+  const stats = useMemo(
+    () => computeStats(marketBets, initialBankroll),
+    [marketBets, initialBankroll],
+  );
+  const series = useMemo(
+    () => activeSeries(marketBets, seriesResetAt[market] ?? 0),
+    [marketBets, seriesResetAt, market],
+  );
   const oddsVal = Number(odds);
-  const previewStake = oddsVal > 1 ? nextStake(oddsVal) : 0;
+  const previewStake = oddsVal > 1 ? nextStake(oddsVal, market) : 0;
 
   // Safety guards
   const stakeLimit = maxStakePct > 0 ? (stats.bankroll * maxStakePct) / 100 : Infinity;
@@ -119,8 +145,9 @@ export function MartingalePage() {
     if (!(oddsVal > 1) || !matchLabel.trim() || stepBrakeHit) return;
     await addBet({
       matchLabel: sanitizeText(matchLabel, 80),
-      market: sanitizeText(market, 24) || 'BTTS',
-      selection: sanitizeText(selection, 16) || 'SIM',
+      market: marketLabel(market),
+      marketKey: market,
+      selection: sanitizeText(selection, 16) || sides[0] || '',
       odds: oddsVal,
       fixtureId,
       kickoff,
@@ -133,7 +160,7 @@ export function MartingalePage() {
     try {
       const { default: Papa } = await import('papaparse');
       const csv = Papa.unparse(
-        bets.map((b) => ({
+        marketBets.map((b) => ({
           Data: formatDateTime(new Date(b.createdAt).toISOString()),
           Jogo: b.matchLabel,
           Mercado: b.market,
@@ -164,12 +191,13 @@ export function MartingalePage() {
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="space-y-2">
         <h1 className="text-2xl font-bold">Martingale</h1>
         <p className="text-sm text-muted-foreground">
-          Gestão de banca com staking recuperativo: a stake é calculada para que uma vitória
-          recupere as perdas da série e garanta o lucro base.
+          Gestão de banca com staking recuperativo, <strong>separada por mercado</strong>: cada
+          mercado tem a sua própria série de recuperação.
         </p>
+        <MarketSelector value={market} onChange={setMarketGlobal} />
       </div>
 
       {/* Stats */}
@@ -275,10 +303,15 @@ export function MartingalePage() {
               até reiniciar a série.
             </p>
             <div className="col-span-2 flex flex-wrap gap-2 pt-1">
-              <Button variant="outline" size="sm" onClick={resetSeries}>
+              <Button variant="outline" size="sm" onClick={() => resetSeries(market)}>
                 <RotateCcw /> Reiniciar série
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExport} disabled={!bets.length}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={!marketBets.length}
+              >
                 <Download /> Exportar CSV
               </Button>
               <Button
@@ -310,20 +343,19 @@ export function MartingalePage() {
                 onChange={(e) => setMatchLabel(e.target.value)}
               />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
-                <Label>Mercado</Label>
-                <Input value={market} onChange={(e) => setMarket(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Seleção</Label>
+                <Label>Seleção · {marketLabel(market)}</Label>
                 <Select value={selection} onValueChange={setSelection}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SIM">SIM</SelectItem>
-                    <SelectItem value="NÃO">NÃO</SelectItem>
+                    {sides.map((side) => (
+                      <SelectItem key={side} value={side}>
+                        {side}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -452,10 +484,10 @@ export function MartingalePage() {
         </div>
       )}
 
-      {/* Bets table */}
-      {bets.length === 0 ? (
+      {/* Bets table (current market) */}
+      {marketBets.length === 0 ? (
         <EmptyState
-          title="Sem apostas registadas"
+          title={`Sem apostas em ${marketLabel(market)}`}
           description="Adicione uma aposta acima, ou abra um jogo e use o botão 'Martingale' para registar a aposta diretamente a partir da análise."
         />
       ) : (
@@ -473,7 +505,7 @@ export function MartingalePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {bets.map((b) => (
+              {marketBets.map((b) => (
                 <TableRow key={b.id}>
                   <TableCell className="font-medium">{b.matchLabel}</TableCell>
                   <TableCell className="hidden sm:table-cell text-muted-foreground">
