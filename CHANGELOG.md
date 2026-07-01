@@ -20,6 +20,18 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.4.0
+
+- **Análise segue o mercado selecionado**: a página de análise deixa de mostrar
+  sempre BTTS — quando o mercado ativo é Mais/Menos 2.5 ou 1X2, o destaque passa
+  a mostrar o prognóstico desse mercado (lado + percentagem via `marketPick`,
+  classificação via `tierForProbability` e uma barra de probabilidades). Foi
+  adicionado um `MarketSelector` no topo da análise para alternar de mercado ali
+  mesmo (partilha o mesmo `marketStore` das páginas Jogos/Histórico).
+- **Histórico → Previsões clicável**: clicar num jogo abre a sua análise (à
+  semelhança do que já acontecia no separador Apostas). As células interativas
+  (resultado/score, apagar) não disparam a navegação (`stopPropagation`).
+
 ## 0.3.3.1
 
 - **Martingale: perda partilhada por mercado**: a série de recuperação e a banca

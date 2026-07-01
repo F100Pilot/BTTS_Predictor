@@ -62,10 +62,12 @@ código (`*.test.ts`). Cobertura atual (núcleo lógico — funções puras):
 Após mudanças de UI/dados, verificar no browser (`npm run dev`):
 
 1. **Jogos de Hoje** — lista carrega, ordenada por BTTS, filtros funcionam.
-2. **Análise de um jogo** — fatores, gráficos, Reanalisar (pede confirmação), Martingale (pop-up).
+2. **Análise de um jogo** — o destaque segue o mercado selecionado (BTTS / O-U 2.5 / 1X2)
+   com seletor no topo; fatores, gráficos, Reanalisar (pede confirmação), Martingale (pop-up).
 3. **Ao Vivo** — só mostra jogos do histórico/apostas; liquida e remove ao atingir BTTS.
-4. **Histórico / Apostas** — agrupado por dia; "Atualizar resultados" liquida via Flashscore;
-   introduzir o score (golos casa–fora) deriva o BTTS e liquida a aposta (ganha/perdida).
+4. **Histórico / Apostas** — agrupado por dia; clicar num jogo (Previsões ou Apostas) abre a
+   sua análise; "Atualizar resultados" liquida via Flashscore; introduzir o score (golos
+   casa–fora) deriva o BTTS e liquida a aposta (ganha/perdida).
 5. **Definições** — chave RapidAPI + Proxy CORS, "Testar ligação", pesos, calibração.
 6. **PWA** — instala, funciona offline, aviso de atualização.
 

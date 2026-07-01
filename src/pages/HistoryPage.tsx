@@ -420,6 +420,30 @@ export function HistoryPage() {
     if (b.fixtureId && !b.fixtureId.startsWith('manual-')) return b.fixtureId;
     return null;
   };
+  // A prediction record opens its analysis when it has a real fixture id
+  // (manually-added records use a "manual-…" id and have no fixture to analyse).
+  const recordAnalysisId = (r: HistoryRecord): string | null => {
+    const id = r.fixtureId || r.id;
+    if (!id || id.startsWith('manual-')) return null;
+    return id;
+  };
+  const openRecordAnalysis = (r: HistoryRecord): void => {
+    const id = recordAnalysisId(r);
+    if (!id) return;
+    const [home, away] = r.fixtureName.split(' vs ');
+    // Seed the cache so the analysis page can resolve this fixture by id.
+    cacheFixtures([
+      {
+        id,
+        date: r.date || new Date(r.createdAt).toISOString(),
+        competition: { id: '', name: r.competition || '' },
+        home: { id: '', name: home ?? r.fixtureName },
+        away: { id: '', name: away ?? '' },
+      },
+    ]);
+    navigate(`/analysis/${encodeURIComponent(id)}`);
+  };
+
   const openBetAnalysis = (b: Bet): void => {
     const id = betAnalysisId(b);
     if (!id) return;
@@ -817,130 +841,74 @@ export function HistoryPage() {
                               </TableCell>
                             </TableRow>
                             {!collapsed &&
-                              dayRecords.map((r) => (
-                                <TableRow key={r.id}>
-                                  <TableCell className="text-xs text-muted-foreground">
-                                    {r.date ? formatDateTime(r.date) : '—'}
-                                  </TableCell>
-                                  <TableCell className="font-medium">{r.fixtureName}</TableCell>
-                                  <TableCell>
-                                    {(() => {
-                                      const pick = recordPick(r);
-                                      if (!pick)
-                                        return <span className="text-muted-foreground">—</span>;
-                                      return (
-                                        <span
-                                          className={
-                                            pick.tone === 'pos'
-                                              ? 'font-semibold text-primary'
-                                              : 'font-semibold'
-                                          }
-                                        >
-                                          {pick.side} {toPercent(pick.probability)}
+                              dayRecords.map((r) => {
+                                const clickable = recordAnalysisId(r) != null;
+                                return (
+                                  <TableRow
+                                    key={r.id}
+                                    className={
+                                      clickable ? 'cursor-pointer hover:bg-muted/40' : undefined
+                                    }
+                                    onClick={clickable ? () => openRecordAnalysis(r) : undefined}
+                                  >
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {r.date ? formatDateTime(r.date) : '—'}
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                      {clickable ? (
+                                        <span className="text-primary hover:underline">
+                                          {r.fixtureName}
                                         </span>
-                                      );
-                                    })()}
-                                  </TableCell>
-                                  <TableCell className="hidden sm:table-cell">
-                                    {r.confidence}/10
-                                  </TableCell>
-                                  <TableCell className="hidden md:table-cell">
-                                    {(() => {
-                                      if (market === 'btts')
-                                        return <TierBadge tier={r.tier as PredictionTier} />;
-                                      const pick = recordPick(r);
-                                      return pick ? (
-                                        <TierBadge tier={tierForProbability(pick.probability)} />
                                       ) : (
-                                        <span className="text-muted-foreground">—</span>
-                                      );
-                                    })()}
-                                  </TableCell>
-                                  <TableCell>
-                                    {market === 'btts' ? (
-                                      r.actual ? (
-                                        <div className="flex items-center gap-2">
-                                          <span
-                                            className={
-                                              r.actual === predictedSide(r.probYes)
-                                                ? 'font-semibold text-success'
-                                                : 'font-semibold text-destructive'
-                                            }
-                                          >
-                                            BTTS {r.actual === 'yes' ? 'SIM' : 'NÃO'}
-                                            {r.actual === predictedSide(r.probYes) ? ' ✓' : ' ✗'}
-                                          </span>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            aria-label="Limpar resultado"
-                                            onClick={() => void setResult(r.id, undefined)}
-                                          >
-                                            <X className="h-3.5 w-3.5" />
-                                          </Button>
-                                        </div>
-                                      ) : (
-                                        <div className="flex flex-col gap-1.5">
-                                          <ScoreInput
-                                            onSubmit={(hg, ag) => void setRecordScore(r.id, hg, ag)}
-                                          />
-                                          <div className="flex items-center gap-1">
-                                            <span className="hidden text-xs text-muted-foreground sm:inline">
-                                              ou:
-                                            </span>
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="h-7 px-2"
-                                              onClick={() => void setResult(r.id, 'yes')}
-                                            >
-                                              BTTS SIM
-                                            </Button>
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="h-7 px-2"
-                                              onClick={() => void setResult(r.id, 'no')}
-                                            >
-                                              BTTS NÃO
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      )
-                                    ) : (
-                                      (() => {
-                                        // No prediction for this market on this game (older record
-                                        // without stored markets) → nothing to track here.
+                                        r.fixtureName
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {(() => {
                                         const pick = recordPick(r);
                                         if (!pick)
                                           return <span className="text-muted-foreground">—</span>;
-                                        const goals = parseScore(r.actualScore);
-                                        if (!goals) {
-                                          return (
-                                            <ScoreInput
-                                              onSubmit={(hg, ag) =>
-                                                void setRecordScore(r.id, hg, ag)
-                                              }
-                                            />
-                                          );
-                                        }
-                                        const actualSide = marketActualSide(
-                                          market,
-                                          goals[0],
-                                          goals[1],
-                                        );
-                                        const correct = pick.side === actualSide;
                                         return (
+                                          <span
+                                            className={
+                                              pick.tone === 'pos'
+                                                ? 'font-semibold text-primary'
+                                                : 'font-semibold'
+                                            }
+                                          >
+                                            {pick.side} {toPercent(pick.probability)}
+                                          </span>
+                                        );
+                                      })()}
+                                    </TableCell>
+                                    <TableCell className="hidden sm:table-cell">
+                                      {r.confidence}/10
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                      {(() => {
+                                        if (market === 'btts')
+                                          return <TierBadge tier={r.tier as PredictionTier} />;
+                                        const pick = recordPick(r);
+                                        return pick ? (
+                                          <TierBadge tier={tierForProbability(pick.probability)} />
+                                        ) : (
+                                          <span className="text-muted-foreground">—</span>
+                                        );
+                                      })()}
+                                    </TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                      {market === 'btts' ? (
+                                        r.actual ? (
                                           <div className="flex items-center gap-2">
                                             <span
                                               className={
-                                                correct
+                                                r.actual === predictedSide(r.probYes)
                                                   ? 'font-semibold text-success'
                                                   : 'font-semibold text-destructive'
                                               }
                                             >
-                                              {actualSide}
-                                              {correct ? ' ✓' : ' ✗'}
+                                              BTTS {r.actual === 'yes' ? 'SIM' : 'NÃO'}
+                                              {r.actual === predictedSide(r.probYes) ? ' ✓' : ' ✗'}
                                             </span>
                                             <Button
                                               variant="ghost"
@@ -951,28 +919,106 @@ export function HistoryPage() {
                                               <X className="h-3.5 w-3.5" />
                                             </Button>
                                           </div>
-                                        );
-                                      })()
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="hidden font-medium tabular-nums sm:table-cell">
-                                    {r.actualScore ?? (
-                                      <span className="text-muted-foreground">—</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label="Apagar jogo"
-                                      title="Apagar jogo"
-                                      onClick={() => void handleDeleteRecord(r.id)}
+                                        ) : (
+                                          <div className="flex flex-col gap-1.5">
+                                            <ScoreInput
+                                              onSubmit={(hg, ag) =>
+                                                void setRecordScore(r.id, hg, ag)
+                                              }
+                                            />
+                                            <div className="flex items-center gap-1">
+                                              <span className="hidden text-xs text-muted-foreground sm:inline">
+                                                ou:
+                                              </span>
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-7 px-2"
+                                                onClick={() => void setResult(r.id, 'yes')}
+                                              >
+                                                BTTS SIM
+                                              </Button>
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-7 px-2"
+                                                onClick={() => void setResult(r.id, 'no')}
+                                              >
+                                                BTTS NÃO
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        )
+                                      ) : (
+                                        (() => {
+                                          // No prediction for this market on this game (older record
+                                          // without stored markets) → nothing to track here.
+                                          const pick = recordPick(r);
+                                          if (!pick)
+                                            return <span className="text-muted-foreground">—</span>;
+                                          const goals = parseScore(r.actualScore);
+                                          if (!goals) {
+                                            return (
+                                              <ScoreInput
+                                                onSubmit={(hg, ag) =>
+                                                  void setRecordScore(r.id, hg, ag)
+                                                }
+                                              />
+                                            );
+                                          }
+                                          const actualSide = marketActualSide(
+                                            market,
+                                            goals[0],
+                                            goals[1],
+                                          );
+                                          const correct = pick.side === actualSide;
+                                          return (
+                                            <div className="flex items-center gap-2">
+                                              <span
+                                                className={
+                                                  correct
+                                                    ? 'font-semibold text-success'
+                                                    : 'font-semibold text-destructive'
+                                                }
+                                              >
+                                                {actualSide}
+                                                {correct ? ' ✓' : ' ✗'}
+                                              </span>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label="Limpar resultado"
+                                                onClick={() => void setResult(r.id, undefined)}
+                                              >
+                                                <X className="h-3.5 w-3.5" />
+                                              </Button>
+                                            </div>
+                                          );
+                                        })()
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="hidden font-medium tabular-nums sm:table-cell">
+                                      {r.actualScore ?? (
+                                        <span className="text-muted-foreground">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell
+                                      className="text-right"
+                                      onClick={(e) => e.stopPropagation()}
                                     >
-                                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="Apagar jogo"
+                                        title="Apagar jogo"
+                                        onClick={() => void handleDeleteRecord(r.id)}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
                           </Fragment>
                         );
                       })}
