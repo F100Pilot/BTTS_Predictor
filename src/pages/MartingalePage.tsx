@@ -17,7 +17,7 @@ import { useMartingale, betsForMarket } from '@/store/martingaleStore';
 import { useMarket } from '@/store/marketStore';
 import { MarketSelector } from '@/components/common/MarketSelector';
 import { MARKET_SIDES, marketLabel, type MarketKey } from '@/core/markets/markets';
-import { activeSeries, computeStats, projectSeries } from '@/core/martingale/martingale';
+import { globalSeries, computeStats, projectSeries } from '@/core/martingale/martingale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,17 +112,14 @@ export function MartingalePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [market]);
 
+  // The bets table is filtered per market (a convenience view), but the
+  // bankroll, stats and loss series are GLOBAL — the Martingale recovery pool
+  // is shared across every market.
   const marketBets = useMemo(() => betsForMarket(bets, market), [bets, market]);
-  const stats = useMemo(
-    () => computeStats(marketBets, initialBankroll),
-    [marketBets, initialBankroll],
-  );
-  const series = useMemo(
-    () => activeSeries(marketBets, seriesResetAt[market] ?? 0),
-    [marketBets, seriesResetAt, market],
-  );
+  const stats = useMemo(() => computeStats(bets, initialBankroll), [bets, initialBankroll]);
+  const series = useMemo(() => globalSeries(bets, seriesResetAt), [bets, seriesResetAt]);
   const oddsVal = Number(odds);
-  const previewStake = oddsVal > 1 ? nextStake(oddsVal, market) : 0;
+  const previewStake = oddsVal > 1 ? nextStake(oddsVal) : 0;
 
   // Safety guards
   const stakeLimit = maxStakePct > 0 ? (stats.bankroll * maxStakePct) / 100 : Infinity;
@@ -194,8 +191,10 @@ export function MartingalePage() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Martingale</h1>
         <p className="text-sm text-muted-foreground">
-          Gestão de banca com staking recuperativo, <strong>separada por mercado</strong>: cada
-          mercado tem a sua própria série de recuperação.
+          Gestão de banca com staking recuperativo. A banca e a série de recuperação são{' '}
+          <strong>partilhadas por todos os mercados</strong> — uma vitória em qualquer mercado
+          recupera as perdas acumuladas em BTTS, Mais/Menos 2.5 e 1X2. O seletor abaixo filtra a
+          tabela de apostas e define o mercado da próxima aposta.
         </p>
         <MarketSelector value={market} onChange={setMarketGlobal} />
       </div>
@@ -303,7 +302,7 @@ export function MartingalePage() {
               até reiniciar a série.
             </p>
             <div className="col-span-2 flex flex-wrap gap-2 pt-1">
-              <Button variant="outline" size="sm" onClick={() => resetSeries(market)}>
+              <Button variant="outline" size="sm" onClick={() => resetSeries()}>
                 <RotateCcw /> Reiniciar série
               </Button>
               <Button

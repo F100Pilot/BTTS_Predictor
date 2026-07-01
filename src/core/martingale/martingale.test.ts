@@ -3,6 +3,7 @@ import {
   calculateStake,
   winProfit,
   activeSeries,
+  globalSeries,
   computeStats,
   projectSeries,
   betsForMarket,
@@ -26,7 +27,7 @@ function bet(partial: Partial<Bet>): Bet {
 }
 
 describe('betsForMarket', () => {
-  it('groups bets by market key (absent ⇒ btts) — series stay independent', () => {
+  it('groups bets by market key (absent ⇒ btts) — used only as a table filter', () => {
     const all = [
       bet({ id: 'a', marketKey: 'btts' }),
       bet({ id: 'b' }), // legacy, no key ⇒ btts
@@ -36,6 +37,25 @@ describe('betsForMarket', () => {
     expect(betsForMarket(all, 'btts').map((b) => b.id)).toEqual(['a', 'b']);
     expect(betsForMarket(all, 'ou25').map((b) => b.id)).toEqual(['c']);
     expect(betsForMarket(all, 'x12').map((b) => b.id)).toEqual(['d']);
+  });
+});
+
+describe('globalSeries', () => {
+  it('shares the accumulated loss across markets — a BTTS loss carries into O/U', () => {
+    const bets = [
+      bet({ id: '1', createdAt: 1, settledAt: 1, result: 'lost', stake: 10, marketKey: 'btts' }),
+      bet({ id: '2', createdAt: 2, settledAt: 2, result: 'lost', stake: 20, marketKey: 'ou25' }),
+    ];
+    // Both losses count regardless of market: 10 + 20 = 30, next step is 3.
+    expect(globalSeries(bets)).toEqual({ currentLoss: 30, step: 3 });
+  });
+
+  it('a win in any market recovers the whole shared pool', () => {
+    const bets = [
+      bet({ id: '1', createdAt: 1, settledAt: 1, result: 'lost', stake: 10, marketKey: 'btts' }),
+      bet({ id: '2', createdAt: 2, settledAt: 2, result: 'won', stake: 20, marketKey: 'x12' }),
+    ];
+    expect(globalSeries(bets)).toEqual({ currentLoss: 0, step: 1 });
   });
 });
 
