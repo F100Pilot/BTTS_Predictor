@@ -1,5 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Bet, MarketPrediction } from '@/domain/types';
+import type { MarketKey } from '@/core/markets/markets';
 
 /** Persisted bet record (Martingale system). */
 export type BetRecord = Bet;
@@ -49,6 +50,10 @@ export interface HistoryRecord {
   /** Poisson markets (Over/Under, 1X2) at prediction time — lets the history
    * track per-market accuracy, not just BTTS. */
   markets?: MarketPrediction;
+  /** Which market lists this game was added to. A game added to BTTS stays out
+   * of the O/U and 1X2 lists (and vice-versa). Absent ⇒ legacy, treated as
+   * `['btts']`. */
+  trackedMarkets?: MarketKey[];
 }
 
 /** A deletion marker so removals propagate across devices via sync. */

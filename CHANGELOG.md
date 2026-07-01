@@ -20,6 +20,15 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.2.2
+
+- **Fix: histórico separado por mercado**. Um jogo adicionado ao BTTS já não
+  aparece nas listas de O/U 2.5 e 1X2 (e vice-versa). `HistoryRecord` ganhou
+  `trackedMarkets`; `upsertHistory` faz a união (adicionar a um mercado não
+  remove dos outros, mesmo já liquidado); a lista do Histórico e o "check" de
+  adicionado na página de Jogos passam a ser por mercado. Registos antigos
+  contam como BTTS.
+
 ## 0.3.2.1
 
 - **Pesos do Modelo (BTTS) em pop-up**: no Histórico (mercado BTTS) o painel

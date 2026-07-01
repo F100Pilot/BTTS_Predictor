@@ -18,8 +18,12 @@ import { cn } from '@/lib/utils';
 
 const log = createLogger('GamesTable');
 
-/** Build a history record from an analysed dashboard row. */
-function toHistoryRecord(row: DashboardRow, providerId: string): HistoryRecord | null {
+/** Build a history record from an analysed dashboard row, tracked for `market`. */
+function toHistoryRecord(
+  row: DashboardRow,
+  providerId: string,
+  market: MarketKey,
+): HistoryRecord | null {
   const { fixture, prediction } = row;
   if (!prediction) return null;
   return {
@@ -36,6 +40,7 @@ function toHistoryRecord(row: DashboardRow, providerId: string): HistoryRecord |
     providerId,
     factorScores: Object.fromEntries(prediction.factors.map((f) => [f.key, f.score])),
     markets: row.markets,
+    trackedMarkets: [market],
   };
 }
 
@@ -167,15 +172,18 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
   const navigate = useNavigate();
   const market = useMarket((s) => s.market);
   const providerId = useSettings((s) => s.providerId);
-  // Fixtures already in history (persisted) so the check shows on first paint.
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  // Which markets each fixture is already tracked in, so the check reflects the
+  // *current* market (a game in BTTS isn't "added" for O/U).
+  const [savedMarkets, setSavedMarkets] = useState<Map<string, MarketKey[]>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
     void listHistory()
       .then((records) => {
         if (cancelled) return;
-        setSavedIds(new Set(records.map((r) => r.fixtureId || r.id)));
+        setSavedMarkets(
+          new Map(records.map((r) => [r.fixtureId || r.id, r.trackedMarkets ?? ['btts']])),
+        );
       })
       .catch((err) => log.warn('load history ids failed', err));
     return () => {
@@ -184,10 +192,17 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
   }, [rows]);
 
   const addToHistory = (row: DashboardRow): void => {
-    const record = toHistoryRecord(row, providerId);
+    const record = toHistoryRecord(row, providerId, market);
     if (!record) return;
     void upsertHistory(record)
-      .then(() => setSavedIds((prev) => new Set(prev).add(row.fixture.id)))
+      .then(() =>
+        setSavedMarkets((prev) => {
+          const next = new Map(prev);
+          const cur = next.get(row.fixture.id) ?? [];
+          next.set(row.fixture.id, Array.from(new Set([...cur, market])));
+          return next;
+        }),
+      )
       .catch((err) => log.warn('add to history failed', err));
   };
 
@@ -198,7 +213,7 @@ export function GamesTable({ rows }: { rows: DashboardRow[] }) {
           key={row.fixture.id}
           row={row}
           market={market}
-          inHistory={savedIds.has(row.fixture.id)}
+          inHistory={(savedMarkets.get(row.fixture.id) ?? []).includes(market)}
           onOpen={() => navigate(`/analysis/${encodeURIComponent(row.fixture.id)}`)}
           onAddHistory={() => addToHistory(row)}
         />

@@ -131,6 +131,7 @@ export function AnalysisPage() {
               result.prediction.factors.map((f) => [f.key, f.score]),
             ),
             markets: result.markets,
+            trackedMarkets: ['btts'],
           }).catch((err) => log.warn('history save failed', err));
         }
       } catch (err) {
