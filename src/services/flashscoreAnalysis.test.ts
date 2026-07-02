@@ -40,11 +40,13 @@ describe('flashscoreFixtureMatches', () => {
     expect(a.map((m) => m.id)).toEqual(['3', '4', '5']);
   });
 
-  it('assigns the fixture’s real ids to the subject teams', () => {
+  it('keys all teams by normalized name (caller-independent, cache-safe)', () => {
     const input = [row('5', 'Alpha FC', 'Beta FC', 2, 2, 60)];
     const { home: h } = flashscoreFixtureMatches(input, home, away);
-    expect(h[0]!.home.id).toBe('H');
-    expect(h[0]!.away.id).toBe('A');
+    // Ids derive from the name, not the fixture's provider ids ('H'/'A'), so the
+    // shared per-match cache works whoever seeds the fixture (dashboard/bet/record).
+    expect(h[0]!.home.id).toBe('Alpha FC');
+    expect(h[0]!.away.id).toBe('Beta FC');
   });
 
   it('excludes friendlies', () => {

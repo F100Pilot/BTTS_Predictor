@@ -137,6 +137,7 @@ export function HistoryPage() {
   const bets = useMartingale((s) => s.bets);
   const refreshBets = useMartingale((s) => s.refresh);
   const setBetResult = useMartingale((s) => s.setResult);
+  const deleteBet = useMartingale((s) => s.deleteBet);
   const market = useMarket((s) => s.market);
   const setMarket = useMarket((s) => s.setMarket);
   const [records, setRecords] = useState<HistoryRecord[]>([]);
@@ -1070,6 +1071,7 @@ export function HistoryPage() {
                       <TableHead>Stake</TableHead>
                       <TableHead>Resultado</TableHead>
                       <TableHead>Lucro</TableHead>
+                      <TableHead className="w-10 text-right" aria-label="Ações" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1140,6 +1142,17 @@ export function HistoryPage() {
                             }
                           >
                             {b.result === 'pending' ? '—' : EUR(profit)}
+                          </TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Apagar aposta"
+                              title="Apagar aposta"
+                              onClick={() => void deleteBet(b.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );

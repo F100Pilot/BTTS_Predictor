@@ -12,6 +12,17 @@ import { goalsOf, isFriendly, normName, toMatchArray, type FlashMatch } from './
 
 const RECENT = 15;
 
+/**
+ * Canonical, caller-independent id for a team in the Flashscore analysis.
+ * Derived from the NAME (not the fixture's provider id) so the per-fixture
+ * matches cache (keyed only by match id) stays consistent no matter who asks —
+ * the dashboard (real fixture ids), a bet, or a history record (names only).
+ * Consumers must key their team the same way (see analysisService/LiveScorePage).
+ */
+export function teamKey(name: string): string {
+  return normName(name);
+}
+
 function isFlashMatch(m: unknown): m is FlashMatch {
   return (
     !!m &&
@@ -42,14 +53,10 @@ export function flashscoreFixtureMatches(
   const hN = normName(home.name);
   const aN = normName(away.name);
 
-  // Map a team name to the fixture's real id when it's one of the two subjects,
-  // otherwise a stable id derived from the name (opponents in form games).
-  const idFor = (name: string): string => {
-    const n = normName(name);
-    if (n === hN) return home.id;
-    if (n === aN) return away.id;
-    return n;
-  };
+  // Every team (subjects and opponents) is keyed by its normalized name, so the
+  // result is independent of the caller's fixture ids and safe to share via the
+  // match-id-keyed cache. Consumers re-key their fixture teams via `teamKey`.
+  const idFor = (name: string): string => normName(name);
 
   const toResult = (m: FlashMatch): MatchResult | null => {
     const [hg, ag] = goalsOf(m);
