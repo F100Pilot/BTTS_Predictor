@@ -244,7 +244,9 @@ export class DataService {
     if (!provider.getFixtureMatches || !provider.isConfigured(ctx)) return null;
     try {
       return await cached(
-        `${provider.id}:fxmatches:${fixture.id}`,
+        // v2: matches are now keyed by team name (see flashscoreAnalysis.teamKey),
+        // so stale v1 entries (baked with provider team ids) must be ignored.
+        `${provider.id}:fxmatches2:${fixture.id}`,
         TTL.teamHistory,
         () => provider.getFixtureMatches!(fixture, ctx),
         { shouldCache: (v) => !!v && (v.home.length > 0 || v.away.length > 0) },

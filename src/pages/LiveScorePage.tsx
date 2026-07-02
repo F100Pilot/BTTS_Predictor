@@ -13,6 +13,7 @@ import { listHistory, listBets, setHistoryResult } from '@/data/cache/repositori
 import { buildFixtureIndex, flashOutcome, flashGoals } from '@/services/flashscoreSettle';
 import { settleBetAgainstGoals } from '@/services/settlementService';
 import { fetchFlashscoreLive, fixtureToLiveMatch } from '@/services/flashscoreClient';
+import { teamKey } from '@/services/flashscoreAnalysis';
 import { bttsVerdict } from '@/core/classification/classification';
 import { IconAction } from '@/components/common/IconAction';
 import { TeamAvatar } from '@/components/common/TeamAvatar';
@@ -244,9 +245,13 @@ export function LiveScorePage() {
         })
         .then((bundle) => {
           if (!bundle) return;
+          // The bundle keys teams by name (teamKey), so match the form by name.
           setForms((prev) => ({
             ...prev,
-            [m.id]: { home: formOf(bundle.home, m.home.id), away: formOf(bundle.away, m.away.id) },
+            [m.id]: {
+              home: formOf(bundle.home, teamKey(m.home.name)),
+              away: formOf(bundle.away, teamKey(m.away.name)),
+            },
           }));
         })
         .catch((err) => log.warn('form fetch failed', err));

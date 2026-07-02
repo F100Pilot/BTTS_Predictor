@@ -83,6 +83,9 @@ _Nenhum bug aberto conhecido._
 
 Histórico resumido (detalhe completo no `CHANGELOG.md`):
 
+- **"Dados insuficientes" ao abrir a análise de uma aposta/registo do histórico**:
+  a forma era associada por id de equipa (ausente em fixtures semeadas por nome).
+  Passou a associar por nome normalizado (`teamKey`) — v0.3.4.3.
 - **A aba voltava a Previsões ao "Atualizar resultados" nas Apostas**: o spinner
   de refresh desmontava o `<Tabs>` não-controlado. Passou a ser controlado por
   estado — v0.3.4.2.

@@ -20,6 +20,21 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.4.3
+
+- **Correção: "dados insuficientes" ao abrir a análise de uma aposta/registo**:
+  a análise do Flashscore associava a forma das equipas por um id de equipa que
+  não existe quando o jogo é aberto a partir de uma aposta ou registo do
+  histórico (fixture semeada só com nomes) — resultando em 0 jogos e o aviso de
+  dados insuficientes. As equipas passam a ser associadas pelo **nome**
+  normalizado (`teamKey`), de forma independente de quem semeia a fixture:
+  `flashscoreFixtureMatches` chaveia todos os times por nome, `buildAnalysis`
+  re-chaveia as equipas da fixture da mesma forma antes de `computeTeamStats`/
+  `computeHeadToHead`, e o `LiveScorePage` associa a forma por nome. Chave da
+  cache de jogos-por-fixture subida (`fxmatches2`) para ignorar entradas antigas.
+- **Apagar apostas no Histórico → Apostas**: cada linha ganhou um botão de
+  eliminar (usa `deleteBet` da store do Martingale); não dispara a navegação.
+
 ## 0.3.4.2
 
 - **Correção: a aba saltava para Previsões ao atualizar resultados**: no
