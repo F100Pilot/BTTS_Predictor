@@ -18,7 +18,8 @@ import { bttsVerdict } from '@/core/classification/classification';
 import { IconAction } from '@/components/common/IconAction';
 import { TeamAvatar } from '@/components/common/TeamAvatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Spinner, EmptyState } from '@/components/common/States';
+import { EmptyState } from '@/components/common/States';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatTime } from '@/lib/format';
 import { toPercent } from '@/lib/math';
 import { createLogger } from '@/services/logger';
@@ -209,6 +210,34 @@ function LiveBanner({
           Início: {formatTime(m.date)}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Banner-shaped placeholders shown while the live feed loads. */
+function LiveListSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <div className="grid gap-2.5 lg:grid-cols-2" aria-hidden>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="rounded-2xl border border-border bg-card p-3.5">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-10" />
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-8 rounded-full" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-6 w-10" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </div>
+          </div>
+          <Skeleton className="mt-3 h-1.5 w-full rounded-full" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -432,7 +461,7 @@ export function LiveScorePage() {
       </div>
 
       {loading ? (
-        <Spinner label="A carregar jogos ao vivo..." />
+        <LiveListSkeleton />
       ) : matches.length === 0 ? (
         <EmptyState
           icon={<Radio className="h-8 w-8 text-muted-foreground" />}

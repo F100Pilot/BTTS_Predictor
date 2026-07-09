@@ -20,6 +20,14 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.6.2
+
+- **Skeletons na Análise e no Ao Vivo**: os estados de carregamento destas
+  páginas passam do spinner central para placeholders com a forma do conteúdo
+  (`AnalysisSkeleton` no cabeçalho+stats da análise; `LiveListSkeleton` na
+  grelha de jogos ao vivo), reutilizando o primitivo `Skeleton`. Consistente
+  com a lista de Jogos.
+
 ## 0.3.6.1
 
 - **Skeletons de carregamento** na página de Jogos: o spinner central dá lugar a

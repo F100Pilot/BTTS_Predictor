@@ -17,7 +17,8 @@ import { tierMeta, tierForProbability } from '@/core/classification/classificati
 import { marketPick, marketLabel, type MarketKey } from '@/core/markets/markets';
 import { MarketSelector } from '@/components/common/MarketSelector';
 import { createLogger } from '@/services/logger';
-import { Spinner, EmptyState } from '@/components/common/States';
+import { EmptyState } from '@/components/common/States';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -97,6 +98,32 @@ function MarketBar({ market, markets }: { market: MarketKey; markets: MarketPred
             style={{ width: `${(s.v / total) * 100}%` }}
           />
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** Placeholder shaped like the analysis header + stats, shown while it loads. */
+function AnalysisSkeleton() {
+  return (
+    <div className="space-y-4" aria-hidden>
+      <Skeleton className="h-8 w-20" />
+      <div className="space-y-3 rounded-xl border border-l-4 border-border bg-card p-6">
+        <Skeleton className="h-3 w-40" />
+        <Skeleton className="h-7 w-64" />
+        <div className="flex gap-2 pt-1">
+          <Skeleton className="h-8 w-28 rounded-lg" />
+          <Skeleton className="h-8 w-28 rounded-lg" />
+        </div>
+        <div className="flex items-center justify-between pt-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-6 w-24 rounded-full" />
+        </div>
+        <Skeleton className="h-2.5 w-full rounded-full" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Skeleton className="h-40 rounded-xl" />
+        <Skeleton className="h-40 rounded-xl" />
       </div>
     </div>
   );
@@ -234,7 +261,7 @@ export function AnalysisPage() {
     refreshKey,
   ]);
 
-  if (loading) return <Spinner label="A analisar o jogo..." />;
+  if (loading) return <AnalysisSkeleton />;
   if (!bundle)
     return (
       <EmptyState
