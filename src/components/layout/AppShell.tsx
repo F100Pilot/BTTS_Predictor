@@ -65,8 +65,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               end={item.to === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex min-w-[4.25rem] shrink-0 snap-start flex-col items-center gap-1 py-2 text-[10px] font-medium transition-colors',
-                  isActive ? 'text-primary' : 'text-muted-foreground',
+                  'relative flex min-w-[4.25rem] shrink-0 snap-start flex-col items-center gap-1 py-2 text-[10px] font-medium transition-colors',
+                  'before:absolute before:top-0 before:h-0.5 before:w-8 before:rounded-full before:transition-colors',
+                  isActive
+                    ? 'text-primary before:bg-primary'
+                    : 'text-muted-foreground before:bg-transparent',
                 )
               }
             >

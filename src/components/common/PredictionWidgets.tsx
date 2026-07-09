@@ -26,9 +26,36 @@ export function ProbabilityBar({ probYes }: { probYes: number }) {
         <span>NÃO {100 - pct}%</span>
       </div>
       <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-success" style={{ width: `${pct}%` }} />
         <div className="h-full bg-destructive/70" style={{ width: `${100 - pct}%` }} />
       </div>
+    </div>
+  );
+}
+
+/** A single thin outcome meter for a market pick — the probability shown as a
+ * *quantity* (used on the compact match cards). Tone drives the fill colour. */
+export function ProbabilityMeter({
+  value,
+  tone = 'pos',
+}: {
+  value: number;
+  tone?: 'pos' | 'neg' | 'neutral';
+}) {
+  const pct = Math.round(value * 100);
+  const fill = tone === 'neg' ? 'bg-destructive' : tone === 'neutral' ? 'bg-warning' : 'bg-success';
+  return (
+    <div
+      className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+      role="progressbar"
+      aria-valuenow={pct}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        className={cn('h-full rounded-full transition-[width]', fill)}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -50,10 +77,14 @@ export function ConfidenceMeter({ confidence }: { confidence: number }) {
 
 export function VerdictPill({ prediction }: { prediction: BttsPrediction }) {
   const verdict = bttsVerdict(prediction.probYes);
+  // Outcome colour, never the brand emerald: SIM = success, NÃO = destructive.
+  const tone = verdict.side === 'SIM' ? 'text-success' : 'text-destructive';
   return (
     <div className="flex items-baseline gap-2">
-      <span className="text-2xl font-bold">BTTS {verdict.side}</span>
-      <span className="text-lg font-semibold text-primary">{toPercent(verdict.probability)}</span>
+      <span className="text-2xl font-bold tracking-tight">BTTS {verdict.side}</span>
+      <span className={cn('text-lg font-semibold tabular-nums', tone)}>
+        {toPercent(verdict.probability)}
+      </span>
     </div>
   );
 }

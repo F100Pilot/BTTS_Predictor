@@ -4,7 +4,7 @@ import { ListPlus, Check } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
 import { IconAction } from '@/components/common/IconAction';
-import { TierBadge } from '@/components/common/PredictionWidgets';
+import { TierBadge, ProbabilityMeter } from '@/components/common/PredictionWidgets';
 import { tierForProbability } from '@/core/classification/classification';
 import { marketPick, type MarketKey, type MarketPick } from '@/core/markets/markets';
 import { useMarket } from '@/store/marketStore';
@@ -64,7 +64,7 @@ function MarketPill({
       ? 'border-success/30 bg-success/15 text-success'
       : pick.tone === 'neg'
         ? 'border-destructive/30 bg-destructive/15 text-destructive'
-        : 'border-primary/30 bg-primary/15 text-primary';
+        : 'border-border bg-muted text-foreground';
   return (
     <span
       className={cn(
@@ -93,6 +93,14 @@ function GameBanner({
 }) {
   const { fixture } = row;
   const pick = marketPick(market, row.prediction, row.markets);
+  // Left accent rail colour by outcome (green YES / red NO / slate neutral 1X2)
+  // so the list is scannable at a glance.
+  const rail =
+    pick?.tone === 'pos'
+      ? 'before:bg-success'
+      : pick?.tone === 'neg'
+        ? 'before:bg-destructive'
+        : 'before:bg-border';
   // The value edge ("+X%") only applies to BTTS (the only market with odds).
   const edge = market === 'btts' ? rowEdge(row) : null;
   // Tier: BTTS uses the calibrated stored tier; other markets classify the pick.
@@ -114,7 +122,13 @@ function GameBanner({
           onOpen();
         }
       }}
-      className="group flex flex-col gap-2 rounded-2xl border border-border bg-card p-3.5 transition-colors hover:border-primary/40 hover:bg-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className={cn(
+        'group relative flex flex-col gap-2 overflow-hidden rounded-2xl border border-border bg-card p-3.5 pl-4',
+        'transition-all hover:border-primary/40 hover:bg-accent/30 hover:shadow-md active:scale-[0.99]',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'before:absolute before:inset-y-0 before:left-0 before:w-1',
+        rail,
+      )}
     >
       {/* Top line: kickoff time + competition (+ in-history check). */}
       <div className="flex items-center gap-2">
@@ -132,6 +146,9 @@ function GameBanner({
       <div className="font-semibold leading-tight">
         {fixture.home.name} <span className="text-muted-foreground">vs</span> {fixture.away.name}
       </div>
+
+      {/* Probability as a quantity — the model's confidence at a glance. */}
+      {pick && <ProbabilityMeter value={pick.probability} tone={pick.tone} />}
 
       {/* Bottom line: verdict + meta on the left, actions on the right. */}
       <div className="flex items-center justify-between gap-2">
