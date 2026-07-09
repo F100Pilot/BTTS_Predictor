@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.3.7.1';
+export const APP_VERSION = '0.3.7.2';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.7.2: Correções de layout no telemóvel — a tabela "Desempenho do modelo" (Histórico) deixa de sair do ecrã (as colunas "Previsto méd." e "Real" ficam escondidas em ecrãs pequenos, aparecem em ecrãs maiores), e adicionámos uma salvaguarda geral para nada transbordar na horizontal.',
   'v0.3.7.1: Estados vazios mais úteis — quando o Ao Vivo não tem jogos a acompanhar, ganha um botão "Ver Jogos de Hoje"; quando o Histórico → Apostas está vazio, um botão "Ir para Martingale". Menos becos sem saída, mais um próximo passo à mão.',
   'v0.3.7.0: Modelo de Mais/Menos 2.5 e 1X2 melhorado com a correção Dixon-Coles — o Poisson simples subestima os empates de poucos golos (0-0 e 1-1) e sobrestima os 1-0/0-1; o ajuste corrige isso, aproximando as probabilidades de Over/Under e de Resultado (1X2) do que acontece na realidade. As previsões destes mercados são recalculadas automaticamente. (O BTTS mantém o seu próprio modelo.)',
   'v0.3.6.4: Barra de ações do Histórico reorganizada e mais limpa. O “Atualizar resultados” passa a ser o botão principal em destaque (verde) e fica alinhado com os restantes, em vez de botões espalhados e desalinhados. As ações menos usadas (Exportar CSV e Limpar) foram recolhidas num menu “•••”. Aplica-se às Previsões e às Apostas.',

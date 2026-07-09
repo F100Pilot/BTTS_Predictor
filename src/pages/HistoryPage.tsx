@@ -710,8 +710,10 @@ export function HistoryPage() {
                                 <TableHead>Classificação</TableHead>
                                 <TableHead>Amostras</TableHead>
                                 <TableHead>Acerto</TableHead>
-                                <TableHead>Previsto méd.</TableHead>
-                                <TableHead>Real (BTTS)</TableHead>
+                                <TableHead className="hidden sm:table-cell">
+                                  Previsto méd.
+                                </TableHead>
+                                <TableHead className="hidden sm:table-cell">Real (BTTS)</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -722,10 +724,10 @@ export function HistoryPage() {
                                   </TableCell>
                                   <TableCell>{t.n}</TableCell>
                                   <TableCell className="font-semibold">{t.accuracy}%</TableCell>
-                                  <TableCell className="text-muted-foreground">
+                                  <TableCell className="hidden text-muted-foreground sm:table-cell">
                                     {t.avgPredicted}%
                                   </TableCell>
-                                  <TableCell className="text-muted-foreground">
+                                  <TableCell className="hidden text-muted-foreground sm:table-cell">
                                     {t.actualRate}%
                                   </TableCell>
                                 </TableRow>

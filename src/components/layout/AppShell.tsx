@@ -52,7 +52,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="container flex-1 py-4 pb-24 md:pb-8">{children}</main>
+      {/* overflow-x-clip is a safety net against any horizontal bleed on mobile;
+          `clip` (not `hidden`) doesn't create a scroll container, so sticky
+          descendants like the header and the market selector keep working. */}
+      <main className="container flex-1 overflow-x-clip py-4 pb-24 md:pb-8">{children}</main>
 
       {/* Mobile bottom navigation — a fixed grid so every destination is always
           visible (no horizontal scroll hiding items) with the active tab marked

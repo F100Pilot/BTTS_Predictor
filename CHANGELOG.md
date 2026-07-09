@@ -20,6 +20,16 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.7.2
+
+- **Overflow horizontal no telemóvel**: a tabela "Desempenho do modelo"
+  (Histórico) tinha 5 colunas e saía do ecrã — as colunas "Previsto méd." e
+  "Real (BTTS)" passam a `hidden sm:table-cell` (só a partir de ecrãs médios),
+  ficando as essenciais (Classificação/Amostras/Acerto) sempre visíveis.
+- **Salvaguarda global**: `overflow-x-clip` no `<main>` para impedir qualquer
+  bleed horizontal. Usa `clip` (não `hidden`) para não criar contexto de scroll
+  e portanto não quebrar os elementos `sticky` (cabeçalho, seletor de mercado).
+
 ## 0.3.7.1
 
 - **Estados vazios com micro-ação**: o `EmptyState` do Ao Vivo (sem jogos a
