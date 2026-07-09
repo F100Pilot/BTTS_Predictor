@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.6.1
+
+- **Skeletons de carregamento** na página de Jogos: o spinner central dá lugar a
+  cartões-fantasma (`GameListSkeleton` + primitivo `Skeleton`) com a forma dos
+  banners reais, tanto no carregamento inicial como enquanto as previsões são
+  calculadas — reduz o “salto” de layout quando os dados chegam.
+
 ## 0.3.6.0
 
 Segunda vaga da renovação visual (FotMob/Sofascore), sem alterar dados/modelo.

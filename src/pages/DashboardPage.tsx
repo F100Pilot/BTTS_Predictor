@@ -39,13 +39,14 @@ import {
 } from '@/components/dashboard/filters';
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { GamesTable } from '@/components/dashboard/GamesTable';
+import { GameListSkeleton } from '@/components/dashboard/GameListSkeleton';
 import { IconAction } from '@/components/common/IconAction';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useFixtureCache } from '@/store/fixtureCacheStore';
 import { useDashboardFilters } from '@/store/dashboardFiltersStore';
 import { useCalibration } from '@/store/calibrationStore';
-import { Spinner, EmptyState } from '@/components/common/States';
+import { EmptyState } from '@/components/common/States';
 import { QuotaBadge } from '@/components/common/QuotaBadge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -459,9 +460,9 @@ export function DashboardPage() {
       )}
 
       {loading ? (
-        <Spinner label="A calcular previsões..." />
+        <GameListSkeleton />
       ) : filtered.length === 0 && analyzing ? (
-        <Spinner label={`A analisar previsões... (${analyzedInBatch}/${batchTotal})`} />
+        <GameListSkeleton />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<CalendarX className="h-8 w-8 text-muted-foreground" />}
