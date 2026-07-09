@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.3.5.1';
+export const APP_VERSION = '0.3.6.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.6.0: Continuação da renovação visual. A barra de navegação inferior deixa de deslizar na horizontal — os 6 destinos passam a caber todos no ecrã (nada fica escondido). Cada jogo na lista mostra agora um “emblema” circular com as iniciais e cor própria de cada equipa (identidade visual sem depender de imagens externas). E o seletor de mercado (BTTS / O-U 2.5 / 1X2) na página de Jogos fica fixo no topo ao deslizar a lista, para mudares de mercado sem voltar acima.',
   'v0.3.5.1: Correção de publicação — a atualização visual (v0.3.5.0) não chegou a ser publicada por falha no build (faltava declarar a fonte Inter nas dependências). Corrigido: o deploy volta a funcionar e a nova versão passa a aparecer no aviso "Nova versão disponível".',
   'v0.3.5.0: Renovação visual inspirada no FotMob/Sofascore. A app passa a usar o tipo de letra Inter (números alinhados nas estatísticas), e as cores ficaram mais claras: o verde-esmeralda é agora só da marca/navegação, enquanto os resultados falam por cores próprias — verde “ambas marcam/ganha”, vermelho “não/perdida”. Cada jogo na lista ganhou uma barra colorida à esquerda (verde/vermelho/neutro) e uma mini-barra de probabilidade, para perceberes o prognóstico num relance. A navegação inferior marca o separador ativo com um traço, e os cartões de estatística ficaram mais legíveis.',
   'v0.3.4.3: Correção importante — ao abrir a análise a partir de uma aposta (ou de um jogo no histórico), a app dizia "dados insuficientes" mesmo quando o jogo tinha histórico. A forma das equipas passa a ser associada pelo nome (e não por um id que faltava), por isso a análise abre com os dados corretos. Passas também a poder apagar apostas no Histórico → Apostas (botão do caixote do lixo em cada linha).',

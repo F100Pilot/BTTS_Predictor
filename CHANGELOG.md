@@ -20,6 +20,19 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.6.0
+
+Segunda vaga da renovação visual (FotMob/Sofascore), sem alterar dados/modelo.
+
+- **Navegação inferior sem scroll**: deixa de ser uma faixa deslizável na
+  horizontal (que escondia destinos) e passa a uma **grelha fixa de 6 colunas**
+  — todos os separadores visíveis, com o traço indicador no ativo.
+- **Emblemas das equipas** nos cartões de jogo (`GamesTable`): `TeamAvatar`
+  circular com iniciais + cor determinística por nome (sem imagens externas).
+  Os nomes continuam a poder quebrar linha (nunca são cortados).
+- **Seletor de mercado fixo** (sticky, `top-14`) na página de Jogos, para trocar
+  de mercado sem voltar ao topo.
+
 ## 0.3.5.1
 
 - **Correção de build/deploy**: a v0.3.5.0 falhou a publicação no GitHub Pages —

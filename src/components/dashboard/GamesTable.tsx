@@ -4,6 +4,7 @@ import { ListPlus, Check } from 'lucide-react';
 import type { DashboardRow } from '@/domain/types';
 import type { HistoryRecord } from '@/data/cache/db';
 import { IconAction } from '@/components/common/IconAction';
+import { TeamAvatar } from '@/components/common/TeamAvatar';
 import { TierBadge, ProbabilityMeter } from '@/components/common/PredictionWidgets';
 import { tierForProbability } from '@/core/classification/classification';
 import { marketPick, type MarketKey, type MarketPick } from '@/core/markets/markets';
@@ -142,9 +143,18 @@ function GameBanner({
         )}
       </div>
 
-      {/* Match name — full width so both teams always show in full. */}
-      <div className="font-semibold leading-tight">
-        {fixture.home.name} <span className="text-muted-foreground">vs</span> {fixture.away.name}
+      {/* Teams with crest stand-ins — wraps (never truncates) so long names
+          always show in full. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold leading-tight">
+        <span className="inline-flex items-center gap-1.5">
+          <TeamAvatar name={fixture.home.name} size={20} />
+          {fixture.home.name}
+        </span>
+        <span className="text-xs font-normal text-muted-foreground">vs</span>
+        <span className="inline-flex items-center gap-1.5">
+          <TeamAvatar name={fixture.away.name} size={20} />
+          {fixture.away.name}
+        </span>
       </div>
 
       {/* Probability as a quantity — the model's confidence at a glance. */}

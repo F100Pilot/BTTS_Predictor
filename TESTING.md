@@ -71,7 +71,8 @@ Após mudanças de UI/dados, verificar no browser (`npm run dev`):
 5. **Definições** — chave RapidAPI + Proxy CORS, "Testar ligação", pesos, calibração.
 6. **Visual** — fonte Inter aplicada; nos cartões de jogo, barra de acento à
    esquerda + mini-barra de probabilidade com a cor do resultado (verde/vermelho/
-   neutro); navegação inferior com traço no separador ativo (claro/escuro).
+   neutro) + emblemas das equipas; navegação inferior em grelha de 6 (sem scroll)
+   com traço no separador ativo; seletor de mercado fixo ao deslizar (claro/escuro).
 7. **PWA** — instala, funciona offline, aviso de atualização.
 
 ---
