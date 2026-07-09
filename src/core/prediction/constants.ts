@@ -14,6 +14,14 @@ export const HOME_ADVANTAGE = 1.05;
 export const MARKETS_HOME_ADVANTAGE = 1.1;
 
 /**
+ * Dixon-Coles low-score dependence parameter (ρ). Independent Poisson slightly
+ * under-predicts 0-0 and 1-1 draws and over-predicts 1-0 / 0-1; a small negative
+ * ρ corrects the four low-score cells. −0.13 is the value estimated in the
+ * original Dixon-Coles (1997) study and is a robust practical default.
+ */
+export const DIXON_COLES_RHO = -0.13;
+
+/**
  * Half-life (in days) for the recency weighting of recent matches and H2H: a
  * result this old counts half as much as a brand-new one. ~6 months keeps a
  * full season relevant while clearly favouring current form.

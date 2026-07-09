@@ -55,4 +55,29 @@ describe('predictMarkets', () => {
     const { lambdaHome, lambdaAway } = expectedGoals(team(1.5, 1.5), team(1.5, 1.5));
     expect(lambdaHome).toBeGreaterThan(lambdaAway);
   });
+
+  it('Dixon-Coles lifts the draw probability vs independent Poisson', () => {
+    const home = team(1.3, 1.2);
+    const away = team(1.2, 1.3);
+    const { lambdaHome, lambdaAway } = expectedGoals(home, away);
+    // Independent-Poisson draw for the same expected goals (no low-score τ).
+    const poisson = (k: number, l: number): number => {
+      let f = 1;
+      for (let i = 2; i <= k; i++) f *= i;
+      return (Math.exp(-l) * l ** k) / f;
+    };
+    let indepDraw = 0;
+    for (let g = 0; g <= 8; g++) indepDraw += poisson(g, lambdaHome) * poisson(g, lambdaAway);
+    const m = predictMarkets(home, away);
+    // ρ<0 boosts 0-0 and 1-1, so the modelled draw is higher than independent.
+    expect(m.draw).toBeGreaterThan(indepDraw);
+  });
+
+  it('keeps all market probabilities within [0, 1]', () => {
+    const m = predictMarkets(team(3.2, 0.4), team(0.3, 3.5));
+    for (const p of [m.over25, m.under25, m.homeWin, m.draw, m.awayWin]) {
+      expect(p).toBeGreaterThanOrEqual(0);
+      expect(p).toBeLessThanOrEqual(1);
+    }
+  });
 });
