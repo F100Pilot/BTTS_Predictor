@@ -20,6 +20,16 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.6.4
+
+- **Toolbar do Histórico reorganizado**: os botões deixam de estar espalhados e
+  alinhados à direita de forma irregular. Passa a um toolbar único alinhado à
+  esquerda com **"Atualizar resultados" como ação principal** (botão primário),
+  seguido de Adicionar jogo / Por data / Colapsar; as ações secundárias
+  (Exportar CSV, Limpar) foram para um menu de overflow "•••" (`MoreHorizontal`),
+  reduzindo o ruído visual. O separador Apostas segue o mesmo destaque no
+  "Atualizar resultados".
+
 ## 0.3.6.3
 
 - **Skeleton no Histórico**: o estado de carregamento passa do spinner para um
