@@ -56,7 +56,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, SlidersHorizontal, MoreHorizontal } from 'lucide-react';
+import { BarChart3, SlidersHorizontal, MoreHorizontal, Coins } from 'lucide-react';
 import { bttsVerdict, tierForProbability } from '@/core/classification/classification';
 import { winProfit } from '@/core/martingale/martingale';
 import {
@@ -1084,6 +1084,11 @@ export function HistoryPage() {
             <EmptyState
               title="Sem apostas"
               description="Adicione apostas na secção Martingale (ou a partir da análise de um jogo)."
+              action={
+                <Button size="sm" onClick={() => navigate('/martingale')}>
+                  <Coins /> Ir para Martingale
+                </Button>
+              }
             />
           ) : (
             <>

@@ -20,6 +20,7 @@ import { TeamAvatar } from '@/components/common/TeamAvatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { EmptyState } from '@/components/common/States';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { formatTime } from '@/lib/format';
 import { toPercent } from '@/lib/math';
 import { createLogger } from '@/services/logger';
@@ -467,6 +468,11 @@ export function LiveScorePage() {
           icon={<Radio className="h-8 w-8 text-muted-foreground" />}
           title="Sem jogos ao vivo a acompanhar"
           description="Só aparecem aqui jogos que estão no teu histórico de previsões ou nas tuas apostas. Analisa um jogo ou faz uma aposta para o acompanhares ao vivo."
+          action={
+            <Button size="sm" onClick={() => navigate('/')}>
+              Ver Jogos de Hoje
+            </Button>
+          }
         />
       ) : (
         <div className="grid gap-2.5 lg:grid-cols-2">
