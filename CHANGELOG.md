@@ -20,6 +20,15 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.5.1
+
+- **Correção de build/deploy**: a v0.3.5.0 falhou a publicação no GitHub Pages —
+  o `main.tsx` importa `@fontsource-variable/inter`, mas o pacote estava só em
+  `node_modules` (nunca declarado). O `npm ci` do CI não o instalava e o Rollup
+  falhava a resolver o import. Adicionado `@fontsource-variable/inter@^5.2.8` às
+  dependências (+ `package-lock.json`). O build local passava por ter a pasta em
+  cache — daí só ter falhado no CI.
+
 ## 0.3.5.0
 
 Renovação visual (inspiração FotMob/Sofascore), sem alterar dados nem o modelo.
