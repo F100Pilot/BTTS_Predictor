@@ -37,9 +37,9 @@ import { cn } from '@/lib/utils';
 
 const log = createLogger('AnalysisPage');
 
-/** Text colour for a market pick tone (green pos / red neg / primary neutral). */
+/** Text colour for a market pick tone (green pos / red neg / neutral slate). */
 function pickToneClass(tone: 'pos' | 'neg' | 'neutral'): string {
-  return tone === 'pos' ? 'text-success' : tone === 'neg' ? 'text-destructive' : 'text-primary';
+  return tone === 'pos' ? 'text-success' : tone === 'neg' ? 'text-destructive' : 'text-foreground';
 }
 
 /** A segmented probability bar for the non-BTTS markets (Over/Under, 1X2). */
@@ -52,7 +52,7 @@ function MarketBar({ market, markets }: { market: MarketKey; markets: MarketPred
             key: 'over',
             label: `Over 2.5 ${pct(markets.over25)}%`,
             v: markets.over25,
-            cls: 'bg-primary',
+            cls: 'bg-success',
           },
           {
             key: 'under',

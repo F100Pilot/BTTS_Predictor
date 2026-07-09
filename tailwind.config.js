@@ -11,6 +11,17 @@ export default {
       screens: { '2xl': '1280px' },
     },
     extend: {
+      fontFamily: {
+        sans: [
+          '"Inter Variable"',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

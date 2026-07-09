@@ -69,7 +69,10 @@ Após mudanças de UI/dados, verificar no browser (`npm run dev`):
    sua análise; "Atualizar resultados" liquida via Flashscore; introduzir o score (golos
    casa–fora) deriva o BTTS e liquida a aposta (ganha/perdida).
 5. **Definições** — chave RapidAPI + Proxy CORS, "Testar ligação", pesos, calibração.
-6. **PWA** — instala, funciona offline, aviso de atualização.
+6. **Visual** — fonte Inter aplicada; nos cartões de jogo, barra de acento à
+   esquerda + mini-barra de probabilidade com a cor do resultado (verde/vermelho/
+   neutro); navegação inferior com traço no separador ativo (claro/escuro).
+7. **PWA** — instala, funciona offline, aviso de atualização.
 
 ---
 

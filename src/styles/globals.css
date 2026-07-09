@@ -8,7 +8,8 @@
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --primary: 160 84% 39%;
+    /* Emerald brand — teal-leaning so it reads distinct from the outcome green. */
+    --primary: 165 90% 36%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
@@ -16,9 +17,11 @@
     --muted-foreground: 215 16% 47%;
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
-    --destructive: 0 72% 51%;
+    /* Outcome semantics: BTTS NÃO / loss. */
+    --destructive: 4 74% 52%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 45%;
+    /* Outcome semantics: BTTS SIM / win. */
+    --success: 145 72% 42%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
@@ -33,7 +36,7 @@
     --foreground: 210 40% 98%;
     --card: 222 44% 14%;
     --card-foreground: 210 40% 98%;
-    --primary: 160 84% 45%;
+    --primary: 165 84% 44%;
     --primary-foreground: 222 47% 11%;
     --secondary: 217 33% 20%;
     --secondary-foreground: 210 40% 98%;
@@ -41,10 +44,11 @@
     --muted-foreground: 215 20% 65%;
     --accent: 217 33% 22%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 45%;
+    /* Brighter outcomes for the deep slate surface. */
+    --destructive: 4 76% 58%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 145 65% 52%;
+    --success-foreground: 222 47% 11%;
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
     --border: 217 33% 24%;
@@ -58,14 +62,18 @@
 
   body {
     @apply bg-background text-foreground;
+    /* calt/liga for Inter + tnum so every stat digit is width-aligned. */
     font-feature-settings:
-      'rlig' 1,
+      'cv11' 1,
+      'ss01' 1,
+      'tnum' 1,
       'calt' 1;
     -webkit-font-smoothing: antialiased;
   }
 
   html {
     font-family:
+      'Inter Variable',
       ui-sans-serif,
       system-ui,
       -apple-system,

@@ -20,6 +20,26 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.5.0
+
+Renovação visual (inspiração FotMob/Sofascore), sem alterar dados nem o modelo.
+
+- **Tipografia**: liga-se o **Inter Variable** (já instalado, mas por usar) como
+  fonte base + `tabular-nums` global — todos os números das estatísticas ficam
+  alinhados. `fontFamily.sans` no Tailwind e stack no `globals.css`.
+- **Cores com significado**: o esmeralda (`--primary`, agora mais teal) passa a
+  ser só marca/navegação/interação; os **resultados** falam por cores próprias —
+  `success` (SIM/ganha), `destructive` (NÃO/perdida), `warning` (neutro). Tons
+  afinados e mais claros no modo escuro. `VerdictPill` e `ProbabilityBar` deixam
+  de usar o verde da marca para o valor.
+- **Cartões de jogo** (`GamesTable`): barra de acento à esquerda pela cor do
+  resultado, nova `ProbabilityMeter` (probabilidade como quantidade) por baixo
+  das equipas, sombra/realce ao passar/pressionar, e o “pill” neutro (1X2) passa
+  a slate em vez de esmeralda.
+- **Navegação inferior**: separador ativo marcado com um traço superior.
+- **Cartões de estatística** (Martingale): etiquetas em maiúsculas + dígitos
+  alinhados.
+
 ## 0.3.4.3
 
 - **Correção: "dados insuficientes" ao abrir a análise de uma aposta/registo**:

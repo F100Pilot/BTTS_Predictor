@@ -59,8 +59,10 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-xl font-bold">{value}</p>
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="text-xl font-bold tabular-nums">{value}</p>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       </CardContent>
     </Card>
