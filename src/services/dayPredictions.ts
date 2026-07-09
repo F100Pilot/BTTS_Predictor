@@ -23,9 +23,10 @@ const keyFor = (date: string): string => `dashboard:day:${date}`;
  * Bumped whenever the model maths change so previously cached predictions are
  * recomputed instead of shown stale. (m2: recency-decay + Empirical-Bayes;
  * m3: tier classified on the rounded shown percentage;
- * m4: cache now also stores the Poisson markets for the market selector.)
+ * m4: cache now also stores the Poisson markets for the market selector;
+ * m5: Dixon-Coles low-score correction on the Over/Under 2.5 + 1X2 markets.)
  */
-const MODEL_VERSION = 'm4';
+const MODEL_VERSION = 'm5';
 
 /**
  * Signature of the inputs that affect a prediction. When the model version /

@@ -20,6 +20,17 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.7.0
+
+- **Dixon-Coles nos mercados Poisson (O/U 2.5 + 1X2)**: `predictMarkets` passa a
+  aplicar a correção de dependência de resultados baixos (τ nas células 0-0,
+  0-1, 1-0, 1-1) sobre a matriz de resultados, lida de forma consistente para
+  Over/Under e 1X2 (uma só matriz normalizada). ρ = −0.13 (`DIXON_COLES_RHO`,
+  valor do estudo original), τ com clamp ≥0 por segurança. O BTTS continua a
+  usar o seu modelo de fatores. `MODEL_VERSION` → `m5` (invalida a cache de
+  previsões do dia). Novos testes de propriedade (empate ↑ vs Poisson
+  independente; probabilidades em [0,1]).
+
 ## 0.3.6.4
 
 - **Toolbar do Histórico reorganizado**: os botões deixam de estar espalhados e
