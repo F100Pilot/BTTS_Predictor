@@ -41,7 +41,8 @@ import type { FlashFixture } from '@/services/flashscoreMatches';
 import { flashOutcome, flashGoals, buildFixtureIndex } from '@/services/flashscoreSettle';
 import { FinancialDashboard } from '@/components/history/FinancialDashboard';
 import { AddHistoryDialog } from '@/components/history/AddHistoryDialog';
-import { EmptyState, Spinner } from '@/components/common/States';
+import { EmptyState } from '@/components/common/States';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -470,7 +471,32 @@ export function HistoryPage() {
     navigate(`/analysis/${encodeURIComponent(id)}`);
   };
 
-  if (loading) return <Spinner />;
+  if (loading)
+    return (
+      <div className="space-y-3">
+        <h1 className="text-2xl font-bold">Histórico</h1>
+        <div className="space-y-3" aria-hidden>
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-8 w-28 rounded-lg" />
+            <Skeleton className="h-8 w-24 rounded-lg" />
+            <Skeleton className="h-8 w-24 rounded-lg" />
+          </div>
+          <div className="rounded-lg border bg-card">
+            <div className="border-b p-3">
+              <Skeleton className="h-4 w-40" />
+            </div>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 border-b p-3 last:border-0">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="h-4 w-14" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
 
   return (
     <div className="space-y-3">

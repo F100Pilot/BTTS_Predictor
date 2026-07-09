@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.6.3
+
+- **Skeleton no Histórico**: o estado de carregamento passa do spinner para um
+  placeholder com a forma da tabela (barra de ações + linhas), reutilizando o
+  primitivo `Skeleton`. Completa a varredura de skeletons (Jogos, Análise, Ao
+  Vivo e Histórico).
+
 ## 0.3.6.2
 
 - **Skeletons na Análise e no Ao Vivo**: os estados de carregamento destas

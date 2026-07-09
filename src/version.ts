@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.3.6.2';
+export const APP_VERSION = '0.3.6.3';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.6.3: Os “cartões-fantasma” de carregamento chegam também ao Histórico — ao abrir, vês a forma da tabela enquanto os dados carregam, em vez do símbolo a rodar. Fica igual ao resto da app (Jogos, Análise e Ao Vivo).',
   'v0.3.6.2: Os “cartões-fantasma” de carregamento chegam também à análise de um jogo e à página Ao Vivo — em vez do símbolo a rodar, vês agora a forma do conteúdo enquanto carrega, mais consistente com a lista de Jogos.',
   'v0.3.6.1: Carregamento mais suave na página de Jogos — enquanto as previsões são calculadas, aparecem agora “cartões-fantasma” com a forma dos jogos (em vez de um símbolo a rodar ao centro), para a lista não “saltar” quando os dados chegam.',
   'v0.3.6.0: Continuação da renovação visual. A barra de navegação inferior deixa de deslizar na horizontal — os 6 destinos passam a caber todos no ecrã (nada fica escondido). Cada jogo na lista mostra agora um “emblema” circular com as iniciais e cor própria de cada equipa (identidade visual sem depender de imagens externas). E o seletor de mercado (BTTS / O-U 2.5 / 1X2) na página de Jogos fica fixo no topo ao deslizar a lista, para mudares de mercado sem voltar acima.',
