@@ -20,6 +20,13 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.7.1
+
+- **Estados vazios com micro-ação**: o `EmptyState` do Ao Vivo (sem jogos a
+  acompanhar) ganha um botão "Ver Jogos de Hoje" (→ `/`); o do Histórico →
+  Apostas (sem apostas) ganha "Ir para Martingale" (→ `/martingale`). Dão um
+  próximo passo em vez de deixarem o ecrã num beco sem saída.
+
 ## 0.3.7.0
 
 - **Dixon-Coles nos mercados Poisson (O/U 2.5 + 1X2)**: `predictMarkets` passa a
