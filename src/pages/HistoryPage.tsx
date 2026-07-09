@@ -56,7 +56,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, SlidersHorizontal } from 'lucide-react';
+import { BarChart3, SlidersHorizontal, MoreHorizontal } from 'lucide-react';
 import { bttsVerdict, tierForProbability } from '@/core/classification/classification';
 import { winProfit } from '@/core/martingale/martingale';
 import {
@@ -508,147 +508,161 @@ export function HistoryPage() {
         </TabsList>
 
         <TabsContent value="predictions" className="space-y-3">
-          <div className="flex justify-end">
-            <AddHistoryDialog onAdded={() => void load()} />
-          </div>
           {records.length === 0 ? (
-            <EmptyState
-              icon={<History className="h-8 w-8 text-muted-foreground" />}
-              title="Sem previsões"
-              description="As previsões que consultar serão guardadas aqui automaticamente, ou adicione um jogo manualmente."
-            />
+            <>
+              <div className="flex">
+                <AddHistoryDialog onAdded={() => void load()} />
+              </div>
+              <EmptyState
+                icon={<History className="h-8 w-8 text-muted-foreground" />}
+                title="Sem previsões"
+                description="As previsões que consultar serão guardadas aqui automaticamente, ou adicione um jogo manualmente."
+              />
+            </>
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <div className="flex flex-wrap gap-2">
-                  <Popover open={calOpen} onOpenChange={setCalOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <CalendarIcon />{' '}
-                        {dateFilter ? format(parseISO(dateFilter), 'dd/MM/yyyy') : 'Por data'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar
-                        mode="single"
-                        selected={dateFilter ? parseISO(dateFilter) : undefined}
-                        defaultMonth={dateFilter ? parseISO(dateFilter) : undefined}
-                        onSelect={(d) => {
-                          if (d) setDateFilter(format(d, 'yyyy-MM-dd'));
-                          setCalOpen(false);
-                        }}
-                        modifiers={{ hasRecords: markedDays }}
-                        modifiersClassNames={{
-                          hasRecords:
-                            'font-semibold after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-primary',
-                        }}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" onClick={handleFlashResults} disabled={flashFetching}>
+                  <RefreshCw className={flashFetching ? 'animate-spin' : ''} /> Atualizar resultados
+                </Button>
+                <AddHistoryDialog onAdded={() => void load()} />
+                <Popover open={calOpen} onOpenChange={setCalOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <CalendarIcon />{' '}
+                      {dateFilter ? format(parseISO(dateFilter), 'dd/MM/yyyy') : 'Por data'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Calendar
+                      mode="single"
+                      selected={dateFilter ? parseISO(dateFilter) : undefined}
+                      defaultMonth={dateFilter ? parseISO(dateFilter) : undefined}
+                      onSelect={(d) => {
+                        if (d) setDateFilter(format(d, 'yyyy-MM-dd'));
+                        setCalOpen(false);
+                      }}
+                      modifiers={{ hasRecords: markedDays }}
+                      modifiersClassNames={{
+                        hasRecords:
+                          'font-semibold after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-primary',
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateFilter && (
+                  <Button variant="ghost" size="sm" onClick={() => setDateFilter(null)}>
+                    <X /> Todas
+                  </Button>
+                )}
+                {dayGroups.length > 1 && (
+                  <Button variant="outline" size="sm" onClick={toggleAllDays}>
+                    {allCollapsed ? (
+                      <>
+                        <ChevronDown /> Expandir tudo
+                      </>
+                    ) : (
+                      <>
+                        <ChevronRight /> Colapsar tudo
+                      </>
+                    )}
+                  </Button>
+                )}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <BarChart3 /> Acerto por faixa
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-primary" /> Acerto por faixa —{' '}
+                        {marketLabel(market)}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Taxa de acerto das previsões já liquidadas de {marketLabel(market)},
+                        agrupadas pela percentagem do prognóstico. Ajuda a ver que faixas são mais
+                        fiáveis.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {dialogBands.length === 0 ? (
+                      <EmptyState
+                        title="Sem dados suficientes"
+                        description="Marca o resultado de alguns jogos para veres o acerto por faixa."
                       />
-                    </PopoverContent>
-                  </Popover>
-                  {dateFilter && (
-                    <Button variant="ghost" size="sm" onClick={() => setDateFilter(null)}>
-                      <X /> Todas
-                    </Button>
-                  )}
-                  {dayGroups.length > 1 && (
-                    <Button variant="outline" size="sm" onClick={toggleAllDays}>
-                      {allCollapsed ? (
-                        <>
-                          <ChevronDown /> Expandir tudo
-                        </>
-                      ) : (
-                        <>
-                          <ChevronRight /> Colapsar tudo
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleFlashResults}
-                    disabled={flashFetching}
-                  >
-                    <RefreshCw className={flashFetching ? 'animate-spin' : ''} /> Atualizar
-                    resultados
-                  </Button>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <BarChart3 /> Acerto por faixa
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5 text-primary" /> Acerto por faixa —{' '}
-                          {marketLabel(market)}
-                        </DialogTitle>
-                        <DialogDescription>
-                          Taxa de acerto das previsões já liquidadas de {marketLabel(market)},
-                          agrupadas pela percentagem do prognóstico. Ajuda a ver que faixas são mais
-                          fiáveis.
-                        </DialogDescription>
-                      </DialogHeader>
-                      {dialogBands.length === 0 ? (
-                        <EmptyState
-                          title="Sem dados suficientes"
-                          description="Marca o resultado de alguns jogos para veres o acerto por faixa."
-                        />
-                      ) : (
-                        <ResponsiveContainer
-                          width="100%"
-                          height={Math.max(160, dialogBands.length * 48)}
+                    ) : (
+                      <ResponsiveContainer
+                        width="100%"
+                        height={Math.max(160, dialogBands.length * 48)}
+                      >
+                        <BarChart
+                          layout="vertical"
+                          data={dialogBands}
+                          margin={{ left: 8, right: 32, top: 4, bottom: 4 }}
                         >
-                          <BarChart
-                            layout="vertical"
-                            data={dialogBands}
-                            margin={{ left: 8, right: 32, top: 4, bottom: 4 }}
+                          <CartesianGrid horizontal={false} strokeDasharray="3 3" opacity={0.2} />
+                          <XAxis type="number" domain={[0, 100]} unit="%" fontSize={11} />
+                          <YAxis
+                            type="category"
+                            dataKey="label"
+                            width={56}
+                            fontSize={11}
+                            tickLine={false}
+                          />
+                          <RTooltip
+                            formatter={(v: number, _n, p) => [
+                              `${v}% acerto · ${p?.payload?.n ?? 0} jogo(s)`,
+                              'Faixa',
+                            ]}
+                          />
+                          <Bar
+                            dataKey="accuracy"
+                            radius={[0, 4, 4, 0]}
+                            label={{
+                              position: 'right',
+                              formatter: (v: number) => `${v}%`,
+                              fontSize: 11,
+                            }}
                           >
-                            <CartesianGrid horizontal={false} strokeDasharray="3 3" opacity={0.2} />
-                            <XAxis type="number" domain={[0, 100]} unit="%" fontSize={11} />
-                            <YAxis
-                              type="category"
-                              dataKey="label"
-                              width={56}
-                              fontSize={11}
-                              tickLine={false}
-                            />
-                            <RTooltip
-                              formatter={(v: number, _n, p) => [
-                                `${v}% acerto · ${p?.payload?.n ?? 0} jogo(s)`,
-                                'Faixa',
-                              ]}
-                            />
-                            <Bar
-                              dataKey="accuracy"
-                              radius={[0, 4, 4, 0]}
-                              label={{
-                                position: 'right',
-                                formatter: (v: number) => `${v}%`,
-                                fontSize: 11,
-                              }}
-                            >
-                              {dialogBands.map((b) => (
-                                <Cell key={b.label} fill={accuracyColor(b.accuracy ?? 0)} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Baseado em {dialogCount} jogo(s) liquidado(s). Verde ≥70% · amarelo ≥55% ·
-                        vermelho &lt;55%.
-                      </p>
-                    </DialogContent>
-                  </Dialog>
-                  <Button variant="outline" size="sm" onClick={handleExport}>
-                    <Download /> CSV
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleClear}>
-                    <Trash2 /> Limpar
-                  </Button>
-                </div>
+                            {dialogBands.map((b) => (
+                              <Cell key={b.label} fill={accuracyColor(b.accuracy ?? 0)} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Baseado em {dialogCount} jogo(s) liquidado(s). Verde ≥70% · amarelo ≥55% ·
+                      vermelho &lt;55%.
+                    </p>
+                  </DialogContent>
+                </Dialog>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" aria-label="Mais opções">
+                      <MoreHorizontal />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-48 p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={handleExport}
+                    >
+                      <Download /> Exportar CSV
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-destructive hover:text-destructive"
+                      onClick={handleClear}
+                    >
+                      <Trash2 /> Limpar histórico
+                    </Button>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {fetchMsg && <p className="text-sm text-muted-foreground">{fetchMsg}</p>}
@@ -1073,16 +1087,11 @@ export function HistoryPage() {
             />
           ) : (
             <>
-              <div className="flex items-center justify-end gap-2">
-                {fetchMsg && <span className="text-sm text-muted-foreground">{fetchMsg}</span>}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleFlashResults}
-                  disabled={flashFetching}
-                >
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" onClick={handleFlashResults} disabled={flashFetching}>
                   <RefreshCw className={flashFetching ? 'animate-spin' : ''} /> Atualizar resultados
                 </Button>
+                {fetchMsg && <span className="text-sm text-muted-foreground">{fetchMsg}</span>}
               </div>
               <FinancialDashboard bets={bets} initialBankroll={initialBankroll} />
               <div className="rounded-lg border bg-card">
