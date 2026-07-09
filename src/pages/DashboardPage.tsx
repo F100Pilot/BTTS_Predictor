@@ -423,8 +423,11 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Market selector — the whole list/ranking adapts to the chosen market. */}
-      <MarketSelector value={market} onChange={setMarket} />
+      {/* Market selector — the whole list/ranking adapts to the chosen market.
+          Sticky under the header so it stays reachable while scrolling the list. */}
+      <div className="sticky top-14 z-30 -mx-4 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur">
+        <MarketSelector value={market} onChange={setMarket} />
+      </div>
 
       {analyzing && (
         <div className="space-y-1">
