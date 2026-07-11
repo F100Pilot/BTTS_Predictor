@@ -20,6 +20,18 @@ Sempre que mudar a versão em `src/version.ts`, acrescente uma entrada abaixo.
 
 ---
 
+## 0.3.8.0
+
+- **Filtro "Só previsões fortes"** na página de Jogos: a lista passa a mostrar
+  apenas jogos cuja previsão (no mercado selecionado) é `strong` ou
+  `very-strong` — Média/Fraca ficam escondidas. Novo `strongOnly` no
+  `settingsStore` (persistido, **ligado por omissão**) + `setStrongOnly`; toggle
+  no menu de opções (ícone estrela) e botão "Mostrar todas as previsões" no
+  estado vazio. Indicação "· só fortes" no subtítulo. A análise **não** é
+  afetada (os jogos continuam a ser analisados; o filtro é só de visualização —
+  para BTTS usa o tier calibrado, para O/U 2.5 e 1X2 classifica o pick com
+  `tierForProbability`).
+
 ## 0.3.7.2
 
 - **Overflow horizontal no telemóvel**: a tabela "Desempenho do modelo"

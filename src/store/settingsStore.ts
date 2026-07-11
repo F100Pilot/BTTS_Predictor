@@ -25,6 +25,8 @@ interface SettingsState {
   majorOnly: boolean;
   /** Hide (and skip analysing) fixtures whose kickoff is already in the past. */
   hideStarted: boolean;
+  /** Show only games whose (selected-market) prediction is "strong" or above. */
+  strongOnly: boolean;
   /** How many fixtures to analyse per batch (kickoff order). 0 = analyse all. */
   analysisBatchSize: number;
   weights: Record<FactorKey, number>;
@@ -54,6 +56,7 @@ interface SettingsState {
   setHideAmateur: (value: boolean) => void;
   setMajorOnly: (value: boolean) => void;
   setHideStarted: (value: boolean) => void;
+  setStrongOnly: (value: boolean) => void;
   setAnalysisBatchSize: (value: number) => void;
   setWeights: (weights: Record<FactorKey, number>) => void;
   /** Apply results-based weights, remembering the current ones as `prevWeights`. */
@@ -85,6 +88,7 @@ export const useSettings = create<SettingsState>()(
       hideAmateur: true,
       majorOnly: true,
       hideStarted: true,
+      strongOnly: true,
       analysisBatchSize: 0, // 0 = analyse all (no per-day limit)
       weights: { ...DEFAULT_WEIGHTS },
       prevWeights: null,
@@ -108,6 +112,7 @@ export const useSettings = create<SettingsState>()(
       setHideAmateur: (value) => set({ hideAmateur: value }),
       setMajorOnly: (value) => set({ majorOnly: value }),
       setHideStarted: (value) => set({ hideStarted: value }),
+      setStrongOnly: (value) => set({ strongOnly: value }),
       setAnalysisBatchSize: (value) => set({ analysisBatchSize: Math.max(0, Math.round(value)) }),
       setWeights: (weights) => set({ weights }),
       applyWeights: (weights) => set((s) => ({ prevWeights: s.weights, weights })),
