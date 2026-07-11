@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   Trophy,
   Clock,
+  Star,
   Settings,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -21,7 +22,8 @@ import { getProvider } from '@/data/providers/registry';
 import { buildDashboardRow, sortDashboardRowsByMarket } from '@/services/analysisService';
 import { useMarket } from '@/store/marketStore';
 import { MarketSelector } from '@/components/common/MarketSelector';
-import { marketLabel } from '@/core/markets/markets';
+import { marketLabel, marketPick, type MarketKey } from '@/core/markets/markets';
+import { tierForProbability } from '@/core/classification/classification';
 import { isMinorCompetition, isMajorCompetition } from '@/core/classification/competitions';
 import {
   loadDayPredictions,
@@ -72,6 +74,21 @@ function orderByKickoff(fixtures: Fixture[]): Fixture[] {
   });
 }
 
+const STRONG_TIERS = new Set(['strong', 'very-strong']);
+
+/** Whether a row's prediction for the selected market is "strong" or above.
+ * BTTS uses the stored (calibrated) tier; other markets classify the pick.
+ * Rows without a prediction yet (still analysing) count as not-strong. */
+function isStrongOrAbove(row: DashboardRow, market: MarketKey): boolean {
+  let tier: string | undefined;
+  if (market === 'btts') tier = row.prediction?.tier;
+  else {
+    const pick = marketPick(market, row.prediction, row.markets);
+    tier = pick ? tierForProbability(pick.probability) : undefined;
+  }
+  return tier ? STRONG_TIERS.has(tier) : false;
+}
+
 export function DashboardPage() {
   const data = useDataService();
   const weights = useSettings((s) => s.weights);
@@ -100,6 +117,8 @@ export function DashboardPage() {
   const setMajorOnly = useSettings((s) => s.setMajorOnly);
   const hideStarted = useSettings((s) => s.hideStarted);
   const setHideStarted = useSettings((s) => s.setHideStarted);
+  const strongOnly = useSettings((s) => s.strongOnly);
+  const setStrongOnly = useSettings((s) => s.setStrongOnly);
   const batchSize = useSettings((s) => s.analysisBatchSize);
   const providerId = useSettings((s) => s.providerId);
   const cacheFixtures = useFixtureCache((s) => s.put);
@@ -274,17 +293,17 @@ export function DashboardPage() {
   }, [batchSize, fixtures.length]);
 
   const favoriteCompetition = useSettings((s) => s.favoriteCompetition);
-  const filtered = useMemo(
-    () =>
-      sortByFavourite(
-        // Sort by the selected market's dominant probability so the strongest
-        // games for that market appear on top, then apply filters. Sorting here
-        // (not in setRows) avoids re-sorting on every per-fixture prediction.
-        applyFilters(sortDashboardRowsByMarket(rows, market), filters),
-        favoriteCompetition,
-      ),
-    [rows, filters, favoriteCompetition, market],
-  );
+  const filtered = useMemo(() => {
+    const base = sortByFavourite(
+      // Sort by the selected market's dominant probability so the strongest
+      // games for that market appear on top, then apply filters. Sorting here
+      // (not in setRows) avoids re-sorting on every per-fixture prediction.
+      applyFilters(sortDashboardRowsByMarket(rows, market), filters),
+      favoriteCompetition,
+    );
+    // Keep only "strong"/"very-strong" predictions when the toggle is on.
+    return strongOnly ? base.filter((r) => isStrongOrAbove(r, market)) : base;
+  }, [rows, filters, favoriteCompetition, market, strongOnly]);
   // Competition options are locked to the selected country.
   const competitions = useMemo(
     () => uniqueCompetitions(rows, filters.country),
@@ -338,6 +357,7 @@ export function DashboardPage() {
           <p className="text-sm text-muted-foreground">
             {formatDate(filters.date)} · {filtered.length} jogo(s) · ordenados por{' '}
             {marketLabel(market)}
+            {strongOnly && ' · só fortes'}
             {analyzing && ` · a analisar ${analyzedInBatch}/${batchTotal}…`}
             {showWaiting && ` · ${waiting} em espera`}
           </p>
@@ -391,6 +411,12 @@ export function DashboardPage() {
                   icon={<Clock className="h-4 w-4" />}
                   active={hideStarted}
                   onClick={() => setHideStarted(!hideStarted)}
+                />
+                <IconAction
+                  label={strongOnly ? 'Só previsões fortes (ativo)' : 'Só previsões fortes'}
+                  icon={<Star className="h-4 w-4" />}
+                  active={strongOnly}
+                  onClick={() => setStrongOnly(!strongOnly)}
                 />
                 <IconAction
                   label="Exportar CSV"
@@ -474,17 +500,24 @@ export function DashboardPage() {
                 ? `Há ${waiting} jogo(s) por analisar. Usa "Analisar mais" para continuar.`
                 : fixtures.length === 0
                   ? 'Sem jogos por começar para os filtros atuais. Fora de época as ligas de clubes param, e os jogos que já começaram estão escondidos.'
-                  : 'Experimente outra data ou reduza os filtros aplicados.'
+                  : strongOnly
+                    ? 'Nenhum jogo com previsão forte ou acima neste mercado. Desliga "Só previsões fortes" para veres todos.'
+                    : 'Experimente outra data ou reduza os filtros aplicados.'
           }
           action={
-            fixtures.length === 0 && !loadError ? (
+            !loadError && (strongOnly || (fixtures.length === 0 && (hideStarted || majorOnly))) ? (
               <div className="flex flex-col gap-2 sm:flex-row">
-                {hideStarted && (
+                {strongOnly && (
+                  <Button variant="outline" size="sm" onClick={() => setStrongOnly(false)}>
+                    <Star /> Mostrar todas as previsões
+                  </Button>
+                )}
+                {fixtures.length === 0 && hideStarted && (
                   <Button variant="outline" size="sm" onClick={() => setHideStarted(false)}>
                     Mostrar jogos já começados
                   </Button>
                 )}
-                {majorOnly && (
+                {fixtures.length === 0 && majorOnly && (
                   <Button variant="outline" size="sm" onClick={() => setMajorOnly(false)}>
                     Mostrar todas as competições
                   </Button>

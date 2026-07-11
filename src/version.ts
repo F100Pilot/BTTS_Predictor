@@ -7,10 +7,11 @@
  * for the version shown in the app (package.json keeps a 3-part semver mirror
  * for tooling, since npm requires valid semver).
  */
-export const APP_VERSION = '0.3.7.2';
+export const APP_VERSION = '0.3.8.0';
 
 /** Highlights of the current version, shown in the "what's new" popup on entry. */
 export const WHATS_NEW: string[] = [
+  'v0.3.8.0: A página de Jogos passa a mostrar só previsões "Forte" ou "Muito Forte" (no mercado selecionado) — os jogos Média/Fraca ficam escondidos, para te focares no que interessa. É um novo filtro "Só previsões fortes", ligado por omissão, que podes desligar no menu de opções (ícone estrela) ou no aviso de lista vazia. Os jogos continuam a ser analisados na mesma; o filtro é só de visualização.',
   'v0.3.7.2: Correções de layout no telemóvel — a tabela "Desempenho do modelo" (Histórico) deixa de sair do ecrã (as colunas "Previsto méd." e "Real" ficam escondidas em ecrãs pequenos, aparecem em ecrãs maiores), e adicionámos uma salvaguarda geral para nada transbordar na horizontal.',
   'v0.3.7.1: Estados vazios mais úteis — quando o Ao Vivo não tem jogos a acompanhar, ganha um botão "Ver Jogos de Hoje"; quando o Histórico → Apostas está vazio, um botão "Ir para Martingale". Menos becos sem saída, mais um próximo passo à mão.',
   'v0.3.7.0: Modelo de Mais/Menos 2.5 e 1X2 melhorado com a correção Dixon-Coles — o Poisson simples subestima os empates de poucos golos (0-0 e 1-1) e sobrestima os 1-0/0-1; o ajuste corrige isso, aproximando as probabilidades de Over/Under e de Resultado (1X2) do que acontece na realidade. As previsões destes mercados são recalculadas automaticamente. (O BTTS mantém o seu próprio modelo.)',
